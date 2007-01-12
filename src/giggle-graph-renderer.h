@@ -15,6 +15,18 @@ G_BEGIN_DECLS
 typedef struct GigCellRendererGraph GigCellRendererGraph;
 typedef struct GigCellRendererGraphClass GigCellRendererGraphClass;
 
+/* FIXME: perhaps should be splitted out to their own files */
+typedef struct GigBranchInfo GigBranchInfo;
+
+struct GigBranchInfo {
+	const gchar *name;
+};
+
+typedef struct GigRevisionInfo GigRevisionInfo;
+
+struct GigRevisionInfo {
+};
+
 struct GigCellRendererGraphClass {
 	GtkCellRendererClass parent_class;
 };
@@ -22,11 +34,12 @@ struct GigCellRendererGraphClass {
 struct GigCellRendererGraph {
 	GtkCellRenderer parent;
 
+	/*<private>*/
 	gpointer _priv;
 };
 
 GType		      gig_cell_renderer_graph_get_type (void);
-GigCellRendererGraph *gig_cell_renderer_graph_new      (void);
+GigCellRendererGraph *gig_cell_renderer_graph_new      (GigBranchInfo **branches);
 
 G_END_DECLS
 
