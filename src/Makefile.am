@@ -11,6 +11,15 @@ giggle_SOURCES =			\
 giggle_LDADD = 				\
 	$(GIGGLE_LIBS)
 
+noinst_PROGRAMS = 			\
+	test-patch-view
+
+test_patch_view_SOURCES =		\
+	test-patch-view.c
+
+test_patch_view_LDADD = 		\
+	$(GIGGLE_LIBS)
+
 marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
 	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --header) > xgen-gmh \
