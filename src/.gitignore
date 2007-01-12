@@ -2,3 +2,7 @@
 .deps
 test-patch-view
 giggle
+*.o
+*.lo
+*.la
+giggle-marshal.[ch]

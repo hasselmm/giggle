@@ -20,26 +20,26 @@ test_patch_view_SOURCES =		\
 test_patch_view_LDADD = 		\
 	$(GIGGLE_LIBS)
 
-marshal.h: giggle-marshal.list
+giggle-marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --header) > xgen-gmh \
-	&& (cmp -s xgen-gmh marshal.h || cp xgen-gmh giggle-marshal.h) \
+	$(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --header) > xgen-gmh \
+	&& (cmp -s xgen-gmh giggle-marshal.h || cp xgen-gmh giggle-marshal.h) \
 	&& rm -f xgen-gmh xgen-gmh~
 
-marshal.c: giggle-marshal.list
+giggle-marshal.c: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --body) > xgen-gmc \
-	&& cp xgen-gmc marshal.c \
+	$(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --body) > xgen-gmc \
+	&& cp xgen-gmc giggle-marshal.c \
 	&& rm -f xgen-gmc xgen-gmc~
 
 marshal-main.c: giggle-marshal.c giggle-marshal.h
 
 BUILT_SOURCES =				\
-	marshal.h			\
-	marshal.c
+	giggle-marshal.h		\
+	giggle-marshal.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST =				\
-	marshal.list
+	giggle-marshal.list
 
