@@ -6,31 +6,31 @@ AM_CPPFLAGS =				\
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =			\
-	gig-main.c
+	giggle-main.c
 
 giggle_LDADD = 				\
 	$(GIGGLE_LIBS)
 
-gig-marshal.h: gig-marshal.list
+marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal gig-marshal.list --header) > xgen-gmh \
-	&& (cmp -s xgen-gmh gig-marshal.h || cp xgen-gmh gig-marshal.h) \
+	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --header) > xgen-gmh \
+	&& (cmp -s xgen-gmh marshal.h || cp xgen-gmh giggle-marshal.h) \
 	&& rm -f xgen-gmh xgen-gmh~
 
-gig-marshal.c: gig-marshal.list
+marshal.c: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal gig-marshal.list --body) > xgen-gmc \
-	&& cp xgen-gmc gig-marshal.c \
+	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --body) > xgen-gmc \
+	&& cp xgen-gmc marshal.c \
 	&& rm -f xgen-gmc xgen-gmc~
 
-gig-marshal-main.c: gig-marshal.c gig-marshal.h
+marshal-main.c: giggle-marshal.c giggle-marshal.h
 
 BUILT_SOURCES =				\
-	gig-marshal.h			\
-	gig-marshal.c
+	marshal.h			\
+	marshal.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST =				\
-	gig-marshal.list
+	marshal.list
 

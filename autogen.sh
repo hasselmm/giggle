@@ -16,7 +16,7 @@ ORIGDIR=`pwd`
 cd $srcdir
 PROJECT=giggle
 TEST_TYPE=-f
-FILE=src/gig-main.c
+FILE=src/giggle-main.c
 CONFIGURE=configure.ac
 
 DIE=0
