@@ -6,6 +6,7 @@ AM_CPPFLAGS =				\
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =			\
+	giggle-graph-renderer.c giggle-graph-renderer.h	\
 	giggle-main.c
 
 giggle_LDADD = 				\
