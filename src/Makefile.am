@@ -6,6 +6,7 @@ AM_CPPFLAGS =				\
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =			\
+	giggle-graph-renderer.c giggle-graph-renderer.h	\
 	giggle-main.c
 
 giggle_LDADD = 				\
@@ -13,13 +14,13 @@ giggle_LDADD = 				\
 
 marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --header) > xgen-gmh \
+	$(GLIB_GENMARSHAL) --prefix=gig_marshal giggle-marshal.list --header) > xgen-gmh \
 	&& (cmp -s xgen-gmh marshal.h || cp xgen-gmh giggle-marshal.h) \
 	&& rm -f xgen-gmh xgen-gmh~
 
 marshal.c: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=gig_marshal marshal.list --body) > xgen-gmc \
+	$(GLIB_GENMARSHAL) --prefix=gig_marshal giggle-marshal.list --body) > xgen-gmc \
 	&& cp xgen-gmc marshal.c \
 	&& rm -f xgen-gmc xgen-gmc~
 
