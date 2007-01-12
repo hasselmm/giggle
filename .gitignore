@@ -1,0 +1,14 @@
+aclocal.m4
+autom4te*
+config.*
+configure
+depcomp
+gtk-doc.make
+install-sh
+libtool
+loudmouth-1.0.pc
+loudmouth.spec
+ltmain.sh
+missing
+stamp-h1
+
