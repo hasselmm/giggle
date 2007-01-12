@@ -28,6 +28,7 @@ PKG_CHECK_MODULES(GIGGLE, [
         glib-2.0 >= 2.12
 	gthread-2.0
 	gtk+-2.0 >= 2.10
+	gtksourceview-1.0 > 1.8
 ])
 dnl -----------------------------------------------------------
 
