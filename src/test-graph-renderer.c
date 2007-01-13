@@ -83,11 +83,11 @@ create_main_window (void)
 	gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), model);
 	g_object_unref (model);
 
-	renderer = giggle_cell_renderer_graph_new (branches);
+	renderer = giggle_graph_renderer_new (branches);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview), -1,
 						     "Graph",
 						     renderer,
-						     "revision-info", 0,
+						     "revision", 0,
 						     NULL);
 
 	renderer = gtk_cell_renderer_text_new ();

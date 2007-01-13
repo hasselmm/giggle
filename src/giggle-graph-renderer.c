@@ -1,18 +1,40 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2007 Imendio AB
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this program; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+#include <config.h>
 #include <math.h>
 #include <gtk/gtk.h>
+
 #include "giggle-graph-renderer.h"
 #include "giggle-revision.h"
 
-#define GIGGLE_CELL_RENDERER_GRAPH_GET_PRIVATE(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_CELL_RENDERER_GRAPH, GiggleCellRendererGraphPrivate))
+#define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 
 /* included padding */
 #define DOT_SPACE 15
 #define DOT_RADIUS 3
 #define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 5
 
-typedef struct GiggleCellRendererGraphPrivate GiggleCellRendererGraphPrivate;
+typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
 
-struct GiggleCellRendererGraphPrivate {
+struct GiggleGraphRendererPrivate {
 	GList          *branches;
 	GiggleRevision *revision;
 };
@@ -23,86 +45,86 @@ enum {
 	PROP_REVISION,
 };
 
-static void giggle_cell_renderer_graph_finalize     (GObject                 *object);
-static void giggle_cell_renderer_graph_get_property (GObject                 *object,
-						     guint                    param_id,
-						     GValue                  *value,
-						     GParamSpec              *pspec);
-static void giggle_cell_renderer_graph_set_property (GObject                 *object,
-						     guint                    param_id,
-						     const GValue            *value,
-						     GParamSpec              *pspec);
+static void giggle_graph_renderer_finalize     (GObject         *object);
+static void giggle_graph_renderer_get_property (GObject         *object,
+						guint            param_id,
+						GValue          *value,
+						GParamSpec      *pspec);
+static void giggle_graph_renderer_set_property (GObject         *object,
+						guint            param_id,
+						const GValue    *value,
+						GParamSpec      *pspec);
+static void giggle_graph_renderer_get_size     (GtkCellRenderer *cell,
+						GtkWidget       *widget,
+						GdkRectangle    *cell_area,
+						gint            *x_offset,
+						gint            *y_offset,
+						gint            *width,
+						gint            *height);
+static void giggle_graph_renderer_render       (GtkCellRenderer *cell,
+						GdkWindow       *window,
+						GtkWidget       *widget,
+						GdkRectangle    *background_area,
+						GdkRectangle    *cell_area,
+						GdkRectangle    *expose_area,
+						guint            flags);
 
-static void giggle_cell_renderer_graph_get_size     (GtkCellRenderer         *cell,
-						     GtkWidget               *widget,
-						     GdkRectangle            *cell_area,
-						     gint                    *x_offset,
-						     gint                    *y_offset,
-						     gint                    *width,
-						     gint                    *height);
-static void giggle_cell_renderer_graph_render       (GtkCellRenderer         *cell,
-						     GdkWindow               *window,
-						     GtkWidget               *widget,
-						     GdkRectangle            *background_area,
-						     GdkRectangle            *cell_area,
-						     GdkRectangle            *expose_area,
-						     guint                    flags);
-
-G_DEFINE_TYPE (GiggleCellRendererGraph, giggle_cell_renderer_graph, GTK_TYPE_CELL_RENDERER)
+G_DEFINE_TYPE (GiggleGraphRenderer, giggle_graph_renderer, GTK_TYPE_CELL_RENDERER)
 
 static void
-giggle_cell_renderer_graph_class_init (GiggleCellRendererGraphClass *class)
+giggle_graph_renderer_class_init (GiggleGraphRendererClass *class)
 {
 	GtkCellRendererClass *cell_class = GTK_CELL_RENDERER_CLASS (class);
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass         *object_class = G_OBJECT_CLASS (class);
 
-	cell_class->get_size = giggle_cell_renderer_graph_get_size;
-	cell_class->render = giggle_cell_renderer_graph_render;
+	cell_class->get_size = giggle_graph_renderer_get_size;
+	cell_class->render = giggle_graph_renderer_render;
 
-	object_class->finalize = giggle_cell_renderer_graph_finalize;
-	object_class->set_property = giggle_cell_renderer_graph_set_property;
-	object_class->get_property = giggle_cell_renderer_graph_get_property;
+	object_class->finalize = giggle_graph_renderer_finalize;
+	object_class->set_property = giggle_graph_renderer_set_property;
+	object_class->get_property = giggle_graph_renderer_get_property;
 
-	g_object_class_install_property (object_class,
-					 PROP_BRANCHES_INFO,
-					 g_param_spec_pointer ("branches-info",
-							       "branches-info",
-							       "branches-info",
-							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (object_class,
-					 PROP_REVISION,
-					 g_param_spec_object ("revision-info",
-							      "revision-info",
-							      "revision-info",
-							      GIGGLE_TYPE_REVISION,
-							      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class,
+		PROP_BRANCHES_INFO,
+		g_param_spec_pointer ("branches-info",
+				      "branches-info",
+				      "branches-info",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class,
+		PROP_REVISION,
+		g_param_spec_object ("revision",
+				     "revision",
+				     "revision",
+				     GIGGLE_TYPE_REVISION,
+				     G_PARAM_READWRITE));
+
 	g_type_class_add_private (object_class,
-				  sizeof (GiggleCellRendererGraphPrivate));
+				  sizeof (GiggleGraphRendererPrivate));
 }
 
-
-
 static void
-giggle_cell_renderer_graph_init (GiggleCellRendererGraph *instance)
+giggle_graph_renderer_init (GiggleGraphRenderer *instance)
 {
-	instance->_priv = GIGGLE_CELL_RENDERER_GRAPH_GET_PRIVATE (instance);
+	instance->_priv = GET_PRIV (instance);
 }
 
 static void
-giggle_cell_renderer_graph_finalize (GObject *object)
+giggle_graph_renderer_finalize (GObject *object)
 {
 	/* FIXME: free stuff */
 
-	G_OBJECT_CLASS (giggle_cell_renderer_graph_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_graph_renderer_parent_class)->finalize (object);
 }
 
 static void
-giggle_cell_renderer_graph_get_property (GObject *object,
-					 guint param_id,
-					 GValue *value,
-					 GParamSpec *pspec)
+giggle_graph_renderer_get_property (GObject    *object,
+				    guint       param_id,
+				    GValue     *value,
+				    GParamSpec *pspec)
 {
-	GiggleCellRendererGraphPrivate *priv = GIGGLE_CELL_RENDERER_GRAPH (object)->_priv;
+	GiggleGraphRendererPrivate *priv = GIGGLE_GRAPH_RENDERER (object)->_priv;
 
 	switch (param_id) {
 	case PROP_BRANCHES_INFO:
@@ -117,12 +139,12 @@ giggle_cell_renderer_graph_get_property (GObject *object,
 }
 
 static void
-giggle_cell_renderer_graph_set_property (GObject      *object,
+giggle_graph_renderer_set_property (GObject      *object,
 					 guint         param_id,
 					 const GValue *value,
 					 GParamSpec   *pspec)
 {
-	GiggleCellRendererGraphPrivate *priv = GIGGLE_CELL_RENDERER_GRAPH (object)->_priv;
+	GiggleGraphRendererPrivate *priv = GIGGLE_GRAPH_RENDERER (object)->_priv;
 
 	switch (param_id) {
 	case PROP_BRANCHES_INFO:
@@ -140,21 +162,22 @@ giggle_cell_renderer_graph_set_property (GObject      *object,
 }
 
 static void
-giggle_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
-				     GtkWidget               *widget,
-				     GdkRectangle            *cell_area,
-				     gint                    *x_offset,
-				     gint                    *y_offset,
-				     gint                    *width,
-				     gint                    *height)
+giggle_graph_renderer_get_size (GtkCellRenderer *cell,
+				GtkWidget       *widget,
+				GdkRectangle    *cell_area,
+				gint            *x_offset,
+				gint            *y_offset,
+				gint            *width,
+				gint            *height)
 {
-	GiggleCellRendererGraphPrivate *priv;
-	GList *elem;
+	GiggleGraphRendererPrivate *priv;
+	GList                      *elem;
 
-	priv = GIGGLE_CELL_RENDERER_GRAPH (cell)->_priv;
+	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
-	if (height)
+	if (height) {
 		*height = DOT_SPACE;
+	}
 
 	if (width) {
 		elem = priv->branches;
@@ -166,23 +189,25 @@ giggle_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
 		}
 	}
 
-	if (x_offset)
+	if (x_offset) {
 		x_offset = 0;
+	}
 
-	if (y_offset)
+	if (y_offset) {
 		y_offset = 0;
+	}
 }
 
 static void
-giggle_cell_renderer_graph_render (GtkCellRenderer         *cell,
-				   GdkWindow               *window,
-				   GtkWidget               *widget,
-				   GdkRectangle            *background_area,
-				   GdkRectangle            *cell_area,
-				   GdkRectangle            *expose_area,
-				   guint                    flags)
+giggle_graph_renderer_render (GtkCellRenderer *cell,
+			      GdkWindow       *window,
+			      GtkWidget       *widget,
+			      GdkRectangle    *background_area,
+			      GdkRectangle    *cell_area,
+			      GdkRectangle    *expose_area,
+			      guint            flags)
 {
-	GiggleCellRendererGraphPrivate *priv;
+	GiggleGraphRendererPrivate *priv;
 	gint x, y, h;
 	cairo_t *cr;
 	GList *list;
@@ -190,7 +215,7 @@ giggle_cell_renderer_graph_render (GtkCellRenderer         *cell,
 	GiggleRevision *revision;
 	gint x1, y1, x2, y2;
 
-	priv = GIGGLE_CELL_RENDERER_GRAPH (cell)->_priv;
+	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
 	g_return_if_fail (priv->revision != NULL);
 
@@ -267,10 +292,10 @@ giggle_cell_renderer_graph_render (GtkCellRenderer         *cell,
 	cairo_destroy (cr);
 }
 
-GtkCellRenderer*
-giggle_cell_renderer_graph_new (GList *branches)
+GtkCellRenderer *
+giggle_graph_renderer_new (GList *branches)
 {
-	return g_object_new (GIGGLE_TYPE_CELL_RENDERER_GRAPH,
+	return g_object_new (GIGGLE_TYPE_GRAPH_RENDERER,
 			     "branches-info", branches,
 			     NULL);
 }

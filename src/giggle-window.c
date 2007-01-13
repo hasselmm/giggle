@@ -237,13 +237,13 @@ window_setup_revision_treeview (GiggleWindow *window)
 	branches = g_list_prepend (branches, branch2);
 	branches = g_list_prepend (branches, branch1);
 
-	cell = giggle_cell_renderer_graph_new (branches);
+	cell = giggle_graph_renderer_new (branches);
 	gtk_tree_view_insert_column_with_attributes (
 		GTK_TREE_VIEW (priv->revision_treeview),
 		-1,
 		_("Graph"),
 		cell,
-		"revision-info", REVISION_COL_OBJECT, 
+		"revision", REVISION_COL_OBJECT, 
 		NULL);
 
 	cell = gtk_cell_renderer_text_new ();
