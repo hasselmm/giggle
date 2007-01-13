@@ -26,11 +26,23 @@
 typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
 struct GiggleRevisionPriv {
+	GiggleRevisionType  type;
+
 	gchar              *sha;
 	gchar              *author;
 	gchar              *date; /* FIXME: shouldn't be a string. */
 	gchar              *short_log;
 	gchar              *long_log;
+
+	GiggleBranchInfo   *branch1; /* Only this one will be used in COMMIT. */
+	GiggleBranchInfo   *branch2;
+
+	/* Is filled out in the validation process. */
+	GHashTable         *branches;
+};
+
+struct _GiggleBranchInfo {
+	gchar *name;
 };
 
 static GdkColor colors[] = {
@@ -82,7 +94,7 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	object_class->finalize = revision_finalize;
+	object_class->finalize     = revision_finalize;
 	object_class->get_property = revision_get_property;
 	object_class->set_property = revision_set_property;
 
@@ -103,7 +115,7 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 				     "SHA",
 				     "SHA hash of the revision",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_object_class_install_property (
 		object_class,
@@ -159,16 +171,16 @@ revision_finalize (GObject *object)
 
 	priv = GET_PRIV (revision);
 
-	if (revision->branch1) {
-		giggle_branch_info_free (revision->branch1);
+	if (priv->branch1) {
+		giggle_branch_info_free (priv->branch1);
 	}
 	
-	if (revision->branch2) {
-		giggle_branch_info_free (revision->branch2);
+	if (priv->branch2) {
+		giggle_branch_info_free (priv->branch2);
 	}
 	
-	if (revision->branches) {
-		g_hash_table_destroy (revision->branches);
+	if (priv->branches) {
+		g_hash_table_destroy (priv->branches);
 	}
 
 	g_free (priv->sha);
@@ -191,7 +203,7 @@ revision_get_property (GObject    *object,
 
 	switch (param_id) {
 	case PROP_TYPE:
-		g_value_set_enum (value, GIGGLE_REVISION (object)->type);
+		g_value_set_enum (value, priv->type);
 		break;
 	case PROP_SHA:
 		g_value_set_string (value, priv->sha);
@@ -226,7 +238,7 @@ revision_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_TYPE:
-		GIGGLE_REVISION (object)->type = g_value_get_enum (value);
+		priv->type = g_value_get_enum (value);
 		break;
 	case PROP_SHA:
 		g_free (priv->sha);
@@ -285,14 +297,18 @@ static void
 revision_copy_status (GiggleRevision *revision,
 		      GHashTable     *branches_info)
 {
-	if (revision->branches) {
-		g_hash_table_destroy (revision->branches);
+	GiggleRevisionPriv *priv;
+
+	priv = GET_PRIV (revision);
+	
+	if (priv->branches) {
+		g_hash_table_destroy (priv->branches);
 	}
 	
-	revision->branches = g_hash_table_new (g_direct_hash, g_direct_equal);
+	priv->branches = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_hash_table_foreach (branches_info,
 			      (GHFunc) revision_copy_branch_status,
-			      revision->branches);
+			      priv->branches);
 }
 
 static void
@@ -300,25 +316,33 @@ revision_calculate_status (GiggleRevision *revision,
 			   GHashTable     *branches_info,
 			   gint           *color)
 {
-	GdkColor *c;
+	GiggleRevisionPriv *priv;
+	GiggleBranchInfo   *branch1;
+	GiggleBranchInfo   *branch2;
+	GdkColor           *c;
+	
+	priv = GET_PRIV (revision);
 
-	switch (revision->type) {
+	branch1 = giggle_revision_get_branch1 (revision);
+	branch2 = giggle_revision_get_branch2 (revision);
+
+	switch (priv->type) {
 	case GIGGLE_REVISION_BRANCH:
 		/* insert in the new branch the color from the first one */
-		c = g_hash_table_lookup (branches_info, revision->branch1);
+		c = g_hash_table_lookup (branches_info, branch1);
 
 		if (!c) {
 			g_critical ("model inconsistent, branches from an unexisting branch?");
 		}
 		
-		g_hash_table_insert (branches_info, revision->branch2, c);
+		g_hash_table_insert (branches_info, branch2, c);
 		revision_copy_status (revision, branches_info);
 		break;
 
 	case GIGGLE_REVISION_MERGE:
 		revision_copy_status (revision, branches_info);
 		/* remove merged branch */
-		g_hash_table_remove (branches_info, revision->branch2);
+		g_hash_table_remove (branches_info, branch2);
 		break;
 
 	case GIGGLE_REVISION_COMMIT:
@@ -326,7 +350,7 @@ revision_calculate_status (GiggleRevision *revision,
 		*color = (*color + 1) % G_N_ELEMENTS (colors);
 
 		/* change color for the changed branch */
-		g_hash_table_insert (branches_info, revision->branch1, &colors[*color]);
+		g_hash_table_insert (branches_info, branch1, &colors[*color]);
 
 		revision_copy_status (revision, branches_info);
 		break;
@@ -352,47 +376,62 @@ giggle_branch_info_free (GiggleBranchInfo *info)
 }
 
 GiggleRevision *
-giggle_revision_new_commit (GiggleBranchInfo *branch)
+giggle_revision_new_commit (const gchar      *sha,
+			    GiggleBranchInfo *branch)
 {
-	GiggleRevision *revision;
+	GiggleRevision     *revision;
+	GiggleRevisionPriv *priv;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_COMMIT,
+				 "sha", sha,
 				 NULL);
 
-	revision->branch1 = branch;
+	priv = GET_PRIV (revision);
+
+	priv->branch1 = branch;
 
 	return revision;
 }
 
 GiggleRevision *
-giggle_revision_new_branch (GiggleBranchInfo *old,
+giggle_revision_new_branch (const gchar      *sha,
+			    GiggleBranchInfo *old,
 			    GiggleBranchInfo *new)
 {
-	GiggleRevision *revision;
+	GiggleRevision     *revision;
+	GiggleRevisionPriv *priv;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_BRANCH,
+				 "sha", sha,
 				 NULL);
 
-	revision->branch1 = old;
-	revision->branch2 = new;
+	priv = GET_PRIV (revision);
+
+	priv->branch1 = old;
+	priv->branch2 = new;
 
 	return revision;
 }
 
 GiggleRevision *
-giggle_revision_new_merge (GiggleBranchInfo *to,
+giggle_revision_new_merge (const gchar      *sha,
+			   GiggleBranchInfo *to,
 			   GiggleBranchInfo *from)
 {
-	GiggleRevision *revision;
+	GiggleRevision     *revision;
+	GiggleRevisionPriv *priv;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_MERGE,
+				 "sha", sha,
 				 NULL);
 
-	revision->branch1 = to;
-	revision->branch2 = from;
+	priv = GET_PRIV (revision);
+	
+	priv->branch1 = to;
+	priv->branch2 = from;
 
 	return revision;
 }
@@ -422,6 +461,18 @@ giggle_revision_validate (GtkTreeModel *model,
 	}
 }
 
+GiggleRevisionType
+giggle_revision_get_revision_type (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), 0);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->type;
+}
+
 const gchar *
 giggle_revision_get_sha (GiggleRevision *revision)
 {
@@ -432,6 +483,30 @@ giggle_revision_get_sha (GiggleRevision *revision)
 	priv = GET_PRIV (revision);
 	
 	return priv->sha;
+}
+
+const gchar *
+giggle_revision_get_author (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->author;
+}
+
+const gchar *
+giggle_revision_get_date (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->date;
 }
 
 const gchar *
@@ -447,7 +522,7 @@ giggle_revision_get_short_log (GiggleRevision *revision)
 }
 
 const gchar *
-giggle_revision_get_long_log  (GiggleRevision   *revision)
+giggle_revision_get_long_log  (GiggleRevision *revision)
 {
 	GiggleRevisionPriv *priv;
 
@@ -456,5 +531,43 @@ giggle_revision_get_long_log  (GiggleRevision   *revision)
 	priv = GET_PRIV (revision);
 	
 	return priv->long_log;
+}
+
+GdkColor *
+giggle_revision_get_color (GiggleRevision   *revision,
+			   GiggleBranchInfo *branch_info)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return g_hash_table_lookup (priv->branches, branch_info);
+}
+
+GiggleBranchInfo *
+giggle_revision_get_branch1 (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->branch1;
+
+}
+
+GiggleBranchInfo *
+giggle_revision_get_branch2 (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->branch2;
 }
 

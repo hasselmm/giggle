@@ -32,13 +32,15 @@
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
-	GtkWidget    *content_vbox;
-	GtkWidget    *menubar_hbox;
-	GtkWidget    *revision_treeview;
-	GtkWidget    *log_textview;
-	GtkWidget    *diff_textview;
+	GtkWidget           *content_vbox;
+	GtkWidget           *menubar_hbox;
+	GtkWidget           *revision_treeview;
+	GtkWidget           *log_textview;
+	GtkWidget           *diff_textview;
 
-	GtkUIManager *ui_manager;
+	GtkCellRenderer     *graph_renderer;
+	
+	GtkUIManager        *ui_manager;
 };
 
 enum {
@@ -76,11 +78,9 @@ static void window_action_quit_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
-static void window_action_foo_cb                  (GtkAction         *action,
-						   GiggleWindow      *window);
 
 /* Just for testing. */
-static GtkTreeModel * window_create_test_model (void);
+static GtkTreeModel * window_create_test_model    (GiggleWindow      *window);
 
 
 static const GtkActionEntry action_entries[] = {
@@ -96,15 +96,11 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Help"), NULL, NULL,
 	  NULL
 	},
-	{ "Foo", NULL,
-	  N_("_Foo"), NULL, N_("Foo bar baz"),
-	  G_CALLBACK (window_action_foo_cb)
-	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
 	},
-	{ "About", NULL,
+	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
 	}
@@ -114,22 +110,16 @@ static const gchar *ui_layout =
 	"<ui>"
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='FileMenu'>"
-	"      <menuitem action='Foo'/>"
-	"      <separator/>"
+	/*"      <separator/>"*/
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
-	"      <menuitem action='Foo'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
 	"    </menu>"
 	"  </menubar>"
 	"</ui>";
-
-/* testing... */
-static GiggleBranchInfo *branch1;
-static GiggleBranchInfo *branch2;
 
 
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW);
@@ -225,24 +215,15 @@ window_setup_revision_treeview (GiggleWindow *window)
 	GtkTreeModel     *model;
 	GtkCellRenderer  *cell;
 	GtkTreeSelection *selection;
-	GList            *branches;
 
 	priv = GET_PRIV (window);
 
-	model = window_create_test_model ();
-	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), model);
-	g_object_unref (model);
-
-	branches = NULL;
-	branches = g_list_prepend (branches, branch2);
-	branches = g_list_prepend (branches, branch1);
-
-	cell = giggle_graph_renderer_new (branches);
+	priv->graph_renderer = giggle_graph_renderer_new (NULL);
 	gtk_tree_view_insert_column_with_attributes (
 		GTK_TREE_VIEW (priv->revision_treeview),
 		-1,
 		_("Graph"),
-		cell,
+		priv->graph_renderer,
 		"revision", REVISION_COL_OBJECT, 
 		NULL);
 
@@ -275,6 +256,10 @@ window_setup_revision_treeview (GiggleWindow *window)
 		window_revision_cell_data_date_func,
 		window,
 		NULL);
+
+	model = window_create_test_model (window);
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), model);
+	g_object_unref (model);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
@@ -420,39 +405,72 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 }
 
 static void
-window_revision_cell_data_log_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_log_func (GtkTreeViewColumn *column,
 				    GtkCellRenderer   *cell,
-				    GtkTreeModel      *tree_model,
+				    GtkTreeModel      *model,
 				    GtkTreeIter       *iter,
 				    gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "short log here...",
+		      "text", giggle_revision_get_short_log (revision),
 		      NULL);
+	
+	g_object_unref (revision);
 }
 
 static void
-window_revision_cell_data_author_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_author_func (GtkTreeViewColumn *column,
 				       GtkCellRenderer   *cell,
-				       GtkTreeModel      *tree_model,
+				       GtkTreeModel      *model,
 				       GtkTreeIter       *iter,
 				       gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "author",
+		      "text", giggle_revision_get_author (revision),
 		      NULL);
+
+	g_object_unref (revision);
 }
 
 static void
-window_revision_cell_data_date_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_date_func (GtkTreeViewColumn *column,
 				     GtkCellRenderer   *cell,
-				    GtkTreeModel      *tree_model,
+				     GtkTreeModel      *model,
 				     GtkTreeIter       *iter,
 				     gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "date",
+		      "text", giggle_revision_get_date (revision),
 		      NULL);
+
+	g_object_unref (revision);
 }
 
 static void
@@ -472,13 +490,6 @@ window_action_about_cb (GtkAction    *action,
 			       NULL);
 }
 
-static void
-window_action_foo_cb (GtkAction    *action,
-		      GiggleWindow *window)
-{
-	g_print ("Foo activated\n");
-}
-
 GtkWidget *
 giggle_window_new (void)
 {
@@ -491,45 +502,80 @@ giggle_window_new (void)
 
 /* Test data. */
 static GtkTreeModel *
-window_create_test_model (void)
+window_create_test_model (GiggleWindow *window)
 {
-	GtkListStore *store;
-	GtkTreeIter   iter;
+	GiggleWindowPriv *priv;
+	GtkListStore     *store;
+	GtkTreeIter       iter;
+	GiggleRevision   *revision;
+	GiggleBranchInfo *branch1;
+	GiggleBranchInfo *branch2;
+	GList            *branches = NULL;
 
+	priv = GET_PRIV (window);
+	
 	branch1 = giggle_branch_info_new ("master");
 	branch2 = giggle_branch_info_new ("foo");
 
+	branches = g_list_prepend (branches, branch2);
+	branches = g_list_prepend (branches, branch1);
+
 	store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 
+	revision = giggle_revision_new_commit ("shablabla", branch1);
+	g_object_set (revision,
+		      "author", "Richard Hult <richard@imendio.com>",
+		      "short-log", "Make the patch view use a monospace font",
+		      "date", "2007-01-12",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_merge ("blablasha", branch1, branch2);
+	g_object_set (revision,
+		      "author", "Mikael Hallendal <micke@imendio.com>",
+		      "short-log", "Add cancel method to dispatcher",
+		      "date", "2007-01-13",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_merge (branch1, branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("shablaha", branch1);
+	g_object_set (revision,
+		      "author", "Carlos Garnacho <carlosg@gnome.org>",
+		      "short-log", "Add more colors for branches",
+		      "date", "2007-01-13",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("ash", branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_branch ("aghaslahaga", branch1, branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_branch (branch1, branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("sha", branch1);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
+
+	g_object_set (priv->graph_renderer,
+		      "branches-info", branches,
+		      NULL);
 
 	giggle_revision_validate (GTK_TREE_MODEL (store), 0);
 
