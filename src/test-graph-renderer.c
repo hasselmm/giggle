@@ -1,17 +1,17 @@
 #include <gtk/gtk.h>
 #include "giggle-graph-renderer.h"
-#include "giggle-revision-info.h"
+#include "giggle-revision.h"
 
-GigBranchInfo *branch1;
-GigBranchInfo *branch2;
+GiggleBranchInfo *branch1;
+GiggleBranchInfo *branch2;
 
 static GList*
 get_branches (void)
 {
 	GList *list = NULL;
 
-	branch1 = gig_branch_info_new ("master");
-	branch2 = gig_branch_info_new ("foo");
+	branch1 = giggle_branch_info_new ("master");
+	branch2 = giggle_branch_info_new ("foo");
 
 	list = g_list_prepend (list, branch2);
 	list = g_list_prepend (list, branch1);
@@ -28,35 +28,41 @@ create_model (void)
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, gig_revision_info_new_merge (branch1, branch2),
+			    0, giggle_revision_new_commit (branch1),
+			    1, "another change",
+			    -1);
+
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter,
+			    0, giggle_revision_new_merge (branch1, branch2),
 			    1, "merge branch foo",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, gig_revision_info_new_commit (branch1),
+			    0, giggle_revision_new_commit (branch1),
 			    1, "fix something in branch master",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, gig_revision_info_new_commit (branch2),
+			    0, giggle_revision_new_commit (branch2),
 			    1, "fix something in branch foo",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, gig_revision_info_new_branch (branch1, branch2),
+			    0, giggle_revision_new_branch (branch1, branch2),
 			    1, "branched",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, gig_revision_info_new_commit (branch1),
+			    0, giggle_revision_new_commit (branch1),
 			    1, "Initial commit",
 			    -1);
 
-	gig_revision_info_validate (GTK_TREE_MODEL (store), 0);
+	giggle_revision_validate (GTK_TREE_MODEL (store), 0);
 
 	return GTK_TREE_MODEL (store);
 }
@@ -77,7 +83,7 @@ create_main_window (void)
 	gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), model);
 	g_object_unref (model);
 
-	renderer = gig_cell_renderer_graph_new (branches);
+	renderer = giggle_cell_renderer_graph_new (branches);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview), -1,
 						     "Graph",
 						     renderer,

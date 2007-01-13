@@ -1,24 +1,20 @@
 #include <math.h>
 #include <gtk/gtk.h>
 #include "giggle-graph-renderer.h"
-#include "giggle-revision-info.h"
+#include "giggle-revision.h"
 
-#define GIG_CELL_RENDERER_GRAPH_GET_PRIVATE(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIG_TYPE_CELL_RENDERER_GRAPH, GigCellRendererGraphPrivate))
+#define GIGGLE_CELL_RENDERER_GRAPH_GET_PRIVATE(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_CELL_RENDERER_GRAPH, GiggleCellRendererGraphPrivate))
 
 /* included padding */
 #define DOT_SPACE 15
 #define DOT_RADIUS 3
 #define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 5
 
-#ifndef M_PI
-#  define M_PI 3.14159265358979323846
-#endif
+typedef struct GiggleCellRendererGraphPrivate GiggleCellRendererGraphPrivate;
 
-typedef struct GigCellRendererGraphPrivate GigCellRendererGraphPrivate;
-
-struct GigCellRendererGraphPrivate {
+struct GiggleCellRendererGraphPrivate {
 	GList *branches;
-	GigRevisionInfo *revision;
+	GiggleRevision *revision;
 };
 
 enum {
@@ -27,45 +23,45 @@ enum {
 	PROP_REVISION_INFO,
 };
 
-static void gig_cell_renderer_graph_finalize     (GObject                 *object);
-static void gig_cell_renderer_graph_get_property (GObject                 *object,
-						  guint                    param_id,
-						  GValue                  *value,
-						  GParamSpec              *pspec);
-static void gig_cell_renderer_graph_set_property (GObject                 *object,
-						  guint                    param_id,
-						  const GValue            *value,
-						  GParamSpec              *pspec);
+static void giggle_cell_renderer_graph_finalize     (GObject                 *object);
+static void giggle_cell_renderer_graph_get_property (GObject                 *object,
+						     guint                    param_id,
+						     GValue                  *value,
+						     GParamSpec              *pspec);
+static void giggle_cell_renderer_graph_set_property (GObject                 *object,
+						     guint                    param_id,
+						     const GValue            *value,
+						     GParamSpec              *pspec);
 
-static void gig_cell_renderer_graph_get_size     (GtkCellRenderer         *cell,
-						  GtkWidget               *widget,
-						  GdkRectangle            *cell_area,
-						  gint                    *x_offset,
-						  gint                    *y_offset,
-						  gint                    *width,
-						  gint                    *height);
-static void gig_cell_renderer_graph_render       (GtkCellRenderer         *cell,
-						  GdkWindow               *window,
-						  GtkWidget               *widget,
-						  GdkRectangle            *background_area,
-						  GdkRectangle            *cell_area,
-						  GdkRectangle            *expose_area,
-						  guint                    flags);
+static void giggle_cell_renderer_graph_get_size     (GtkCellRenderer         *cell,
+						     GtkWidget               *widget,
+						     GdkRectangle            *cell_area,
+						     gint                    *x_offset,
+						     gint                    *y_offset,
+						     gint                    *width,
+						     gint                    *height);
+static void giggle_cell_renderer_graph_render       (GtkCellRenderer         *cell,
+						     GdkWindow               *window,
+						     GtkWidget               *widget,
+						     GdkRectangle            *background_area,
+						     GdkRectangle            *cell_area,
+						     GdkRectangle            *expose_area,
+						     guint                    flags);
 
-G_DEFINE_TYPE (GigCellRendererGraph, gig_cell_renderer_graph, GTK_TYPE_CELL_RENDERER)
+G_DEFINE_TYPE (GiggleCellRendererGraph, giggle_cell_renderer_graph, GTK_TYPE_CELL_RENDERER)
 
 static void
-gig_cell_renderer_graph_class_init (GigCellRendererGraphClass *class)
+giggle_cell_renderer_graph_class_init (GiggleCellRendererGraphClass *class)
 {
 	GtkCellRendererClass *cell_class = GTK_CELL_RENDERER_CLASS (class);
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	cell_class->get_size = gig_cell_renderer_graph_get_size;
-	cell_class->render = gig_cell_renderer_graph_render;
+	cell_class->get_size = giggle_cell_renderer_graph_get_size;
+	cell_class->render = giggle_cell_renderer_graph_render;
 
-	object_class->finalize = gig_cell_renderer_graph_finalize;
-	object_class->set_property = gig_cell_renderer_graph_set_property;
-	object_class->get_property = gig_cell_renderer_graph_get_property;
+	object_class->finalize = giggle_cell_renderer_graph_finalize;
+	object_class->set_property = giggle_cell_renderer_graph_set_property;
+	object_class->get_property = giggle_cell_renderer_graph_get_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_BRANCHES_INFO,
@@ -80,32 +76,32 @@ gig_cell_renderer_graph_class_init (GigCellRendererGraphClass *class)
 							       "revision-info",
 							       G_PARAM_READWRITE));
 	g_type_class_add_private (object_class,
-				  sizeof (GigCellRendererGraphPrivate));
+				  sizeof (GiggleCellRendererGraphPrivate));
 }
 
 
 
 static void
-gig_cell_renderer_graph_init (GigCellRendererGraph *instance)
+giggle_cell_renderer_graph_init (GiggleCellRendererGraph *instance)
 {
-	instance->_priv = GIG_CELL_RENDERER_GRAPH_GET_PRIVATE (instance);
+	instance->_priv = GIGGLE_CELL_RENDERER_GRAPH_GET_PRIVATE (instance);
 }
 
 static void
-gig_cell_renderer_graph_finalize (GObject *object)
+giggle_cell_renderer_graph_finalize (GObject *object)
 {
 	/* FIXME: free stuff */
 
-	G_OBJECT_CLASS (gig_cell_renderer_graph_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_cell_renderer_graph_parent_class)->finalize (object);
 }
 
 static void
-gig_cell_renderer_graph_get_property (GObject *object,
-				      guint param_id,
-				      GValue *value,
-				      GParamSpec *pspec)
+giggle_cell_renderer_graph_get_property (GObject *object,
+					 guint param_id,
+					 GValue *value,
+					 GParamSpec *pspec)
 {
-	GigCellRendererGraphPrivate *priv = GIG_CELL_RENDERER_GRAPH (object)->_priv;
+	GiggleCellRendererGraphPrivate *priv = GIGGLE_CELL_RENDERER_GRAPH (object)->_priv;
 
 	switch (param_id) {
 	case PROP_BRANCHES_INFO:
@@ -120,12 +116,12 @@ gig_cell_renderer_graph_get_property (GObject *object,
 }
 
 static void
-gig_cell_renderer_graph_set_property (GObject      *object,
-				      guint         param_id,
-				      const GValue *value,
-				      GParamSpec   *pspec)
+giggle_cell_renderer_graph_set_property (GObject      *object,
+					 guint         param_id,
+					 const GValue *value,
+					 GParamSpec   *pspec)
 {
-	GigCellRendererGraphPrivate *priv = GIG_CELL_RENDERER_GRAPH (object)->_priv;
+	GiggleCellRendererGraphPrivate *priv = GIGGLE_CELL_RENDERER_GRAPH (object)->_priv;
 
 	switch (param_id) {
 	case PROP_BRANCHES_INFO:
@@ -140,18 +136,18 @@ gig_cell_renderer_graph_set_property (GObject      *object,
 }
 
 static void
-gig_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
-				  GtkWidget               *widget,
-				  GdkRectangle            *cell_area,
-				  gint                    *x_offset,
-				  gint                    *y_offset,
-				  gint                    *width,
-				  gint                    *height)
+giggle_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
+				     GtkWidget               *widget,
+				     GdkRectangle            *cell_area,
+				     gint                    *x_offset,
+				     gint                    *y_offset,
+				     gint                    *width,
+				     gint                    *height)
 {
-	GigCellRendererGraphPrivate *priv;
+	GiggleCellRendererGraphPrivate *priv;
 	GList *elem;
 
-	priv = GIG_CELL_RENDERER_GRAPH (cell)->_priv;
+	priv = GIGGLE_CELL_RENDERER_GRAPH (cell)->_priv;
 
 	if (height)
 		*height = DOT_SPACE;
@@ -174,23 +170,23 @@ gig_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
 }
 
 static void
-gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
-				GdkWindow               *window,
-				GtkWidget               *widget,
-				GdkRectangle            *background_area,
-				GdkRectangle            *cell_area,
-				GdkRectangle            *expose_area,
-				guint                    flags)
+giggle_cell_renderer_graph_render (GtkCellRenderer         *cell,
+				   GdkWindow               *window,
+				   GtkWidget               *widget,
+				   GdkRectangle            *background_area,
+				   GdkRectangle            *cell_area,
+				   GdkRectangle            *expose_area,
+				   guint                    flags)
 {
-	GigCellRendererGraphPrivate *priv;
+	GiggleCellRendererGraphPrivate *priv;
 	gint x, y, h;
 	cairo_t *cr;
 	GList *list;
 	GdkColor *color;
-	GigRevisionInfo *revision;
+	GiggleRevision *revision;
 	gint x1, y1, x2, y2;
 
-	priv = GIG_CELL_RENDERER_GRAPH (cell)->_priv;
+	priv = GIGGLE_CELL_RENDERER_GRAPH (cell)->_priv;
 
 	g_return_if_fail (priv->revision != NULL);
 
@@ -210,9 +206,9 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 
 			gdk_cairo_set_source_color (cr, color);
 
-			if ((revision->type == GIG_REVISION_BRANCH && revision->branch1 == list->data) ||
-			    (revision->type == GIG_REVISION_MERGE && revision->branch1 == list->data) ||
-			    revision->type == GIG_REVISION_COMMIT ||
+			if ((revision->type == GIGGLE_REVISION_BRANCH && revision->branch1 == list->data) ||
+			    (revision->type == GIGGLE_REVISION_MERGE && revision->branch1 == list->data) ||
+			    revision->type == GIGGLE_REVISION_COMMIT ||
 			    (revision->branch1 == list->data && revision->branch2 == list->data)) {
 				/* draw full line */
 
@@ -222,20 +218,20 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 				cairo_stroke  (cr);
 
-				if (revision->type == GIG_REVISION_COMMIT && revision->branch1 == list->data) {
+				if (revision->type == GIGGLE_REVISION_COMMIT && revision->branch1 == list->data) {
 					/* paint circle */
 					cairo_arc (cr,
 						   x + (DOT_SPACE / 2),
 						   y + (DOT_SPACE / 2),
-						   DOT_RADIUS, 0, 2 * M_PI);
+						   DOT_RADIUS, 0, 2 * G_PI);
 					cairo_fill (cr);
 					cairo_stroke (cr);
 				} else if (revision->branch1 == list->data ||
-					   revision->type == GIG_REVISION_BRANCH || revision->type == GIG_REVISION_MERGE) {
+					   revision->type == GIGGLE_REVISION_BRANCH || revision->type == GIGGLE_REVISION_MERGE) {
 					x1 = x + (DOT_SPACE / 2);
 					y1 = y + (DOT_SPACE / 2);
 				}
-			} else if (revision->type == GIG_REVISION_BRANCH && revision->branch2 == list->data) {
+			} else if (revision->type == GIGGLE_REVISION_BRANCH && revision->branch2 == list->data) {
 				/* paint line going to the row above */
 				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
 				cairo_line_to (cr, x + (DOT_SPACE / 2), y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
@@ -243,7 +239,7 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 				
 				x2 = x + (DOT_SPACE / 2);
 				y2 = y + (DOT_SPACE / 2);
-			} else if (revision->type == GIG_REVISION_MERGE && revision->branch2 == list->data) {
+			} else if (revision->type == GIGGLE_REVISION_MERGE && revision->branch2 == list->data) {
 				/* paint line coming from the row below */
 				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
 				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
@@ -268,9 +264,9 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 }
 
 GtkCellRenderer*
-gig_cell_renderer_graph_new (GList *branches)
+giggle_cell_renderer_graph_new (GList *branches)
 {
-	return g_object_new (GIG_TYPE_CELL_RENDERER_GRAPH,
+	return g_object_new (GIGGLE_TYPE_CELL_RENDERER_GRAPH,
 			     "branches-info", branches,
 			     NULL);
 }
