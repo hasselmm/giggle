@@ -26,6 +26,8 @@
 typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
 struct GiggleRevisionPriv {
+	GiggleRevisionType  type;
+	
 	gchar              *sha;
 	gchar              *author;
 	gchar              *date; /* FIXME: shouldn't be a string. */
@@ -191,7 +193,7 @@ revision_get_property (GObject    *object,
 
 	switch (param_id) {
 	case PROP_TYPE:
-		g_value_set_enum (value, GIGGLE_REVISION (object)->type);
+		g_value_set_enum (value, priv->type);
 		break;
 	case PROP_SHA:
 		g_value_set_string (value, priv->sha);
@@ -226,7 +228,7 @@ revision_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_TYPE:
-		GIGGLE_REVISION (object)->type = g_value_get_enum (value);
+		priv->type = g_value_get_enum (value);
 		break;
 	case PROP_SHA:
 		g_free (priv->sha);
@@ -300,9 +302,12 @@ revision_calculate_status (GiggleRevision *revision,
 			   GHashTable     *branches_info,
 			   gint           *color)
 {
-	GdkColor *c;
+	GiggleRevisionPriv *priv;
+	GdkColor           *c;
 
-	switch (revision->type) {
+	priv = GET_PRIV (revision);
+
+	switch (priv->type) {
 	case GIGGLE_REVISION_BRANCH:
 		/* insert in the new branch the color from the first one */
 		c = g_hash_table_lookup (branches_info, revision->branch1);
@@ -426,6 +431,18 @@ giggle_revision_validate (GtkTreeModel *model,
 
 		revision_calculate_status (revision, branches_info, &color);
 	}
+}
+
+GiggleRevisionType
+giggle_revision_get_revision_type (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), 0);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->type;
 }
 
 const gchar *

@@ -52,7 +52,6 @@ struct _GiggleRevision {
 	GObject             parent_instance;
 
 	/* All this should be priv... */
-	GiggleRevisionType  type;
 	GiggleBranchInfo   *branch1; /* Only this one will be used in COMMIT. */
 	GiggleBranchInfo   *branch2;
 
@@ -66,6 +65,7 @@ struct _GiggleRevisionClass {
 
 GType             giggle_revision_get_type      (void);
 GType             giggle_revision_type_get_type (void);
+
 GiggleRevision *  giggle_revision_new_commit    (const gchar      *sha,
 						 GiggleBranchInfo *branch);
 GiggleRevision *  giggle_revision_new_branch    (const gchar      *sha,
@@ -76,11 +76,13 @@ GiggleRevision *  giggle_revision_new_merge     (const gchar      *sha,
 						 GiggleBranchInfo *from);
 void              giggle_revision_validate      (GtkTreeModel     *model,
 						 gint              n_column);
+GiggleRevisionType giggle_revision_get_revision_type  (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_date      (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
+
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
 void              giggle_branch_info_free       (GiggleBranchInfo *info);
 

@@ -228,26 +228,32 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	revision = priv->revision;
 
 	while (list) {
+		GiggleRevisionType type;
+		
 		color = g_hash_table_lookup (revision->branches, list->data);
-
 		if (color) {
 			/* paint something only if there's info about it */
-
 			gdk_cairo_set_source_color (cr, color);
 
-			if ((revision->type == GIGGLE_REVISION_BRANCH && revision->branch1 == list->data) ||
-			    (revision->type == GIGGLE_REVISION_MERGE && revision->branch1 == list->data) ||
-			    revision->type == GIGGLE_REVISION_COMMIT ||
+			type = giggle_revision_get_revision_type (revision);
+			
+			if ((type == GIGGLE_REVISION_BRANCH && revision->branch1 == list->data) ||
+			    (type == GIGGLE_REVISION_MERGE && revision->branch1 == list->data) ||
+			    type == GIGGLE_REVISION_COMMIT ||
 			    (revision->branch1 == list->data && revision->branch2 == list->data)) {
 				/* draw full line */
 
 				/* evil hack to paint continously across rows, paint
 				 * outside the cell renderer area */
-				cairo_move_to (cr, x + (DOT_SPACE / 2), y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
-				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_move_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_line_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 				cairo_stroke  (cr);
 
-				if (revision->type == GIGGLE_REVISION_COMMIT && revision->branch1 == list->data) {
+				if (type == GIGGLE_REVISION_COMMIT && revision->branch1 == list->data) {
 					/* paint circle */
 					cairo_arc (cr,
 						   x + (DOT_SPACE / 2),
@@ -255,28 +261,38 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 						   DOT_RADIUS, 0, 2 * G_PI);
 					cairo_fill (cr);
 					cairo_stroke (cr);
-				} else if (revision->branch1 == list->data ||
-					   revision->type == GIGGLE_REVISION_BRANCH || revision->type == GIGGLE_REVISION_MERGE) {
+				}
+				else if (revision->branch1 == list->data ||
+					   type == GIGGLE_REVISION_BRANCH || type == GIGGLE_REVISION_MERGE) {
 					x1 = x + (DOT_SPACE / 2);
 					y1 = y + (DOT_SPACE / 2);
 				}
-			} else if (revision->type == GIGGLE_REVISION_BRANCH && revision->branch2 == list->data) {
+			}
+			else if (type == GIGGLE_REVISION_BRANCH && revision->branch2 == list->data) {
 				/* paint line going to the row above */
-				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
-				cairo_line_to (cr, x + (DOT_SPACE / 2), y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_move_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y + (DOT_SPACE / 2));
+				cairo_line_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 				cairo_stroke  (cr);
 				
 				x2 = x + (DOT_SPACE / 2);
 				y2 = y + (DOT_SPACE / 2);
-			} else if (revision->type == GIGGLE_REVISION_MERGE && revision->branch2 == list->data) {
+			}
+			else if (type == GIGGLE_REVISION_MERGE && revision->branch2 == list->data) {
 				/* paint line coming from the row below */
-				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
-				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_move_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y + (DOT_SPACE / 2));
+				cairo_line_to (cr,
+					       x + (DOT_SPACE / 2),
+					       y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 				cairo_stroke  (cr);
 				
 				x2 = x + (DOT_SPACE / 2);
 				y2 = y + (DOT_SPACE / 2);
-				
 			}
 		}
 
