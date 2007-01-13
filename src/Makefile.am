@@ -13,6 +13,8 @@ giggle_SOURCES =				\
 	giggle-dummy.h                  	\
 	giggle-error.c                          \
 	giggle-error.h                          \
+	giggle-git.c                            \
+	giggle-git.h                            \
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
 	giggle-sysdeps.c                        \
