@@ -77,7 +77,7 @@ giggle_dispatcher_init (GiggleDispatcher *dispatcher)
 static void
 giggle_dispatcher_finalize (GObject *object)
 {
-	GiggleDispatcherPriv *priv = GET_PRIV (object);
+/*	GiggleDispatcherPriv *priv = GET_PRIV (object);*/
 
 	/* FIXME: Free object data */
 
