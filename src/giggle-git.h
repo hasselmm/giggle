@@ -23,6 +23,8 @@
 
 #include <glib-object.h>
 
+#include "giggle-revision.h"
+
 G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_GIT            (giggle_git_get_type ())
@@ -43,12 +45,28 @@ struct GiggleGitClass {
 	GObjectClass parent_class;
 };
 
-GType		    giggle_git_get_type         (void);
-GiggleGit *         giggle_git_new              (void);
-const gchar *       giggle_git_get_directory    (GiggleGit    *git);
-gboolean            giggle_git_set_directory    (GiggleGit    *git,
-						 const gchar  *directory,
-						 GError      **error);
+typedef void (*GiggleDiffCallback) (GiggleGit *git,
+				    guint      id,
+				    GiggleRevision *rev1,
+				    GiggleRevision *rev2,
+				    const gchar    *diff,
+				    gpointer        user_data);
+
+GType		 giggle_git_get_type         (void);
+GiggleGit *      giggle_git_new              (void);
+const gchar *    giggle_git_get_directory    (GiggleGit    *git);
+gboolean         giggle_git_set_directory    (GiggleGit    *git,
+					      const gchar  *directory,
+					      GError      **error);
+
+guint            giggle_git_get_diff         (GiggleGit          *git,
+					      GiggleRevision     *rev1,
+					      GiggleRevision     *rev2,
+					      GiggleDiffCallback  callback,
+					      gpointer            user_data);
+
+void             giggle_git_cancel           (GiggleGit          *git,
+					      guint               id);
 
 G_END_DECLS
 

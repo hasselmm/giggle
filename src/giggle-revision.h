@@ -23,6 +23,8 @@
 
 #include <glib-object.h>
 
+#include <gtk/gtktreemodel.h>
+
 G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_REVISION            (giggle_revision_get_type ())

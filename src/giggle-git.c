@@ -23,25 +23,59 @@
 #include "giggle-dispatcher.h"
 #include "giggle-git.h"
 
+#define d(x) x
+
 typedef struct GiggleGitPriv GiggleGitPriv;
 
 struct GiggleGitPriv {
 	GiggleDispatcher *dispatcher;
 	gchar            *directory;
+
+	GHashTable       *jobs;
 };
 
-static void  git_finalize            (GObject           *object);
-static void  git_get_property        (GObject           *object,
-				      guint              param_id,
-				      GValue            *value,
-				      GParamSpec        *pspec);
-static void  git_set_property        (GObject           *object,
-				      guint              param_id,
-				      const GValue      *value,
-				      GParamSpec        *pspec);
-static gboolean git_verify_directory (GiggleGit         *git,
-				      const gchar       *directory,
-				      GError           **error);
+typedef enum {
+	GIT_JOB_TYPE_GET_PATCH
+} GitJobType;
+
+typedef struct {
+	guint       id;
+	GitJobType  type;
+	gchar      *command;
+
+	gpointer    callback;
+	gpointer    user_data;
+
+	gpointer    job_data;
+} GitJob;
+
+typedef struct {
+	GiggleRevision *rev1;
+	GiggleRevision *rev2;
+} GitGetPatchData;
+
+static void     git_finalize            (GObject           *object);
+static void     git_get_property        (GObject           *object,
+					 guint              param_id,
+					 GValue            *value,
+					 GParamSpec        *pspec);
+static void     git_set_property        (GObject           *object,
+					 guint              param_id,
+					 const GValue      *value,
+					 GParamSpec        *pspec);
+static gboolean git_verify_directory    (GiggleGit         *git,
+					 const gchar       *directory,
+					 GError           **error);
+static guint    git_run_job             (GiggleGit         *git,
+					 GitJob            *job);
+static void     git_job_free            (GiggleGit         *git,
+					 GitJob            *job);
+static void     git_job_done_cb         (GiggleDispatcher  *dispatcher,
+					 guint              id,
+					 GError            *error,
+					 const gchar       *result_out,
+					 gsize              output_len,
+					 GiggleGit         *git);
 
 G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT);
 
@@ -81,6 +115,42 @@ giggle_git_init (GiggleGit *git)
 
 	priv->directory = NULL;
 	priv->dispatcher = giggle_dispatcher_new ();
+
+	priv->jobs = g_hash_table_new (g_direct_hash, g_direct_equal);
+}
+
+static void
+foreach_job_free (gpointer key, GitJob *job, GiggleGit *git)
+{
+	GiggleGitPriv *priv;
+
+	priv = GET_PRIV (git);
+
+	giggle_dispatcher_cancel (priv->dispatcher, job->id);
+	git_job_free (git, job);
+}
+
+static void
+git_job_done_cb (GiggleDispatcher *dispatcher,
+		 guint             id,
+		 GError           *error,
+		 const gchar      *result_out,
+		 gsize             output_len,
+		 GiggleGit        *git)
+{
+	GiggleGitPriv *priv;
+	GitJob        *job;
+
+	priv = GET_PRIV (git);
+
+	d(g_print ("GiggleGit::job_done_cb ()\n"));
+
+	job = (GitJob *) g_hash_table_lookup (priv->jobs, GINT_TO_POINTER (id));
+	g_assert (job != NULL);
+
+	g_hash_table_remove (priv->jobs, GINT_TO_POINTER (id));
+	
+	/* FIXME: Finish up */
 }
 
 static void
@@ -90,6 +160,11 @@ git_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	g_hash_table_foreach (priv->jobs, 
+			      (GHFunc) foreach_job_free, 
+			      object);
+	
+	g_hash_table_unref (priv->jobs);
 	g_free (priv->directory);
 
 	g_object_unref (priv->dispatcher);
@@ -143,6 +218,50 @@ git_verify_directory (GiggleGit    *git,
 	return TRUE;
 }
 
+static void
+git_job_free (GiggleGit *git, GitJob *job)
+{
+	g_free (job->command);
+
+	switch (job->type) {
+	case GIT_JOB_TYPE_GET_PATCH:
+		{
+			GitGetPatchData *data;
+
+			data = (GitGetPatchData *) job->job_data;
+
+			g_object_unref (data->rev1);
+			g_object_unref (data->rev2);
+
+			g_free (data);
+		}
+		break;
+	default:
+		g_warning ("Unknown job type '%d'", job->type);
+		break;
+	}
+
+	g_free (job);
+}
+
+static guint
+git_run_job (GiggleGit *git, GitJob *job)
+{
+	GiggleGitPriv *priv;
+
+	priv = GET_PRIV (git);
+
+	job->id = giggle_dispatcher_execute (priv->dispatcher,
+					     priv->directory,
+					     job->command,
+					     (GiggleExecuteCallback) git_job_done_cb,
+					     git);
+
+	g_hash_table_insert (priv->jobs, GINT_TO_POINTER (job->id), job);
+
+	return job->id;
+}
+
 GiggleGit *
 giggle_git_new (void)
 {
@@ -183,5 +302,48 @@ giggle_git_set_directory (GiggleGit    *git,
 	g_object_notify (G_OBJECT (git), "directory");
 
 	return TRUE;
+}
+
+guint
+giggle_git_get_diff (GiggleGit          *git,
+		     GiggleRevision     *rev1,
+		     GiggleRevision     *rev2,
+		     GiggleDiffCallback  callback,
+		     gpointer            user_data)
+{
+	GiggleGitPriv   *priv;
+	GitJob          *job;
+	GitGetPatchData *job_data;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), 0);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1), 0);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2), 0);
+	g_return_val_if_fail (callback != NULL, 0);
+
+	priv = GET_PRIV (git);
+
+	job = g_slice_new (GitJob);
+	job_data = g_slice_new (GitGetPatchData);
+
+	job->type = GIT_JOB_TYPE_GET_PATCH;
+	job->callback = callback;
+	job->user_data = user_data;
+
+	job_data->rev1 = g_object_ref (rev1);
+	job_data->rev2 = g_object_ref (rev2);
+
+	job->job_data = job_data;
+
+	job->command = g_strdup_printf ("git-diff %s %s",
+					giggle_revision_get_sha (rev1),
+					giggle_revision_get_sha (rev2));
+	
+
+	return git_run_job (git, job);
+}
+
+void
+giggle_git_cancel (GiggleGit *git, guint id)
+{
 }
 
