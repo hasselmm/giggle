@@ -1,29 +1,32 @@
-AM_CPPFLAGS =				\
-	-I$(top_srcdir)			\
-	$(GIGGLE_CFLAGS) 		\
+AM_CPPFLAGS =					\
+	-I$(top_srcdir)				\
+	-DGLADEDIR=\"$(datadir)/giggle/glade\"	\
+	$(GIGGLE_CFLAGS) 			\
 	$(WARN_CFLAGS)
 
 bin_PROGRAMS = giggle
 
-giggle_SOURCES =			\
-	giggle-dispatcher.c             \
-	giggle-dispatcher.h             \
-	giggle-dummy.c                  \
-	giggle-dummy.h                  \
-	giggle-graph-renderer.c         \
-        giggle-graph-renderer.h	        \
+giggle_SOURCES =				\
+	giggle-dispatcher.c             	\
+	giggle-dispatcher.h             	\
+	giggle-dummy.c                  	\
+	giggle-dummy.h                  	\
+	giggle-graph-renderer.c         	\
+        giggle-graph-renderer.h	        	\
+	giggle-window.c				\
+	giggle-window.h				\
 	giggle-main.c
 
-giggle_LDADD = 				\
+giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
 
-noinst_PROGRAMS = 			\
+noinst_PROGRAMS = 				\
 	test-patch-view
 
-test_patch_view_SOURCES =		\
+test_patch_view_SOURCES =			\
 	test-patch-view.c
 
-test_patch_view_LDADD = 		\
+test_patch_view_LDADD = 			\
 	$(GIGGLE_LIBS)
 
 giggle-marshal.h: giggle-marshal.list
@@ -40,12 +43,12 @@ giggle-marshal.c: giggle-marshal.list
 
 marshal-main.c: giggle-marshal.c giggle-marshal.h
 
-BUILT_SOURCES =				\
-	giggle-marshal.h		\
+BUILT_SOURCES =					\
+	giggle-marshal.h			\
 	giggle-marshal.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
-EXTRA_DIST =				\
+EXTRA_DIST =					\
 	giggle-marshal.list
 
