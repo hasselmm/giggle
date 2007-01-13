@@ -420,39 +420,72 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 }
 
 static void
-window_revision_cell_data_log_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_log_func (GtkTreeViewColumn *column,
 				    GtkCellRenderer   *cell,
-				    GtkTreeModel      *tree_model,
+				    GtkTreeModel      *model,
 				    GtkTreeIter       *iter,
 				    gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "short log here...",
+		      "text", giggle_revision_get_short_log (revision),
 		      NULL);
+	
+	g_object_unref (revision);
 }
 
 static void
-window_revision_cell_data_author_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_author_func (GtkTreeViewColumn *column,
 				       GtkCellRenderer   *cell,
-				       GtkTreeModel      *tree_model,
+				       GtkTreeModel      *model,
 				       GtkTreeIter       *iter,
 				       gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "author",
+		      "text", giggle_revision_get_author (revision),
 		      NULL);
+
+	g_object_unref (revision);
 }
 
 static void
-window_revision_cell_data_date_func (GtkTreeViewColumn *tree_column,
+window_revision_cell_data_date_func (GtkTreeViewColumn *column,
 				     GtkCellRenderer   *cell,
-				    GtkTreeModel      *tree_model,
+				     GtkTreeModel      *model,
 				     GtkTreeIter       *iter,
 				     gpointer           data)
 {
+	GiggleWindowPriv *priv;
+	GiggleRevision   *revision;
+
+	priv = GET_PRIV (data);
+
+	gtk_tree_model_get (model, iter,
+			    REVISION_COL_OBJECT, &revision,
+			    -1);
+
 	g_object_set (cell,
-		      "text", "date",
+		      "text", giggle_revision_get_date (revision),
 		      NULL);
+
+	g_object_unref (revision);
 }
 
 static void
@@ -493,42 +526,64 @@ giggle_window_new (void)
 static GtkTreeModel *
 window_create_test_model (void)
 {
-	GtkListStore *store;
-	GtkTreeIter   iter;
+	GtkListStore   *store;
+	GtkTreeIter     iter;
+	GiggleRevision *revision;
 
 	branch1 = giggle_branch_info_new ("master");
 	branch2 = giggle_branch_info_new ("foo");
 
 	store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 
+	revision = giggle_revision_new_commit ("shablabla", branch1);
+	g_object_set (revision,
+		      "author", "Richard Hult <richard@imendio.com>",
+		      "short-log", "Make the patch view use a monospace font",
+		      "date", "2007-01-12",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_merge ("blablasha", branch1, branch2);
+	g_object_set (revision,
+		      "author", "Mikael Hallendal <micke@imendio.com>",
+		      "short-log", "Add cancel method to dispatcher",
+		      "date", "2007-01-13",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_merge (branch1, branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("shablaha", branch1);
+	g_object_set (revision,
+		      "author", "Carlos Garnacho <carlosg@gnome.org>",
+		      "short-log", "Add more colors for branches",
+		      "date", "2007-01-13",
+		      NULL);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("ash", branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_branch ("aghaslahaga", branch1, branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_branch (branch1, branch2),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
+	revision = giggle_revision_new_commit ("sha", branch1);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    REVISION_COL_OBJECT, giggle_revision_new_commit (branch1),
+			    REVISION_COL_OBJECT, revision,
 			    -1);
 
 	giggle_revision_validate (GTK_TREE_MODEL (store), 0);

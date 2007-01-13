@@ -103,7 +103,7 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 				     "SHA",
 				     "SHA hash of the revision",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_object_class_install_property (
 		object_class,
@@ -352,12 +352,14 @@ giggle_branch_info_free (GiggleBranchInfo *info)
 }
 
 GiggleRevision *
-giggle_revision_new_commit (GiggleBranchInfo *branch)
+giggle_revision_new_commit (const gchar      *sha,
+			    GiggleBranchInfo *branch)
 {
 	GiggleRevision *revision;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_COMMIT,
+				 "sha", sha,
 				 NULL);
 
 	revision->branch1 = branch;
@@ -366,13 +368,15 @@ giggle_revision_new_commit (GiggleBranchInfo *branch)
 }
 
 GiggleRevision *
-giggle_revision_new_branch (GiggleBranchInfo *old,
+giggle_revision_new_branch (const gchar      *sha,
+			    GiggleBranchInfo *old,
 			    GiggleBranchInfo *new)
 {
 	GiggleRevision *revision;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_BRANCH,
+				 "sha", sha,
 				 NULL);
 
 	revision->branch1 = old;
@@ -382,13 +386,15 @@ giggle_revision_new_branch (GiggleBranchInfo *old,
 }
 
 GiggleRevision *
-giggle_revision_new_merge (GiggleBranchInfo *to,
+giggle_revision_new_merge (const gchar      *sha,
+			   GiggleBranchInfo *to,
 			   GiggleBranchInfo *from)
 {
 	GiggleRevision *revision;
 
 	revision = g_object_new (GIGGLE_TYPE_REVISION,
 				 "type", GIGGLE_REVISION_MERGE,
+				 "sha", sha,
 				 NULL);
 
 	revision->branch1 = to;
@@ -432,6 +438,30 @@ giggle_revision_get_sha (GiggleRevision *revision)
 	priv = GET_PRIV (revision);
 	
 	return priv->sha;
+}
+
+const gchar *
+giggle_revision_get_author (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->author;
+}
+
+const gchar *
+giggle_revision_get_date (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->date;
 }
 
 const gchar *

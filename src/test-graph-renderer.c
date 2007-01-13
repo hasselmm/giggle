@@ -28,37 +28,37 @@ create_model (void)
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_commit (branch1),
+			    0, giggle_revision_new_commit ("1", branch1),
 			    1, "another change",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_merge (branch1, branch2),
+			    0, giggle_revision_new_merge ("2", branch1, branch2),
 			    1, "merge branch foo",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_commit (branch1),
+			    0, giggle_revision_new_commit ("3", branch1),
 			    1, "fix something in branch master",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_commit (branch2),
+			    0, giggle_revision_new_commit ("4", branch2),
 			    1, "fix something in branch foo",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_branch (branch1, branch2),
+			    0, giggle_revision_new_branch ("5", branch1, branch2),
 			    1, "branched",
 			    -1);
 
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
-			    0, giggle_revision_new_commit (branch1),
+			    0, giggle_revision_new_commit ("6", branch1),
 			    1, "Initial commit",
 			    -1);
 

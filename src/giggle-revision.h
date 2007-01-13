@@ -66,15 +66,19 @@ struct _GiggleRevisionClass {
 
 GType             giggle_revision_get_type      (void);
 GType             giggle_revision_type_get_type (void);
-GiggleRevision *  giggle_revision_new_commit    (GiggleBranchInfo *branch);
-GiggleRevision *  giggle_revision_new_branch    (GiggleBranchInfo *old,
+GiggleRevision *  giggle_revision_new_commit    (const gchar      *sha,
+						 GiggleBranchInfo *branch);
+GiggleRevision *  giggle_revision_new_branch    (const gchar      *sha,
+						 GiggleBranchInfo *old,
 						 GiggleBranchInfo *new);
-GiggleRevision *  giggle_revision_new_merge     (GiggleBranchInfo *to,
+GiggleRevision *  giggle_revision_new_merge     (const gchar      *sha,
+						 GiggleBranchInfo *to,
 						 GiggleBranchInfo *from);
 void              giggle_revision_validate      (GtkTreeModel     *model,
 						 gint              n_column);
 const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_date      (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
