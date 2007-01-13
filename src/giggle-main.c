@@ -31,7 +31,7 @@ main (int argc, char **argv)
 	gtk_init (&argc, &argv);
 
 	window = giggle_window_new ();
-	gtk_window_set_default_size (GTK_WINDOW (window), 600, 400);
+	gtk_window_set_default_size (GTK_WINDOW (window), 600, 500);
 	g_signal_connect (window,
 			  "destroy",
 			  G_CALLBACK (gtk_main_quit),

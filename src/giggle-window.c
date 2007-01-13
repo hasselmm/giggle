@@ -76,8 +76,6 @@ static void window_action_quit_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
-static void window_action_foo_cb                  (GtkAction         *action,
-						   GiggleWindow      *window);
 
 /* Just for testing. */
 static GtkTreeModel * window_create_test_model (void);
@@ -96,15 +94,11 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Help"), NULL, NULL,
 	  NULL
 	},
-	{ "Foo", NULL,
-	  N_("_Foo"), NULL, N_("Foo bar baz"),
-	  G_CALLBACK (window_action_foo_cb)
-	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
 	},
-	{ "About", NULL,
+	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
 	}
@@ -114,12 +108,10 @@ static const gchar *ui_layout =
 	"<ui>"
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='FileMenu'>"
-	"      <menuitem action='Foo'/>"
-	"      <separator/>"
+	/*"      <separator/>"*/
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
-	"      <menuitem action='Foo'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -503,13 +495,6 @@ window_action_about_cb (GtkAction    *action,
 			       "name", "Giggle",
 			       "copyright", "Copyright 2007 Imendio AB",
 			       NULL);
-}
-
-static void
-window_action_foo_cb (GtkAction    *action,
-		      GiggleWindow *window)
-{
-	g_print ("Foo activated\n");
 }
 
 GtkWidget *
