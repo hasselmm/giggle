@@ -61,21 +61,23 @@ struct GiggleRevision {
 
 	/* Stuff that will be filled out in the validation process. */
 	GHashTable         *branches;
-
 };
 
+GType             giggle_revision_get_type      (void);
+GiggleRevision *  giggle_revision_new_commit    (GiggleBranchInfo *branch);
+GiggleRevision *  giggle_revision_new_branch    (GiggleBranchInfo *old,
+						 GiggleBranchInfo *new);
+GiggleRevision *  giggle_revision_new_merge     (GiggleBranchInfo *to,
+						 GiggleBranchInfo *from);
+void              giggle_revision_validate      (GtkTreeModel     *model,
+						 gint              n_column);
+const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_patch     (GiggleRevision   *revision);
 
-GType             giggle_revision_get_type   (void);
-GiggleRevision *  giggle_revision_new_commit (GiggleBranchInfo *branch);
-GiggleRevision *  giggle_revision_new_branch (GiggleBranchInfo *old,
-					      GiggleBranchInfo *new);
-GiggleRevision *  giggle_revision_new_merge  (GiggleBranchInfo *to,
-					      GiggleBranchInfo *from);
-void              giggle_revision_validate   (GtkTreeModel     *model,
-					      gint              n_column);
-
-GiggleBranchInfo *giggle_branch_info_new     (const gchar      *name);
-void              giggle_branch_info_free    (GiggleBranchInfo *info);
+GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
+void              giggle_branch_info_free       (GiggleBranchInfo *info);
 
 G_END_DECLS
 

@@ -26,7 +26,9 @@
 typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
 struct GiggleRevisionPriv {
-	gint i;
+	gchar              *sha;
+	gchar              *short_log;
+	gchar              *long_log;
 };
 
 static GdkColor colors[] = {
@@ -68,9 +70,12 @@ giggle_revision_init (GiggleRevision *revision)
 static void
 revision_finalize (GObject *object)
 {
-	GiggleRevision *revision;
+	GiggleRevision     *revision;
+	GiggleRevisionPriv *priv;
 
 	revision = GIGGLE_REVISION (object);
+
+	priv = GET_PRIV (revision);
 
 	if (revision->branch1) {
 		giggle_branch_info_free (revision->branch1);
@@ -83,6 +88,10 @@ revision_finalize (GObject *object)
 	if (revision->branches) {
 		g_hash_table_destroy (revision->branches);
 	}
+
+	g_free (priv->sha);
+	g_free (priv->short_log);
+	g_free (priv->long_log);
 	
 	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
 }
@@ -228,4 +237,48 @@ giggle_revision_validate (GtkTreeModel *model,
 
 		revision_calculate_status (revision, branches_info, &color);
 	}
+}
+
+const gchar *
+giggle_revision_get_sha (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->sha;
+}
+
+const gchar *
+giggle_revision_get_short_log (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->short_log;
+}
+
+const gchar *
+giggle_revision_get_long_log  (GiggleRevision   *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return priv->long_log;
+}
+
+const gchar *
+giggle_revision_get_patch (GiggleRevision *revision)
+{
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	return NULL;
 }
