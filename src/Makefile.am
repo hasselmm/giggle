@@ -13,8 +13,12 @@ giggle_SOURCES =				\
 	giggle-dispatcher.h             	\
 	giggle-dummy.c                  	\
 	giggle-dummy.h                  	\
+	giggle-error.c                          \
+	giggle-error.h                          \
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
+	giggle-sysdeps.c                        \
+	giggle-sysdeps.h                        \
 	giggle-window.c				\
 	giggle-window.h				\
 	giggle-main.c

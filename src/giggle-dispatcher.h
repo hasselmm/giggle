@@ -44,6 +44,7 @@ struct GiggleDispatcherClass {
 };
 
 typedef void   (* GiggleExecuteCallback) (GiggleDispatcher *dispatcher,
+					  guint             id,
 					  GError           *error,
 					  const gchar      *result_output,
 					  gpointer          user_data);

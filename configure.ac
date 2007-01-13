@@ -33,6 +33,7 @@ PKG_CHECK_MODULES(GIGGLE, [
 ])
 dnl -----------------------------------------------------------
 
+AC_DEFINE(_GNU_SOURCE, 1, [Enable GNU Extensions])
 
 dnl  ------------------
 dnl | Language Support |---------------------------------------

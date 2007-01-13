@@ -20,6 +20,10 @@
 
 #include <config.h>
 
+#include <glib/gi18n.h>
+
+#include "giggle-error.h"
+#include "giggle-sysdeps.h"
 #include "giggle-dispatcher.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DISPATCHER, GiggleDispatcherPriv))
@@ -28,6 +32,7 @@ typedef struct GiggleDispatcherPriv GiggleDispatcherPriv;
 
 typedef struct {
 	gchar                 *command;
+	gchar                 *wd;
 	GiggleExecuteCallback  callback;
 	guint                  id;
 	GPid                   pid;
@@ -40,22 +45,29 @@ struct GiggleDispatcherPriv {
 	GQueue        *queue;
 
 	DispatcherJob *current_job;
+	guint          current_job_wait_id;
 };
 
-static void giggle_dispatcher_finalize (GObject *object);
+static void     giggle_dispatcher_finalize (GObject *object);
 
-static void dispatcher_add_job       (GiggleDispatcher  *dispatcher,
-				      DispatcherJob     *job);
+static void     dispatcher_add_job       (GiggleDispatcher  *dispatcher,
+					  DispatcherJob     *job);
 
-static void dispatcher_run_job       (GiggleDispatcher  *dispatcher,
-				      DispatcherJob     *job);
-static void dispatcher_run_next_job  (GiggleDispatcher *dispatcher);
-static void dispatcher_cancel_job    (GiggleDispatcher *dispatcher, 
-				      DispatcherJob    *job);
-static void dispatcher_cancel_job_id (GiggleDispatcher *dispatcher,
-				      guint             id);
-static void dispatcher_free_job      (GiggleDispatcher *dispatcher,
-				      DispatcherJob    *job);
+static gboolean dispatcher_run_job       (GiggleDispatcher  *dispatcher,
+					  DispatcherJob     *job);
+static void     dispatcher_run_next_job  (GiggleDispatcher *dispatcher);
+static void     dispatcher_cancel_job    (GiggleDispatcher *dispatcher, 
+					  DispatcherJob    *job);
+static void     dispatcher_cancel_job_id (GiggleDispatcher *dispatcher,
+					  guint             id);
+static void     dispatcher_free_job      (GiggleDispatcher *dispatcher,
+					  DispatcherJob    *job);
+static void     dispatcher_job_wait_cb   (GPid              pid,
+					  gint              status,
+					  GiggleDispatcher *dispatcher);
+static void     dispatcher_job_failed    (GiggleDispatcher *dispatcher,
+					  DispatcherJob    *job,
+					  GError           *error);
 
 G_DEFINE_TYPE (GiggleDispatcher, giggle_dispatcher, G_TYPE_OBJECT);
 
@@ -72,6 +84,13 @@ giggle_dispatcher_class_init (GiggleDispatcherClass *class)
 static void
 giggle_dispatcher_init (GiggleDispatcher *dispatcher)
 {
+	GiggleDispatcherPriv *priv;
+
+	priv = GET_PRIV (dispatcher);
+
+	priv->queue = g_queue_new ();
+	priv->current_job = NULL;
+	priv->current_job_wait_id = 0;
 }
 
 static void
@@ -98,10 +117,13 @@ dispatcher_add_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	}
 }
 
-static void
+static gboolean
 dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 {
-	GiggleDispatcherPriv *priv;
+	GiggleDispatcherPriv  *priv;
+	gint                   argc;
+	gchar                **argv;
+	GError                *error = NULL;
 
 	priv = GET_PRIV (dispatcher);
 
@@ -109,8 +131,32 @@ dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	priv->current_job = job;
 
-	//g_spawn_async_with_pipes ();
-	//g_child_watch_add();
+	if (!g_shell_parse_argv (job->command, &argc, &argv, &error)) {
+		goto failed;
+	}
+
+	if (!g_spawn_async_with_pipes (job->wd, argv, 
+				       NULL, /* envp */
+				       G_SPAWN_SEARCH_PATH,
+				       NULL, NULL,
+				       &job->pid,
+				       NULL, &job->std_out, &job->std_err,
+				       &error)) {
+		goto failed;
+	}
+
+	priv->current_job_wait_id = g_child_watch_add (job->pid, 
+						       (GChildWatchFunc) dispatcher_job_wait_cb,
+						       dispatcher);
+	return TRUE;
+
+failed:
+	dispatcher_job_failed (dispatcher, job, error);
+	g_strfreev (argv);
+	g_error_free (error);
+	priv->current_job = NULL;
+	priv->current_job_wait_id = 0;
+	return FALSE;
 }
 
 static void 
@@ -125,15 +171,42 @@ dispatcher_run_next_job (GiggleDispatcher *dispatcher)
 
 	job = (DispatcherJob *) g_queue_pop_head (priv->queue);
 	if (job) {
-		dispatcher_run_job (dispatcher, job);
+		if (!dispatcher_run_job (dispatcher, job)) {
+			dispatcher_run_next_job (dispatcher);
+		}
 	}
 }
 
 static void
 dispatcher_cancel_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 {
-	/* FIXME: Check if running */
-	/* FIXME: Signal the callback */
+	GiggleDispatcherPriv *priv;
+	GError               *error;
+	gboolean              current = FALSE;
+
+	priv = GET_PRIV (dispatcher);
+
+	if (priv->current_job == job) {
+		giggle_sysdeps_kill_pid (job->pid);
+		current = TRUE;
+	}
+
+	error = g_error_new (GIGGLE_ERROR,
+			     GIGGLE_ERROR_DISPATCH_CANCELLED,
+			     _("Job '%s' cancelled"),
+			     job->command);
+
+	job->callback (dispatcher, job->id, error, NULL, job->user_data);
+
+	g_error_free (error);
+
+	dispatcher_free_job (dispatcher, job);
+
+	if (current) {
+		priv->current_job = NULL;
+		priv->current_job_wait_id = 0;
+		dispatcher_run_next_job (dispatcher);
+	}
 }
 
 static void
@@ -146,7 +219,6 @@ dispatcher_cancel_job_id (GiggleDispatcher *dispatcher, guint id)
 
 	if (priv->current_job && priv->current_job->id == id) {
 		dispatcher_cancel_job (dispatcher, priv->current_job);
-		dispatcher_free_job (dispatcher, priv->current_job);
 		priv->current_job = NULL;
 		dispatcher_run_next_job (dispatcher);
 	}
@@ -157,7 +229,6 @@ dispatcher_cancel_job_id (GiggleDispatcher *dispatcher, guint id)
 		if (job->id == id) {
 			dispatcher_cancel_job (dispatcher, job);
 			g_queue_delete_link (priv->queue, l);
-			dispatcher_free_job (dispatcher, job);
 			break;
 		}
 	}
@@ -167,8 +238,31 @@ static void
 dispatcher_free_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 {
 	g_free (job->command);
+	g_free (job->wd);
+
+	if (job->pid) {
+		g_spawn_close_pid (job->pid);
+	}
 
 	g_free (job);
+}
+
+static void
+dispatcher_job_wait_cb (GPid              pid,
+			gint              status,
+			GiggleDispatcher *dispatcher)
+{
+	/* FIXME: Implement */
+}
+
+static void
+dispatcher_job_failed (GiggleDispatcher *dispatcher,
+		       DispatcherJob    *job,
+		       GError           *error)
+{
+	job->callback (dispatcher, job->id, error, NULL, job->user_data);
+	
+	dispatcher_free_job (dispatcher, job);
 }
 
 GiggleDispatcher *
@@ -201,6 +295,12 @@ giggle_dispatcher_execute (GiggleDispatcher      *dispatcher,
 	job->pid = 0;
 	job->std_out = 0;
 	job->std_err = 0;
+
+	if (wd) {
+		job->wd = g_strdup (wd);
+	} else {
+		job->wd = NULL;
+	}
 
 	dispatcher_add_job (dispatcher, job);
 
