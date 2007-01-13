@@ -22,9 +22,20 @@ struct GigBranchInfo {
 	const gchar *name;
 };
 
+typedef enum GigRevisionType GigRevisionType;
+
+enum GigRevisionType {
+	GIG_REVISION_FORK,
+	GIG_REVISION_JOIN,
+	GIG_REVISION_COMMIT
+};
+
 typedef struct GigRevisionInfo GigRevisionInfo;
 
 struct GigRevisionInfo {
+	GigRevisionType type;
+	GigBranchInfo *branch1; /* only this will be used in GIG_REVISION_COMMIT */
+	GigBranchInfo *branch2;
 };
 
 struct GigCellRendererGraphClass {
@@ -38,8 +49,8 @@ struct GigCellRendererGraph {
 	gpointer _priv;
 };
 
-GType		      gig_cell_renderer_graph_get_type (void);
-GigCellRendererGraph *gig_cell_renderer_graph_new      (GigBranchInfo **branches);
+GType		 gig_cell_renderer_graph_get_type (void);
+GtkCellRenderer *gig_cell_renderer_graph_new      (GList *branches);
 
 G_END_DECLS
 

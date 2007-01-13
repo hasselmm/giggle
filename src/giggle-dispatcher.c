@@ -77,6 +77,10 @@ giggle_dispatcher_init (GiggleDispatcher *dispatcher)
 static void
 giggle_dispatcher_finalize (GObject *object)
 {
+	GiggleDispatcherPriv *priv = GET_PRIV (object);
+
+	g_queue_foreach (priv->queue, dispatcher_free_job);
+
 	/* FIXME: Free object data */
 
 	G_OBJECT_CLASS (giggle_dispatcher_parent_class)->finalize (object);
