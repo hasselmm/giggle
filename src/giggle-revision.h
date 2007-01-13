@@ -38,10 +38,6 @@ typedef struct _GiggleRevision      GiggleRevision;
 typedef struct _GiggleRevisionClass GiggleRevisionClass;
 typedef struct _GiggleBranchInfo    GiggleBranchInfo;
 
-struct _GiggleBranchInfo {
-	gchar *name;
-};
-
 typedef enum {
 	GIGGLE_REVISION_BRANCH,
 	GIGGLE_REVISION_MERGE,
@@ -54,9 +50,6 @@ struct _GiggleRevision {
 	/* All this should be priv... */
 	GiggleBranchInfo   *branch1; /* Only this one will be used in COMMIT. */
 	GiggleBranchInfo   *branch2;
-
-	/* Stuff that will be filled out in the validation process. */
-	GHashTable         *branches;
 };
 
 struct _GiggleRevisionClass {
@@ -82,6 +75,9 @@ const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_date      (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
+
+GdkColor *        giggle_revision_get_color     (GiggleRevision   *revision,
+						 GiggleBranchInfo *branch_info);
 
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
 void              giggle_branch_info_free       (GiggleBranchInfo *info);

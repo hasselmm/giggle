@@ -208,12 +208,12 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 			      guint            flags)
 {
 	GiggleGraphRendererPrivate *priv;
-	gint x, y, h;
-	cairo_t *cr;
-	GList *list;
-	GdkColor *color;
-	GiggleRevision *revision;
-	gint x1, y1, x2, y2;
+	gint                        x, y, h;
+	cairo_t                    *cr;
+	GList                      *list;
+	GdkColor                   *color;
+	GiggleRevision             *revision;
+	gint                        x1, y1, x2, y2;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
@@ -230,7 +230,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	while (list) {
 		GiggleRevisionType type;
 		
-		color = g_hash_table_lookup (revision->branches, list->data);
+		color = giggle_revision_get_color (revision, list->data);
 		if (color) {
 			/* paint something only if there's info about it */
 			gdk_cairo_set_source_color (cr, color);

@@ -27,12 +27,19 @@ typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
 struct GiggleRevisionPriv {
 	GiggleRevisionType  type;
-	
+
 	gchar              *sha;
 	gchar              *author;
 	gchar              *date; /* FIXME: shouldn't be a string. */
 	gchar              *short_log;
 	gchar              *long_log;
+
+	/* Is filled out in the validation process. */
+	GHashTable         *branches;
+};
+
+struct _GiggleBranchInfo {
+	gchar *name;
 };
 
 static GdkColor colors[] = {
@@ -169,8 +176,8 @@ revision_finalize (GObject *object)
 		giggle_branch_info_free (revision->branch2);
 	}
 	
-	if (revision->branches) {
-		g_hash_table_destroy (revision->branches);
+	if (priv->branches) {
+		g_hash_table_destroy (priv->branches);
 	}
 
 	g_free (priv->sha);
@@ -287,14 +294,18 @@ static void
 revision_copy_status (GiggleRevision *revision,
 		      GHashTable     *branches_info)
 {
-	if (revision->branches) {
-		g_hash_table_destroy (revision->branches);
+	GiggleRevisionPriv *priv;
+
+	priv = GET_PRIV (revision);
+	
+	if (priv->branches) {
+		g_hash_table_destroy (priv->branches);
 	}
 	
-	revision->branches = g_hash_table_new (g_direct_hash, g_direct_equal);
+	priv->branches = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_hash_table_foreach (branches_info,
 			      (GHFunc) revision_copy_branch_status,
-			      revision->branches);
+			      priv->branches);
 }
 
 static void
@@ -494,7 +505,7 @@ giggle_revision_get_short_log (GiggleRevision *revision)
 }
 
 const gchar *
-giggle_revision_get_long_log  (GiggleRevision   *revision)
+giggle_revision_get_long_log  (GiggleRevision *revision)
 {
 	GiggleRevisionPriv *priv;
 
@@ -505,3 +516,15 @@ giggle_revision_get_long_log  (GiggleRevision   *revision)
 	return priv->long_log;
 }
 
+GdkColor *
+giggle_revision_get_color (GiggleRevision   *revision,
+			   GiggleBranchInfo *branch_info)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+	
+	return g_hash_table_lookup (priv->branches, branch_info);
+}
