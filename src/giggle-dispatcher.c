@@ -201,7 +201,7 @@ dispatcher_cancel_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 			     _("Job '%s' cancelled"),
 			     job->command);
 
-	job->callback (dispatcher, job->id, error, NULL, job->user_data);
+	job->callback (dispatcher, job->id, error, NULL, 0, job->user_data);
 
 	g_error_free (error);
 
@@ -278,7 +278,9 @@ dispatcher_job_wait_cb (GPid              pid,
 		goto finished;
 	}
 
-	job->callback (dispatcher, job->id, NULL, output, job->user_data);
+	job->callback (dispatcher, job->id, NULL, 
+		       output, length, 
+		       job->user_data);
 
 	g_free (output);
 
@@ -296,7 +298,7 @@ dispatcher_job_failed (GiggleDispatcher *dispatcher,
 		       DispatcherJob    *job,
 		       GError           *error)
 {
-	job->callback (dispatcher, job->id, error, NULL, job->user_data);
+	job->callback (dispatcher, job->id, error, NULL, 0, job->user_data);
 	
 	dispatcher_free_job (dispatcher, job);
 }

@@ -47,6 +47,7 @@ typedef void   (* GiggleExecuteCallback) (GiggleDispatcher *dispatcher,
 					  guint             id,
 					  GError           *error,
 					  const gchar      *result_output,
+					  gsize             output_length,
 					  gpointer          user_data);
 
 GType		  giggle_dispatcher_get_type (void);
