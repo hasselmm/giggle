@@ -3,6 +3,8 @@ AM_CPPFLAGS =				\
 	$(GIGGLE_CFLAGS) 		\
 	$(WARN_CFLAGS)
 
+INCLUDES=-D__USE_XOPEN
+
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =			\
@@ -13,12 +15,20 @@ giggle_LDADD = 				\
 	$(GIGGLE_LIBS)
 
 noinst_PROGRAMS = 			\
-	test-patch-view
+	test-patch-view			\
+	test-graph-renderer
 
 test_patch_view_SOURCES =		\
 	test-patch-view.c
 
 test_patch_view_LDADD = 		\
+	$(GIGGLE_LIBS)
+
+test_graph_renderer_SOURCES =		\
+	giggle-graph-renderer.c	giggle-graph-renderer.h	\
+	test-graph-renderer.c
+
+test_graph_renderer_LDADD =		\
 	$(GIGGLE_LIBS)
 
 giggle-marshal.h: giggle-marshal.list

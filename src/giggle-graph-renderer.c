@@ -1,27 +1,32 @@
+#include <math.h>
 #include <gtk/gtk.h>
 #include "giggle-graph-renderer.h"
 
 #define GIG_CELL_RENDERER_GRAPH_GET_PRIVATE(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIG_TYPE_CELL_RENDERER_GRAPH, GigCellRendererGraphPrivate))
-#define DOT_SIZE 20
-#define DOTS_SEPARATION 6
+
+/* included padding */
+#define DOT_SPACE 15
+#define DOT_RADIUS 3
+#define M_PI 3.14159265358979323846
 
 GdkColor colors[] = {
-	{ 0xff, 0x00, 0x00, 0x00 }, /* black */
-	{ 0xff, 0xff, 0x00, 0x00 }, /* red   */
-	{ 0xff, 0x00, 0xff, 0x00 }, /* green */
-	{ 0xff, 0x00, 0x00, 0xff }, /* blue  */
+	{ 0x0, 0x0000, 0x0000, 0x0000 }, /* black */
+	{ 0x0, 0xffff, 0x0000, 0x0000 }, /* red   */
+	{ 0x0, 0x0000, 0xffff, 0x0000 }, /* green */
+	{ 0x0, 0x0000, 0x0000, 0xffff }, /* blue  */
 };
 
 typedef struct GigCellRendererGraphPrivate GigCellRendererGraphPrivate;
 
 struct GigCellRendererGraphPrivate {
-	GigBranchInfo **branches;
-	GigRevisionInfo **info;
+	GList *branches;
+	GigRevisionInfo *revision;
 };
 
 enum {
 	PROP_0,
 	PROP_BRANCHES_INFO,
+	PROP_REVISION_INFO,
 };
 
 static void gig_cell_renderer_graph_finalize     (GObject                 *object);
@@ -70,6 +75,12 @@ gig_cell_renderer_graph_class_init (GigCellRendererGraphClass *class)
 							       "branches-info",
 							       "branches-info",
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (object_class,
+					 PROP_REVISION_INFO,
+					 g_param_spec_pointer ("revision-info",
+							       "revision-info",
+							       "revision-info",
+							       G_PARAM_READWRITE));
 	g_type_class_add_private (object_class,
 				  sizeof (GigCellRendererGraphPrivate));
 }
@@ -102,6 +113,9 @@ gig_cell_renderer_graph_get_property (GObject *object,
 	case PROP_BRANCHES_INFO:
 		g_value_set_pointer (value, priv->branches);
 		break;
+	case PROP_REVISION_INFO:
+		g_value_set_pointer (value, priv->revision);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 	}
@@ -119,6 +133,9 @@ gig_cell_renderer_graph_set_property (GObject      *object,
 	case PROP_BRANCHES_INFO:
 		priv->branches = g_value_get_pointer (value);
 		break;
+	case PROP_REVISION_INFO:
+		priv->revision = g_value_get_pointer (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 	}
@@ -134,20 +151,20 @@ gig_cell_renderer_graph_get_size (GtkCellRenderer         *cell,
 				  gint                    *height)
 {
 	GigCellRendererGraphPrivate *priv;
-	GigBranchInfo **branch;
+	GList *elem;
 
 	priv = GIG_CELL_RENDERER_GRAPH (cell)->_priv;
 
 	if (height)
-		*height = DOT_SIZE;
+		*height = DOT_SPACE;
 
 	if (width) {
-		branch = priv->branches;
+		elem = priv->branches;
 		*width = 0;
 
-		while (*branch) {
-			*width = DOT_SIZE + DOTS_SEPARATION;
-			branch++;
+		while (elem) {
+			*width += DOT_SPACE;
+			elem = elem->next;
 		}
 	}
 
@@ -167,11 +184,50 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 				GdkRectangle            *expose_area,
 				guint                    flags)
 {
-	/* FIXME: funny code missing here */
+	GigCellRendererGraphPrivate *priv;
+	gint x, y, h, count = 0;
+	cairo_t *cr;
+	GList *list;
+
+	cr = gdk_cairo_create (window);
+	priv = GIG_CELL_RENDERER_GRAPH (cell)->_priv;
+	x = cell_area->x + cell->xpad;
+	y = cell_area->y + cell->ypad;
+	h = cell_area->height - cell->ypad * 2;
+	list = priv->branches;
+
+	while (list) {
+		count %= G_N_ELEMENTS (colors);
+
+		gdk_cairo_set_source_color (cr, &colors[count]);
+
+		/* evil hack to paint continously across rows, paint
+		 * outside the cell renderer area */
+		cairo_move_to (cr, x + (DOT_SPACE / 2), y - 5);
+		cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + 5);
+		cairo_stroke  (cr);
+
+		if (priv->revision &&
+		    (priv->revision->branch1 == list->data ||
+		     priv->revision->branch2 == list->data)) {
+			cairo_arc (cr,
+				   x + (DOT_SPACE / 2),
+				   y + (DOT_SPACE / 2),
+				   DOT_RADIUS, 0, 2 * M_PI);
+			cairo_fill (cr);
+			cairo_stroke (cr);
+		}
+
+		x += DOT_SPACE;
+		count++;
+		list = list->next;
+	}
+
+	cairo_destroy (cr);
 }
 
-GigCellRendererGraph*
-gig_cell_renderer_graph_new (GigBranchInfo **branches)
+GtkCellRenderer*
+gig_cell_renderer_graph_new (GList *branches)
 {
 	return g_object_new (GIG_TYPE_CELL_RENDERER_GRAPH,
 			     "branches-info", branches,
