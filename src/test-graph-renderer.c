@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include "giggle-graph-renderer.h"
+#include "giggle-revision-info.h"
 
 GigBranchInfo *branch1;
 GigBranchInfo *branch2;
@@ -9,14 +10,11 @@ get_branches (void)
 {
 	GList *list = NULL;
 
-	branch1 = g_new0 (GigBranchInfo, 1);
-	branch1->name = "master";
-	list = g_list_prepend (list, branch1);
+	branch1 = gig_branch_info_new ("master");
+	branch2 = gig_branch_info_new ("foo");
 
-	branch2 = g_new0 (GigBranchInfo, 1);
-	branch2->name = "foo";
 	list = g_list_prepend (list, branch2);
-
+	list = g_list_prepend (list, branch1);
 	return list;
 }
 
@@ -25,30 +23,40 @@ create_model (void)
 {
 	GtkListStore *store;
 	GtkTreeIter iter;
-	GigRevisionInfo *info;
 
 	store = gtk_list_store_new (2, G_TYPE_POINTER, G_TYPE_STRING);
 
 	gtk_list_store_append (store, &iter);
-	info = g_new0 (GigRevisionInfo, 1);
-	info->type = GIG_REVISION_FORK;
-	info->branch1 = branch1;
-	info->branch2 = branch2;
-	gtk_list_store_set (store, &iter, 0, info, 1, "Boooh", -1);
+	gtk_list_store_set (store, &iter,
+			    0, gig_revision_info_new_merge (branch1, branch2),
+			    1, "merge branch foo",
+			    -1);
 
 	gtk_list_store_append (store, &iter);
-	info = g_new0 (GigRevisionInfo, 1);
-	info->type = GIG_REVISION_COMMIT;
-	info->branch1 = branch2;
-	info->branch2 = NULL;
-	gtk_list_store_set (store, &iter, 0, info, 1, "Fixety fix", -1);
+	gtk_list_store_set (store, &iter,
+			    0, gig_revision_info_new_commit (branch1),
+			    1, "fix something in branch master",
+			    -1);
 
 	gtk_list_store_append (store, &iter);
-	info = g_new0 (GigRevisionInfo, 1);
-	info->type = GIG_REVISION_JOIN;
-	info->branch1 = branch1;
-	info->branch2 = branch2;
-	gtk_list_store_set (store, &iter, 0, info, 1, "Blah", -1);
+	gtk_list_store_set (store, &iter,
+			    0, gig_revision_info_new_commit (branch2),
+			    1, "fix something in branch foo",
+			    -1);
+
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter,
+			    0, gig_revision_info_new_branch (branch1, branch2),
+			    1, "branched",
+			    -1);
+
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter,
+			    0, gig_revision_info_new_commit (branch1),
+			    1, "Initial commit",
+			    -1);
+
+	gig_revision_info_validate (GTK_TREE_MODEL (store), 0);
 
 	return GTK_TREE_MODEL (store);
 }
