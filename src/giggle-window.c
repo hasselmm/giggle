@@ -34,7 +34,8 @@ struct GiggleWindowPriv {
 	GtkWidget    *content_vbox;
 	GtkWidget    *menubar_hbox;
 	GtkWidget    *revision_treeview;
-	GtkWidget    *diff_view;
+	GtkWidget    *log_textview;
+	GtkWidget    *diff_textview;
 
 	GtkUIManager *ui_manager;
 };
@@ -48,10 +49,12 @@ enum {
 
 static void window_finalize                (GObject           *object);
 static void window_setup_revision_treeview (GiggleWindow      *window);
-static void window_setup_diff_view         (GiggleWindow      *window,
+static void window_setup_diff_textview     (GiggleWindow      *window,
 					    GtkWidget         *scrolled);
 static void window_add_widget_cb           (GtkUIManager      *merge,
 					    GtkWidget         *widget,
+					    GiggleWindow      *window);
+static void window_action_quit_cb          (GtkAction         *action,
 					    GiggleWindow      *window);
 static void window_action_about_cb         (GtkAction         *action,
 					    GiggleWindow      *window);
@@ -75,6 +78,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Foo"), NULL, N_("Foo bar baz"),
 	  G_CALLBACK (window_action_foo_cb)
 	},
+	{ "Quit", GTK_STOCK_QUIT,
+	  N_("_Quit"), "<control>Q", N_("Quit the application"),
+	  G_CALLBACK (window_action_quit_cb)
+	},
 	{ "About", NULL,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
@@ -86,6 +93,8 @@ static const gchar *ui_layout =
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='FileMenu'>"
 	"      <menuitem action='Foo'/>"
+	"      <separator/>"
+	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
 	"      <menuitem action='Foo'/>"
@@ -136,7 +145,19 @@ giggle_window_init (GiggleWindow *window)
 	priv->revision_treeview = glade_xml_get_widget (xml, "revision_treeview");
 	window_setup_revision_treeview (window);
 
-	window_setup_diff_view (
+	priv->log_textview = glade_xml_get_widget (xml, "log_textview");
+
+	// test:
+
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log_textview)),
+		"Changed this and that.\n"
+		"\n"
+		"Changed some foo and bar that means that now we can get more baz.",
+		-1);
+		
+	
+	window_setup_diff_textview (
 		window,
 		glade_xml_get_widget (xml, "diff_scrolledwindow"));
 
@@ -165,6 +186,8 @@ giggle_window_init (GiggleWindow *window)
 	if (error) {
 		g_error ("Couldn't create UI: %s}\n", error->message);
 	}
+
+	gtk_ui_manager_ensure_update (priv->ui_manager);
 }
 
 static void
@@ -267,8 +290,8 @@ static const gchar *test_diff =
 	"+\n";
 
 static void
-window_setup_diff_view (GiggleWindow *window,
-			GtkWidget    *scrolled)
+window_setup_diff_textview (GiggleWindow *window,
+			    GtkWidget    *scrolled)
 {
 	GiggleWindowPriv          *priv;
 	GtkTextBuffer             *buffer;
@@ -277,10 +300,10 @@ window_setup_diff_view (GiggleWindow *window,
 
 	priv = GET_PRIV (window);
 	
-	priv->diff_view = gtk_source_view_new ();
-	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->diff_view), FALSE);
+	priv->diff_textview = gtk_source_view_new ();
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->diff_textview), FALSE);
 
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_view));
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview));
 
 	manager = gtk_source_languages_manager_new ();
 	language = gtk_source_languages_manager_get_language_from_mime_type (
@@ -291,9 +314,9 @@ window_setup_diff_view (GiggleWindow *window,
 	
 	g_object_unref (manager);
 
-	gtk_widget_show (priv->diff_view);
+	gtk_widget_show (priv->diff_textview);
 	
-	gtk_container_add (GTK_CONTAINER (scrolled), priv->diff_view);
+	gtk_container_add (GTK_CONTAINER (scrolled), priv->diff_textview);
 
 	/* FIXME: Just testing for now... */
 	gtk_text_buffer_set_text (buffer, test_diff, -1);
@@ -309,6 +332,13 @@ window_add_widget_cb (GtkUIManager *merge,
 	priv = GET_PRIV (window);
 
 	gtk_box_pack_start (GTK_BOX (priv->menubar_hbox), widget, TRUE, TRUE, 0);
+}
+
+static void
+window_action_quit_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	gtk_main_quit ();
 }
 
 static void
