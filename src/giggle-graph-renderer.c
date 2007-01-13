@@ -228,7 +228,9 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	revision = priv->revision;
 
 	while (list) {
-		GiggleRevisionType type;
+		GiggleRevisionType  type;
+		GiggleBranchInfo   *branch1;
+		GiggleBranchInfo   *branch2;
 		
 		color = giggle_revision_get_color (revision, list->data);
 		if (color) {
@@ -236,11 +238,13 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 			gdk_cairo_set_source_color (cr, color);
 
 			type = giggle_revision_get_revision_type (revision);
+			branch1 = giggle_revision_get_branch1 (revision);
+			branch2 = giggle_revision_get_branch2 (revision);
 			
-			if ((type == GIGGLE_REVISION_BRANCH && revision->branch1 == list->data) ||
-			    (type == GIGGLE_REVISION_MERGE && revision->branch1 == list->data) ||
+			if ((type == GIGGLE_REVISION_BRANCH && branch1 == list->data) ||
+			    (type == GIGGLE_REVISION_MERGE && branch1 == list->data) ||
 			    type == GIGGLE_REVISION_COMMIT ||
-			    (revision->branch1 == list->data && revision->branch2 == list->data)) {
+			    (branch1 == list->data && branch2 == list->data)) {
 				/* draw full line */
 
 				/* evil hack to paint continously across rows, paint
@@ -253,7 +257,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 					       y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 				cairo_stroke  (cr);
 
-				if (type == GIGGLE_REVISION_COMMIT && revision->branch1 == list->data) {
+				if (type == GIGGLE_REVISION_COMMIT && branch1 == list->data) {
 					/* paint circle */
 					cairo_arc (cr,
 						   x + (DOT_SPACE / 2),
@@ -262,13 +266,13 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 					cairo_fill (cr);
 					cairo_stroke (cr);
 				}
-				else if (revision->branch1 == list->data ||
+				else if (branch1 == list->data ||
 					   type == GIGGLE_REVISION_BRANCH || type == GIGGLE_REVISION_MERGE) {
 					x1 = x + (DOT_SPACE / 2);
 					y1 = y + (DOT_SPACE / 2);
 				}
 			}
-			else if (type == GIGGLE_REVISION_BRANCH && revision->branch2 == list->data) {
+			else if (type == GIGGLE_REVISION_BRANCH && branch2 == list->data) {
 				/* paint line going to the row above */
 				cairo_move_to (cr,
 					       x + (DOT_SPACE / 2),
@@ -281,7 +285,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 				x2 = x + (DOT_SPACE / 2);
 				y2 = y + (DOT_SPACE / 2);
 			}
-			else if (type == GIGGLE_REVISION_MERGE && revision->branch2 == list->data) {
+			else if (type == GIGGLE_REVISION_MERGE && branch2 == list->data) {
 				/* paint line coming from the row below */
 				cairo_move_to (cr,
 					       x + (DOT_SPACE / 2),

@@ -46,41 +46,38 @@ typedef enum {
 
 struct _GiggleRevision {
 	GObject             parent_instance;
-
-	/* All this should be priv... */
-	GiggleBranchInfo   *branch1; /* Only this one will be used in COMMIT. */
-	GiggleBranchInfo   *branch2;
 };
 
 struct _GiggleRevisionClass {
 	GObjectClass parent_class;
 };
 
-GType             giggle_revision_get_type      (void);
-GType             giggle_revision_type_get_type (void);
+GType              giggle_revision_get_type          (void);
+GType              giggle_revision_type_get_type     (void);
+GiggleRevision *   giggle_revision_new_commit        (const gchar      *sha,
+						      GiggleBranchInfo *branch);
+GiggleRevision *   giggle_revision_new_branch        (const gchar      *sha,
+						      GiggleBranchInfo *old,
+						      GiggleBranchInfo *new);
+GiggleRevision *   giggle_revision_new_merge         (const gchar      *sha,
+						      GiggleBranchInfo *to,
+						      GiggleBranchInfo *from);
+void               giggle_revision_validate          (GtkTreeModel     *model,
+						      gint              n_column);
+GiggleRevisionType giggle_revision_get_revision_type (GiggleRevision   *revision);
+GdkColor *         giggle_revision_get_color         (GiggleRevision   *revision,
+						      GiggleBranchInfo *branch_info);
+GiggleBranchInfo * giggle_revision_get_branch1       (GiggleRevision   *revision);
+GiggleBranchInfo * giggle_revision_get_branch2       (GiggleRevision   *revision);
 
-GiggleRevision *  giggle_revision_new_commit    (const gchar      *sha,
-						 GiggleBranchInfo *branch);
-GiggleRevision *  giggle_revision_new_branch    (const gchar      *sha,
-						 GiggleBranchInfo *old,
-						 GiggleBranchInfo *new);
-GiggleRevision *  giggle_revision_new_merge     (const gchar      *sha,
-						 GiggleBranchInfo *to,
-						 GiggleBranchInfo *from);
-void              giggle_revision_validate      (GtkTreeModel     *model,
-						 gint              n_column);
-GiggleRevisionType giggle_revision_get_revision_type  (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_date      (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
+const gchar      * giggle_revision_get_sha           (GiggleRevision   *revision);
+const gchar      * giggle_revision_get_author        (GiggleRevision   *revision);
+const gchar      * giggle_revision_get_date          (GiggleRevision   *revision);
+const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
+const gchar      * giggle_revision_get_long_log      (GiggleRevision   *revision);
 
-GdkColor *        giggle_revision_get_color     (GiggleRevision   *revision,
-						 GiggleBranchInfo *branch_info);
-
-GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
-void              giggle_branch_info_free       (GiggleBranchInfo *info);
+GiggleBranchInfo * giggle_branch_info_new            (const gchar      *name);
+void               giggle_branch_info_free           (GiggleBranchInfo *info);
 
 G_END_DECLS
 
