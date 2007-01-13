@@ -19,26 +19,27 @@
  */
 
 #include <config.h>
-#include <gtk/gtk.h>
+#include <gtk/gtkmain.h>
+
+#include "giggle-window.h"
 
 int
 main (int argc, char **argv)
 {
+	GtkWidget *window;
+	
 	gtk_init (&argc, &argv);
 
-	/*
-	  
-	
+	window = giggle_window_new ();
+	gtk_window_set_default_size (GTK_WINDOW (window), 600, 400);
 	g_signal_connect (window,
 			  "destroy",
 			  G_CALLBACK (gtk_main_quit),
 			  NULL);
 
-	*/
-	
-	g_print ("Cool things will happen here.\n");
+	gtk_widget_show (window);
 
-	/* gtk_main (); */
+	gtk_main ();
 
 	return 0;
 }
