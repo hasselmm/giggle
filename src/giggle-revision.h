@@ -32,26 +32,21 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_REVISION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION))
 #define GIGGLE_REVISION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionClass))
 
-typedef struct GiggleRevision      GiggleRevision;
-typedef struct GiggleRevisionClass GiggleRevisionClass;
-typedef enum   GiggleRevisionType  GiggleRevisionType;
-typedef struct GiggleBranchInfo    GiggleBranchInfo;
+typedef struct _GiggleRevision      GiggleRevision;
+typedef struct _GiggleRevisionClass GiggleRevisionClass;
+typedef struct _GiggleBranchInfo    GiggleBranchInfo;
 
-struct GiggleRevisionClass {
-	GObjectClass parent_class;
-};
-
-struct GiggleBranchInfo {
+struct _GiggleBranchInfo {
 	gchar *name;
 };
 
-enum GiggleRevisionType {
+typedef enum {
 	GIGGLE_REVISION_BRANCH,
 	GIGGLE_REVISION_MERGE,
 	GIGGLE_REVISION_COMMIT
-};
+} GiggleRevisionType;
 
-struct GiggleRevision {
+struct _GiggleRevision {
 	GObject             parent_instance;
 
 	/* All this should be priv... */
@@ -61,6 +56,10 @@ struct GiggleRevision {
 
 	/* Stuff that will be filled out in the validation process. */
 	GHashTable         *branches;
+};
+
+struct _GiggleRevisionClass {
+	GObjectClass parent_class;
 };
 
 GType             giggle_revision_get_type      (void);
