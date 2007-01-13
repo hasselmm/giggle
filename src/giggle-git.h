@@ -43,11 +43,12 @@ struct GiggleGitClass {
 	GObjectClass parent_class;
 };
 
-GType		    giggle_git_get_type      (void);
-GiggleGit *         giggle_git_new           (const gchar *directory);
-const gchar *       giggle_git_get_directory (GiggleGit   *git);
-void                giggle_git_set_directory (GiggleGit   *git,
-					      const gchar *directory);
+GType		    giggle_git_get_type         (void);
+GiggleGit *         giggle_git_new              (void);
+const gchar *       giggle_git_get_directory    (GiggleGit    *git);
+gboolean            giggle_git_set_directory    (GiggleGit    *git,
+						 const gchar  *directory,
+						 GError      **error);
 
 G_END_DECLS
 

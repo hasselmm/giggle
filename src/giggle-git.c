@@ -20,23 +20,28 @@
 
 #include <config.h>
 
+#include "giggle-dispatcher.h"
 #include "giggle-git.h"
 
 typedef struct GiggleGitPriv GiggleGitPriv;
 
 struct GiggleGitPriv {
-	gchar *directory;
+	GiggleDispatcher *dispatcher;
+	gchar            *directory;
 };
 
-static void  git_finalize     (GObject      *object);
-static void  git_get_property (GObject      *object,
-			       guint         param_id,
-			       GValue       *value,
-			       GParamSpec   *pspec);
-static void  git_set_property (GObject      *object,
-			       guint         param_id,
-			       const GValue *value,
-			       GParamSpec   *pspec);
+static void  git_finalize            (GObject           *object);
+static void  git_get_property        (GObject           *object,
+				      guint              param_id,
+				      GValue            *value,
+				      GParamSpec        *pspec);
+static void  git_set_property        (GObject           *object,
+				      guint              param_id,
+				      const GValue      *value,
+				      GParamSpec        *pspec);
+static gboolean git_verify_directory (GiggleGit         *git,
+				      const gchar       *directory,
+				      GError           **error);
 
 G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT);
 
@@ -62,7 +67,7 @@ giggle_git_class_init (GiggleGitClass *class)
 							      "Directory",
 							      "The Git repository path",
 							      NULL,
-							      G_PARAM_READWRITE));
+							      G_PARAM_READABLE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitPriv));
 }
@@ -75,6 +80,7 @@ giggle_git_init (GiggleGit *git)
 	priv = GET_PRIV (git);
 
 	priv->directory = NULL;
+	priv->dispatcher = giggle_dispatcher_new ();
 }
 
 static void
@@ -85,6 +91,8 @@ git_finalize (GObject *object)
 	priv = GET_PRIV (object);
 
 	g_free (priv->directory);
+
+	g_object_unref (priv->dispatcher);
 
 	G_OBJECT_CLASS (giggle_git_parent_class)->finalize (object);
 }
@@ -109,30 +117,36 @@ git_get_property (GObject    *object,
 	};
 }
 
-static void  git_set_property (GObject      *object,
-			       guint         param_id,
-			       const GValue *value,
-			       GParamSpec   *pspec)
+static void
+git_set_property (GObject      *object,
+		  guint         param_id,
+		  const GValue *value,
+		  GParamSpec   *pspec)
 {
 	GiggleGitPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_DIRECTORY:
-		giggle_git_set_directory (GIGGLE_GIT (object), 
-					  g_value_get_string (value));
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	};
 }
 
-GiggleGit *
-giggle_git_new (const gchar *directory)
+static gboolean 
+git_verify_directory (GiggleGit    *git,
+		      const gchar  *directory,
+		      GError      **error)
 {
-	return g_object_new (GIGGLE_TYPE_GIT, "directory", directory, NULL);
+	/* FIXME: Do some funky stuff to verify that it's a valid GIT repo */
+	return TRUE;
+}
+
+GiggleGit *
+giggle_git_new (void)
+{
+	return g_object_new (GIGGLE_TYPE_GIT, NULL);
 }
 
 const gchar *
@@ -147,20 +161,27 @@ giggle_git_get_directory (GiggleGit *git)
 	return priv->directory;
 }
 
-void
-giggle_git_set_directory (GiggleGit *git, const gchar *directory)
+gboolean
+giggle_git_set_directory (GiggleGit    *git, 
+			  const gchar  *directory,
+			  GError      **error)
 {
 	GiggleGitPriv *priv;
 
-	g_return_if_fail (GIGGLE_IS_GIT (git));
-	g_return_if_fail (directory != NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), FALSE);
+	g_return_val_if_fail (directory != NULL, FALSE);
 
 	priv = GET_PRIV (git);
+
+	if (!git_verify_directory (git, directory, error)) {
+		return FALSE;
+	}
 
 	g_free (priv->directory);
 	priv->directory = g_strdup (directory);
 
 	g_object_notify (G_OBJECT (git), "directory");
-}
 
+	return TRUE;
+}
 
