@@ -15,29 +15,6 @@ G_BEGIN_DECLS
 typedef struct GigCellRendererGraph GigCellRendererGraph;
 typedef struct GigCellRendererGraphClass GigCellRendererGraphClass;
 
-/* FIXME: perhaps should be splitted out to their own files */
-typedef struct GigBranchInfo GigBranchInfo;
-
-struct GigBranchInfo {
-	const gchar *name;
-};
-
-typedef enum GigRevisionType GigRevisionType;
-
-enum GigRevisionType {
-	GIG_REVISION_FORK,
-	GIG_REVISION_JOIN,
-	GIG_REVISION_COMMIT
-};
-
-typedef struct GigRevisionInfo GigRevisionInfo;
-
-struct GigRevisionInfo {
-	GigRevisionType type;
-	GigBranchInfo *branch1; /* only this will be used in GIG_REVISION_COMMIT */
-	GigBranchInfo *branch2;
-};
-
 struct GigCellRendererGraphClass {
 	GtkCellRendererClass parent_class;
 };

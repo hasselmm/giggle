@@ -34,17 +34,48 @@ G_BEGIN_DECLS
 
 typedef struct GiggleRevision      GiggleRevision;
 typedef struct GiggleRevisionClass GiggleRevisionClass;
-
-struct GiggleRevision {
-	GObject parent_instance;
-};
+typedef enum   GiggleRevisionType  GiggleRevisionType;
+typedef struct GiggleBranchInfo    GiggleBranchInfo;
 
 struct GiggleRevisionClass {
 	GObjectClass parent_class;
 };
 
-GType		      giggle_revision_get_type (void);
-GiggleRevision       *giggle_revision_new      (void);
+struct GiggleBranchInfo {
+	gchar *name;
+};
+
+enum GiggleRevisionType {
+	GIGGLE_REVISION_BRANCH,
+	GIGGLE_REVISION_MERGE,
+	GIGGLE_REVISION_COMMIT
+};
+
+struct GiggleRevision {
+	GObject parent_instance;
+
+	/* All this should be priv... */
+	GiggleRevisionType  type;
+	GiggleBranchInfo   *branch1; /* Only this one will be used in COMMIT. */
+	GiggleBranchInfo   *branch2;
+
+	/* Stuff that will be filled out in the validation process. */
+	GHashTable         *branches;
+
+};
+
+
+GType             giggle_revision_get_type   (void);
+GiggleRevision *  giggle_revision_new_commit (GiggleBranchInfo *branch);
+GiggleRevision *  giggle_revision_new_branch (GiggleBranchInfo *old,
+					      GiggleBranchInfo *new);
+GiggleRevision *  giggle_revision_new_merge  (GiggleBranchInfo *to,
+					      GiggleBranchInfo *from);
+void              giggle_revision_validate   (GtkTreeModel     *model,
+					      gint              n_column);
+
+GiggleBranchInfo *giggle_branch_info_new     (const gchar      *name);
+void              giggle_branch_info_free    (GiggleBranchInfo *info);
 
 G_END_DECLS
 
