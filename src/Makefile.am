@@ -8,6 +8,7 @@ INCLUDES=-D__USE_XOPEN
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =			\
+	giggle-revision-info.c giggle-revision-info.h	\
 	giggle-graph-renderer.c giggle-graph-renderer.h	\
 	giggle-main.c
 
@@ -25,6 +26,7 @@ test_patch_view_LDADD = 		\
 	$(GIGGLE_LIBS)
 
 test_graph_renderer_SOURCES =		\
+	giggle-revision-info.c giggle-revision-info.h	\
 	giggle-graph-renderer.c	giggle-graph-renderer.h	\
 	test-graph-renderer.c
 

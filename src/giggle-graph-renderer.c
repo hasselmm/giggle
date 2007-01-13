@@ -1,20 +1,18 @@
 #include <math.h>
 #include <gtk/gtk.h>
 #include "giggle-graph-renderer.h"
+#include "giggle-revision-info.h"
 
 #define GIG_CELL_RENDERER_GRAPH_GET_PRIVATE(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIG_TYPE_CELL_RENDERER_GRAPH, GigCellRendererGraphPrivate))
 
 /* included padding */
 #define DOT_SPACE 15
 #define DOT_RADIUS 3
-#define M_PI 3.14159265358979323846
+#define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 5
 
-GdkColor colors[] = {
-	{ 0x0, 0x0000, 0x0000, 0x0000 }, /* black */
-	{ 0x0, 0xffff, 0x0000, 0x0000 }, /* red   */
-	{ 0x0, 0x0000, 0xffff, 0x0000 }, /* green */
-	{ 0x0, 0x0000, 0x0000, 0xffff }, /* blue  */
-};
+#ifndef M_PI
+#  define M_PI 3.14159265358979323846
+#endif
 
 typedef struct GigCellRendererGraphPrivate GigCellRendererGraphPrivate;
 
@@ -185,43 +183,86 @@ gig_cell_renderer_graph_render (GtkCellRenderer         *cell,
 				guint                    flags)
 {
 	GigCellRendererGraphPrivate *priv;
-	gint x, y, h, count = 0;
+	gint x, y, h;
 	cairo_t *cr;
 	GList *list;
+	GdkColor *color;
+	GigRevisionInfo *revision;
+	gint x1, y1, x2, y2;
 
-	cr = gdk_cairo_create (window);
 	priv = GIG_CELL_RENDERER_GRAPH (cell)->_priv;
+
+	g_return_if_fail (priv->revision != NULL);
+
+	x1 = y1 = x2 = y2 = 0;
+	cr = gdk_cairo_create (window);
 	x = cell_area->x + cell->xpad;
 	y = cell_area->y + cell->ypad;
 	h = cell_area->height - cell->ypad * 2;
 	list = priv->branches;
+	revision = priv->revision;
 
 	while (list) {
-		count %= G_N_ELEMENTS (colors);
+		color = g_hash_table_lookup (revision->branches, list->data);
 
-		gdk_cairo_set_source_color (cr, &colors[count]);
+		if (color) {
+			/* paint something only if there's info about it */
 
-		/* evil hack to paint continously across rows, paint
-		 * outside the cell renderer area */
-		cairo_move_to (cr, x + (DOT_SPACE / 2), y - 5);
-		cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + 5);
-		cairo_stroke  (cr);
+			gdk_cairo_set_source_color (cr, color);
 
-		if (priv->revision &&
-		    (priv->revision->branch1 == list->data ||
-		     priv->revision->branch2 == list->data)) {
-			cairo_arc (cr,
-				   x + (DOT_SPACE / 2),
-				   y + (DOT_SPACE / 2),
-				   DOT_RADIUS, 0, 2 * M_PI);
-			cairo_fill (cr);
-			cairo_stroke (cr);
+			if ((revision->type == GIG_REVISION_BRANCH && revision->branch1 == list->data) ||
+			    (revision->type == GIG_REVISION_MERGE && revision->branch1 == list->data) ||
+			    revision->type == GIG_REVISION_COMMIT ||
+			    (revision->branch1 == list->data && revision->branch2 == list->data)) {
+				/* draw full line */
+
+				/* evil hack to paint continously across rows, paint
+				 * outside the cell renderer area */
+				cairo_move_to (cr, x + (DOT_SPACE / 2), y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_stroke  (cr);
+
+				if (revision->type == GIG_REVISION_COMMIT && revision->branch1 == list->data) {
+					/* paint circle */
+					cairo_arc (cr,
+						   x + (DOT_SPACE / 2),
+						   y + (DOT_SPACE / 2),
+						   DOT_RADIUS, 0, 2 * M_PI);
+					cairo_fill (cr);
+					cairo_stroke (cr);
+				} else if (revision->branch1 == list->data ||
+					   revision->type == GIG_REVISION_BRANCH || revision->type == GIG_REVISION_MERGE) {
+					x1 = x + (DOT_SPACE / 2);
+					y1 = y + (DOT_SPACE / 2);
+				}
+			} else if (revision->type == GIG_REVISION_BRANCH && revision->branch2 == list->data) {
+				/* paint line going to the row above */
+				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
+				cairo_line_to (cr, x + (DOT_SPACE / 2), y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_stroke  (cr);
+				
+				x2 = x + (DOT_SPACE / 2);
+				y2 = y + (DOT_SPACE / 2);
+			} else if (revision->type == GIG_REVISION_MERGE && revision->branch2 == list->data) {
+				/* paint line coming from the row below */
+				cairo_move_to (cr, x + (DOT_SPACE / 2), y + (DOT_SPACE / 2));
+				cairo_line_to (cr, x + (DOT_SPACE / 2), y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+				cairo_stroke  (cr);
+				
+				x2 = x + (DOT_SPACE / 2);
+				y2 = y + (DOT_SPACE / 2);
+				
+			}
 		}
 
 		x += DOT_SPACE;
-		count++;
 		list = list->next;
 	}
+
+	/* paint line between branches/merges */
+	cairo_move_to (cr, x1, y1);
+	cairo_line_to (cr, x2, y2);
+	cairo_stroke  (cr);
 
 	cairo_destroy (cr);
 }
