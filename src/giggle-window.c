@@ -321,6 +321,7 @@ window_setup_diff_textview (GiggleWindow *window,
 			    GtkWidget    *scrolled)
 {
 	GiggleWindowPriv          *priv;
+	PangoFontDescription      *font_desc;
 	GtkTextBuffer             *buffer;
 	GtkSourceLanguage         *language;
 	GtkSourceLanguagesManager *manager;
@@ -330,6 +331,10 @@ window_setup_diff_textview (GiggleWindow *window,
 	priv->diff_textview = gtk_source_view_new ();
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->diff_textview), FALSE);
 
+	font_desc = pango_font_description_from_string ("monospace");
+	gtk_widget_modify_font (priv->diff_textview, font_desc);
+	pango_font_description_free (font_desc);
+	
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview));
 
 	manager = gtk_source_languages_manager_new ();

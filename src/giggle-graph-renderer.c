@@ -13,7 +13,7 @@
 typedef struct GiggleCellRendererGraphPrivate GiggleCellRendererGraphPrivate;
 
 struct GiggleCellRendererGraphPrivate {
-	GList *branches;
+	GList          *branches;
 	GiggleRevision *revision;
 };
 
