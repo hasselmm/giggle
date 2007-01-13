@@ -25,7 +25,6 @@ giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
 
 noinst_PROGRAMS = 			        \
-	test-patch-view		   	        \
 	test-graph-renderer
 
 test_graph_renderer_SOURCES =		        \
