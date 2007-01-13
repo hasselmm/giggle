@@ -4,8 +4,6 @@ AM_CPPFLAGS =					\
 	$(GIGGLE_CFLAGS) 			\
 	$(WARN_CFLAGS)
 
-INCLUDES=-D__USE_XOPEN
-
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =				\
