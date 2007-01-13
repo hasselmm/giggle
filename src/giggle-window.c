@@ -32,13 +32,15 @@
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
-	GtkWidget    *content_vbox;
-	GtkWidget    *menubar_hbox;
-	GtkWidget    *revision_treeview;
-	GtkWidget    *log_textview;
-	GtkWidget    *diff_textview;
+	GtkWidget           *content_vbox;
+	GtkWidget           *menubar_hbox;
+	GtkWidget           *revision_treeview;
+	GtkWidget           *log_textview;
+	GtkWidget           *diff_textview;
 
-	GtkUIManager *ui_manager;
+	GtkCellRenderer     *graph_renderer;
+	
+	GtkUIManager        *ui_manager;
 };
 
 enum {
@@ -78,7 +80,7 @@ static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 
 /* Just for testing. */
-static GtkTreeModel * window_create_test_model (void);
+static GtkTreeModel * window_create_test_model    (GiggleWindow      *window);
 
 
 static const GtkActionEntry action_entries[] = {
@@ -217,24 +219,15 @@ window_setup_revision_treeview (GiggleWindow *window)
 	GtkTreeModel     *model;
 	GtkCellRenderer  *cell;
 	GtkTreeSelection *selection;
-	GList            *branches;
 
 	priv = GET_PRIV (window);
 
-	model = window_create_test_model ();
-	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), model);
-	g_object_unref (model);
-
-	branches = NULL;
-	branches = g_list_prepend (branches, branch2);
-	branches = g_list_prepend (branches, branch1);
-
-	cell = giggle_graph_renderer_new (branches);
+	priv->graph_renderer = giggle_graph_renderer_new (NULL);
 	gtk_tree_view_insert_column_with_attributes (
 		GTK_TREE_VIEW (priv->revision_treeview),
 		-1,
 		_("Graph"),
-		cell,
+		priv->graph_renderer,
 		"revision", REVISION_COL_OBJECT, 
 		NULL);
 
@@ -267,6 +260,10 @@ window_setup_revision_treeview (GiggleWindow *window)
 		window_revision_cell_data_date_func,
 		window,
 		NULL);
+
+	model = window_create_test_model (window);
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), model);
+	g_object_unref (model);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
@@ -509,14 +506,21 @@ giggle_window_new (void)
 
 /* Test data. */
 static GtkTreeModel *
-window_create_test_model (void)
+window_create_test_model (GiggleWindow *window)
 {
-	GtkListStore   *store;
-	GtkTreeIter     iter;
-	GiggleRevision *revision;
+	GiggleWindowPriv *priv;
+	GtkListStore     *store;
+	GtkTreeIter       iter;
+	GiggleRevision   *revision;
+	GList            *branches = NULL;
 
+	priv = GET_PRIV (window);
+	
 	branch1 = giggle_branch_info_new ("master");
 	branch2 = giggle_branch_info_new ("foo");
+
+	branches = g_list_prepend (branches, branch2);
+	branches = g_list_prepend (branches, branch1);
 
 	store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 
@@ -570,6 +574,10 @@ window_create_test_model (void)
 	gtk_list_store_set (store, &iter,
 			    REVISION_COL_OBJECT, revision,
 			    -1);
+
+	g_object_set (priv->graph_renderer,
+		      "branches-info", branches,
+		      NULL);
 
 	giggle_revision_validate (GTK_TREE_MODEL (store), 0);
 

@@ -90,7 +90,7 @@ giggle_graph_renderer_class_init (GiggleGraphRendererClass *class)
 		g_param_spec_pointer ("branches-info",
 				      "branches-info",
 				      "branches-info",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class,
 		PROP_REVISION,
@@ -140,9 +140,9 @@ giggle_graph_renderer_get_property (GObject    *object,
 
 static void
 giggle_graph_renderer_set_property (GObject      *object,
-					 guint         param_id,
-					 const GValue *value,
-					 GParamSpec   *pspec)
+				    guint         param_id,
+				    const GValue *value,
+				    GParamSpec   *pspec)
 {
 	GiggleGraphRendererPrivate *priv = GIGGLE_GRAPH_RENDERER (object)->_priv;
 
