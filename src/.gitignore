@@ -1,7 +1,7 @@
 .libs
 .deps
-test-patch-view
 test-graph-renderer
+test-dispatcher
 giggle
 *.o
 *.lo

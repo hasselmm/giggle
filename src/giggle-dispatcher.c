@@ -26,6 +26,8 @@
 #include "giggle-sysdeps.h"
 #include "giggle-dispatcher.h"
 
+#define d(x) x
+
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DISPATCHER, GiggleDispatcherPriv))
 
 typedef struct GiggleDispatcherPriv GiggleDispatcherPriv;
@@ -34,8 +36,7 @@ typedef struct {
 	gchar                 *command;
 	gchar                 *wd;
 	GiggleExecuteCallback  callback;
-	guint                  id;
-	GPid                   pid;
+	guint                  id; GPid                   pid;
 	gint                   std_out;
 	gint                   std_err;
 	gpointer               user_data;
@@ -110,7 +111,9 @@ dispatcher_add_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	priv = GET_PRIV (dispatcher);
 
-	if (priv->queue == NULL && priv->current_job == NULL) {
+	d(g_print ("GiggleDispatcher::add_job\n"));
+
+	if (g_queue_is_empty (priv->queue) && priv->current_job == NULL) {
 		dispatcher_run_job (dispatcher, job); 
 	} else {
 		g_queue_push_tail (priv->queue, job);
@@ -127,7 +130,7 @@ dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	priv = GET_PRIV (dispatcher);
 
-	g_assert (priv->current_job);
+	g_assert (priv->current_job == NULL);
 
 	priv->current_job = job;
 
@@ -137,13 +140,15 @@ dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	if (!g_spawn_async_with_pipes (job->wd, argv, 
 				       NULL, /* envp */
-				       G_SPAWN_SEARCH_PATH,
+				       G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 				       NULL, NULL,
 				       &job->pid,
 				       NULL, &job->std_out, &job->std_err,
 				       &error)) {
 		goto failed;
 	}
+
+	d(g_print ("GiggleDispatcher::run_job(job-started)\n"));
 
 	priv->current_job_wait_id = g_child_watch_add (job->pid, 
 						       (GChildWatchFunc) dispatcher_job_wait_cb,
@@ -252,7 +257,38 @@ dispatcher_job_wait_cb (GPid              pid,
 			gint              status,
 			GiggleDispatcher *dispatcher)
 {
-	/* FIXME: Implement */
+	GiggleDispatcherPriv *priv;
+	DispatcherJob        *job;
+	GIOChannel           *channel;
+	GIOStatus             io_status;
+	gchar                *output;
+	gsize                 length;
+	GError               *error = NULL;
+
+	priv = GET_PRIV (dispatcher);
+	job = priv->current_job;
+
+	d(g_print ("GiggleDispatcher::job_wait_cb\n"));
+
+	channel = g_io_channel_unix_new (job->std_out);
+	io_status = g_io_channel_read_to_end (channel, &output, &length, &error);
+
+	if (io_status != G_IO_STATUS_NORMAL) {
+		dispatcher_job_failed (dispatcher, job, error);
+		goto finished;
+	}
+
+	job->callback (dispatcher, job->id, NULL, output, job->user_data);
+
+	g_free (output);
+
+	dispatcher_free_job (dispatcher, job);
+
+finished:
+	g_io_channel_unref (channel);
+	priv->current_job = NULL;
+	priv->current_job_wait_id = 0;
+	dispatcher_run_next_job (dispatcher);
 }
 
 static void

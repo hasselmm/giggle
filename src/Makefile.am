@@ -29,7 +29,8 @@ giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
 
 noinst_PROGRAMS = 			        \
-	test-graph-renderer
+	test-graph-renderer                     \
+	test-dispatcher
 
 test_graph_renderer_SOURCES =		        \
 	giggle-graph-renderer.c	giggle-graph-renderer.h	\
@@ -37,6 +38,18 @@ test_graph_renderer_SOURCES =		        \
 
 test_graph_renderer_LDADD =		        \
 	$(GIGGLE_LIBS)
+
+test_dispatcher_SOURCES =                       \
+	giggle-dispatcher.c                     \
+	giggle-dispatcher.h                     \
+	giggle-error.c                          \
+	giggle-error.h                          \
+	giggle-sysdeps.c                        \
+	giggle-sysdeps.h                        \
+	test-dispatcher.c
+
+test_dispatcher_LDADD =                         \
+	$(GIGGLE_LIBS) 
 
 giggle-marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
