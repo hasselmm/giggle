@@ -32,6 +32,8 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_REVISION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION))
 #define GIGGLE_REVISION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionClass))
 
+#define GIGGLE_TYPE_REVISION_TYPE       giggle_revision_type_get_type ()
+
 typedef struct _GiggleRevision      GiggleRevision;
 typedef struct _GiggleRevisionClass GiggleRevisionClass;
 typedef struct _GiggleBranchInfo    GiggleBranchInfo;
@@ -63,6 +65,7 @@ struct _GiggleRevisionClass {
 };
 
 GType             giggle_revision_get_type      (void);
+GType             giggle_revision_type_get_type (void);
 GiggleRevision *  giggle_revision_new_commit    (GiggleBranchInfo *branch);
 GiggleRevision *  giggle_revision_new_branch    (GiggleBranchInfo *old,
 						 GiggleBranchInfo *new);
@@ -71,6 +74,7 @@ GiggleRevision *  giggle_revision_new_merge     (GiggleBranchInfo *to,
 void              giggle_revision_validate      (GtkTreeModel     *model,
 						 gint              n_column);
 const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);

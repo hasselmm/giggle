@@ -27,6 +27,8 @@ typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
 struct GiggleRevisionPriv {
 	gchar              *sha;
+	gchar              *author;
+	gchar              *date; /* FIXME: shouldn't be a string. */
 	gchar              *short_log;
 	gchar              *long_log;
 };
@@ -44,6 +46,14 @@ static GdkColor colors[] = {
 
 
 static void revision_finalize           (GObject        *object);
+static void revision_get_property       (GObject        *object,
+					 guint           param_id,
+					 GValue         *value,
+					 GParamSpec     *pspec);
+static void revision_set_property       (GObject        *object,
+					 guint           param_id,
+					 const GValue   *value,
+					 GParamSpec     *pspec);
 static void revision_copy_branch_status (gpointer        key,
 					 gpointer        value,
 					 GHashTable     *table);
@@ -54,6 +64,17 @@ static void revision_calculate_status   (GiggleRevision *revision,
 					 gint           *color);
 
 G_DEFINE_TYPE (GiggleRevision, giggle_revision, G_TYPE_OBJECT);
+
+enum {
+	PROP_0,
+	PROP_TYPE,
+	PROP_SHA,
+	PROP_AUTHOR,
+	PROP_DATE,
+	PROP_SHORT_LOG,
+	PROP_LONG_LOG
+};
+
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionPriv))
 
 static void
@@ -62,6 +83,63 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = revision_finalize;
+	object_class->get_property = revision_get_property;
+	object_class->set_property = revision_set_property;
+
+	g_object_class_install_property (
+		object_class,
+		PROP_TYPE,
+		g_param_spec_enum ("type",
+				   "Type",
+				   "Type of the revision",
+				   GIGGLE_TYPE_REVISION_TYPE,
+				   GIGGLE_REVISION_COMMIT,
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	
+	g_object_class_install_property (
+		object_class,
+		PROP_SHA,
+		g_param_spec_string ("sha",
+				     "SHA",
+				     "SHA hash of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_AUTHOR,
+		g_param_spec_string ("author",
+				     "Authur",
+				     "Author of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_DATE, /* FIXME: should not be a string... */
+		g_param_spec_string ("date",
+				     "Date",
+				     "Date of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_SHORT_LOG,
+		g_param_spec_string ("short-log",
+				     "Short log",
+				     "Short log of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_LONG_LOG,
+		g_param_spec_string ("long-log",
+				     "Long log",
+				     "Long log of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRevisionPriv));
 }
@@ -94,10 +172,105 @@ revision_finalize (GObject *object)
 	}
 
 	g_free (priv->sha);
+	g_free (priv->author);
 	g_free (priv->short_log);
 	g_free (priv->long_log);
 	
 	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
+}
+
+static void
+revision_get_property (GObject    *object,
+		       guint       param_id,
+		       GValue     *value,
+		       GParamSpec *pspec)
+{
+	GiggleRevisionPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_TYPE:
+		g_value_set_enum (value, GIGGLE_REVISION (object)->type);
+		break;
+	case PROP_SHA:
+		g_value_set_string (value, priv->sha);
+		break;
+	case PROP_AUTHOR:
+		g_value_set_string (value, priv->author);
+		break;
+	case PROP_DATE:
+		g_value_set_string (value, priv->date);
+		break;
+	case PROP_SHORT_LOG:
+		g_value_set_string (value, priv->short_log);
+		break;
+	case PROP_LONG_LOG:
+		g_value_set_string (value, priv->long_log);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+static void
+revision_set_property (GObject      *object,
+		       guint         param_id,
+		       const GValue *value,
+		       GParamSpec   *pspec)
+{
+	GiggleRevisionPriv *priv;
+	
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_TYPE:
+		GIGGLE_REVISION (object)->type = g_value_get_enum (value);
+		break;
+	case PROP_SHA:
+		g_free (priv->sha);
+		priv->sha = g_strdup (g_value_get_string (value));
+		break;
+	case PROP_AUTHOR:
+		g_free (priv->author);
+		priv->author = g_strdup (g_value_get_string (value));
+		break;
+	case PROP_DATE:
+		g_free (priv->date);
+		priv->date = g_strdup (g_value_get_string (value));
+		break;
+	case PROP_SHORT_LOG:
+		g_free (priv->short_log);
+		priv->short_log = g_strdup (g_value_get_string (value));
+		break;
+	case PROP_LONG_LOG:
+		g_free (priv->long_log);
+		priv->long_log = g_strdup (g_value_get_string (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+GType
+giggle_revision_type_get_type (void)
+{
+	static GType type = 0;
+
+	if (!type) {
+		const GEnumValue values[] = {
+			{ GIGGLE_REVISION_BRANCH, "GIGGLE_REVISION_BRANCH", "branch" },
+			{ GIGGLE_REVISION_MERGE,  "GIGGLE_REVISION_MERGE",  "merge" },
+			{ GIGGLE_REVISION_COMMIT, "GIGGLE_REVISION_COMMIT", "commit" },
+			{ 0, NULL, NULL }
+		};
+
+		type = g_enum_register_static ("GiggleRevisionType", values);
+	}
+
+	return type;
 }
 
 static void
@@ -183,8 +356,10 @@ giggle_revision_new_commit (GiggleBranchInfo *branch)
 {
 	GiggleRevision *revision;
 
-	revision = g_object_new (GIGGLE_TYPE_REVISION, NULL);
-	revision->type = GIGGLE_REVISION_COMMIT;
+	revision = g_object_new (GIGGLE_TYPE_REVISION,
+				 "type", GIGGLE_REVISION_COMMIT,
+				 NULL);
+
 	revision->branch1 = branch;
 
 	return revision;
@@ -196,8 +371,10 @@ giggle_revision_new_branch (GiggleBranchInfo *old,
 {
 	GiggleRevision *revision;
 
-	revision = g_object_new (GIGGLE_TYPE_REVISION, NULL);
-	revision->type = GIGGLE_REVISION_BRANCH;
+	revision = g_object_new (GIGGLE_TYPE_REVISION,
+				 "type", GIGGLE_REVISION_BRANCH,
+				 NULL);
+
 	revision->branch1 = old;
 	revision->branch2 = new;
 
@@ -210,8 +387,10 @@ giggle_revision_new_merge (GiggleBranchInfo *to,
 {
 	GiggleRevision *revision;
 
-	revision = g_object_new (GIGGLE_TYPE_REVISION, NULL);
-	revision->type = GIGGLE_REVISION_MERGE;
+	revision = g_object_new (GIGGLE_TYPE_REVISION,
+				 "type", GIGGLE_REVISION_MERGE,
+				 NULL);
+
 	revision->branch1 = to;
 	revision->branch2 = from;
 
