@@ -40,11 +40,25 @@ struct GiggleDispatcher {
 };
 
 struct GiggleDispatcherClass {
-	GObjectClass class;
+	GObjectClass parent_class;
 };
 
-GType		      giggle_dispatcher_get_type (void);
-GiggleDispatcher     *giggle_dispatcher_new      (void);
+typedef void   (* GiggleExecuteCallback) (GiggleDispatcher *dispatcher,
+					  GError           *error,
+					  const gchar      *result_output,
+					  gpointer          user_data);
+
+GType		  giggle_dispatcher_get_type (void);
+GiggleDispatcher *giggle_dispatcher_new      (void);
+
+guint             giggle_dispatcher_execute (GiggleDispatcher      *dispatcher,
+					     const gchar           *wd,
+					     const gchar           *command,
+					     GiggleExecuteCallback  callback,
+					     gpointer               user_data);
+
+void              giggle_dispatcher_cancel  (GiggleDispatcher      *dispatcher,
+					     guint                  id);
 
 G_END_DECLS
 
