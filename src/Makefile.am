@@ -35,7 +35,7 @@ noinst_PROGRAMS = 			        \
 	test-dispatcher
 
 test_graph_renderer_SOURCES =			\
-	giggle-revision-info.c giggle-revision-info.h	\
+	giggle-revision.c giggle-revision.h	\
 	giggle-graph-renderer.c	giggle-graph-renderer.h	\
 	test-graph-renderer.c
 
