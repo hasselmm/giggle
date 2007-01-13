@@ -52,7 +52,7 @@ enum GiggleRevisionType {
 };
 
 struct GiggleRevision {
-	GObject parent_instance;
+	GObject             parent_instance;
 
 	/* All this should be priv... */
 	GiggleRevisionType  type;
