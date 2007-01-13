@@ -42,24 +42,31 @@ struct GiggleWindowPriv {
 
 enum {
 	REVISION_COL_SHORT_LOG,
+	REVISION_COL_LONG_LOG,
 	REVISION_COL_AUTHOR,
 	REVISION_COL_DATE,
+	REVISION_COL_SHA,
 	REVISION_NUM_COLS
 };
 
-static void window_finalize                (GObject           *object);
-static void window_setup_revision_treeview (GiggleWindow      *window);
-static void window_setup_diff_textview     (GiggleWindow      *window,
-					    GtkWidget         *scrolled);
-static void window_add_widget_cb           (GtkUIManager      *merge,
-					    GtkWidget         *widget,
-					    GiggleWindow      *window);
-static void window_action_quit_cb          (GtkAction         *action,
-					    GiggleWindow      *window);
-static void window_action_about_cb         (GtkAction         *action,
-					    GiggleWindow      *window);
-static void window_action_foo_cb           (GtkAction         *action,
-					    GiggleWindow      *window);
+static void window_finalize                      (GObject          *object);
+static void window_setup_revision_treeview       (GiggleWindow     *window);
+static void window_setup_diff_textview           (GiggleWindow     *window,
+						  GtkWidget        *scrolled);
+static void window_update_revision_info          (GiggleWindow     *window,
+						  const gchar      *log,
+						  const gchar      *sha);
+static void window_add_widget_cb                 (GtkUIManager     *merge,
+						  GtkWidget        *widget,
+						  GiggleWindow     *window);
+static void window_revision_selection_changed_cb (GtkTreeSelection *selection,
+						  GiggleWindow     *window);
+static void window_action_quit_cb                (GtkAction        *action,
+						  GiggleWindow     *window);
+static void window_action_about_cb               (GtkAction        *action,
+						  GiggleWindow     *window);
+static void window_action_foo_cb                 (GtkAction        *action,
+						  GiggleWindow     *window);
 
 static const GtkActionEntry action_entries[] = {
 	{ "FileMenu", NULL,
@@ -147,16 +154,6 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->log_textview = glade_xml_get_widget (xml, "log_textview");
 
-	// test:
-
-	gtk_text_buffer_set_text (
-		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log_textview)),
-		"Changed this and that.\n"
-		"\n"
-		"Changed some foo and bar that means that now we can get more baz.",
-		-1);
-		
-	
 	window_setup_diff_textview (
 		window,
 		glade_xml_get_widget (xml, "diff_scrolledwindow"));
@@ -208,10 +205,13 @@ window_setup_revision_treeview (GiggleWindow *window)
 	GiggleWindowPriv *priv;
 	GtkListStore     *model;
 	GtkCellRenderer  *cell;
-	
+	GtkTreeIter       iter;
+	GtkTreeSelection *selection;
+
 	priv = GET_PRIV (window);
 
 	model = gtk_list_store_new (REVISION_NUM_COLS,
+				    G_TYPE_STRING,
 				    G_TYPE_STRING,
 				    G_TYPE_STRING,
 				    G_TYPE_STRING,
@@ -256,6 +256,42 @@ window_setup_revision_treeview (GiggleWindow *window)
 		cell,
 		"text", REVISION_COL_DATE,
 		NULL);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
+	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
+
+	g_signal_connect (selection,
+			  "changed",
+			  G_CALLBACK (window_revision_selection_changed_cb),
+			  window);
+	
+	/* Fake some data for now. */
+	gtk_list_store_append (model, &iter);
+	gtk_list_store_set (model, &iter,
+			    REVISION_COL_SHORT_LOG, "Blah blah",
+			    REVISION_COL_LONG_LOG, "Boring stuff that nobody really cares about.",
+			    REVISION_COL_AUTHOR, "Richard Hult <richard@imendio.com>",
+			    REVISION_COL_SHA, "12aaa3d4a567b890",
+			    REVISION_COL_DATE, "2007-01-12",
+			    -1);
+
+	gtk_list_store_append (model, &iter);
+	gtk_list_store_set (model, &iter,
+			    REVISION_COL_SHORT_LOG, "Oh yeah",
+			    REVISION_COL_LONG_LOG, "Did some really cool nice changes that will blow yor socks off.",
+			    REVISION_COL_AUTHOR, "Mikael Hallendal <micke@imendio.com>",
+			    REVISION_COL_SHA, "123db456aaf7890",
+			    REVISION_COL_DATE, "2007-01-13",
+			    -1);
+
+	gtk_list_store_append (model, &iter);
+	gtk_list_store_set (model, &iter,
+			    REVISION_COL_SHORT_LOG, "What!?",
+			    REVISION_COL_LONG_LOG, "Made the cell renderer show nice cairo rendered lines and blobs in varying colors.",
+			    REVISION_COL_AUTHOR, "Carlos Garnacho <carlosg@gnome.org>",
+			    REVISION_COL_SHA, "986db1fda56aaf7890",
+			    REVISION_COL_DATE, "2007-01-13",
+			    -1);
 }
 
 static const gchar *test_diff =
@@ -323,6 +359,25 @@ window_setup_diff_textview (GiggleWindow *window,
 }
 
 static void
+window_update_revision_info (GiggleWindow *window,
+			     const gchar  *log,
+			     const gchar  *sha)
+{
+	GiggleWindowPriv *priv;
+	gchar            *str;
+	
+	priv = GET_PRIV (window);
+
+	str = g_strdup_printf ("%s\n%s", sha, log);
+	
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log_textview)),
+		str, -1);
+
+	g_free (str);
+}
+
+static void
 window_add_widget_cb (GtkUIManager *merge, 
 		      GtkWidget    *widget, 
 		      GiggleWindow *window)
@@ -332,6 +387,32 @@ window_add_widget_cb (GtkUIManager *merge,
 	priv = GET_PRIV (window);
 
 	gtk_box_pack_start (GTK_BOX (priv->menubar_hbox), widget, TRUE, TRUE, 0);
+}
+
+static void
+window_revision_selection_changed_cb (GtkTreeSelection *selection,
+				      GiggleWindow     *window)
+{
+	GiggleWindowPriv *priv;
+	GtkTreeModel     *model;
+	GtkTreeIter       iter;
+	gchar            *log, *sha;
+
+	priv = GET_PRIV (window);
+	
+	if (!gtk_tree_selection_get_selected (selection, &model, &iter)) {
+		return;
+	}
+
+	gtk_tree_model_get (model, &iter,
+			    REVISION_COL_LONG_LOG, &log,
+			    REVISION_COL_SHA, &sha,
+			    -1);
+
+	window_update_revision_info (window, log, sha);
+	
+	g_free (log);
+	g_free (sha);
 }
 
 static void
