@@ -8,6 +8,7 @@ execute_callback (GiggleDispatcher *dispatcher,
 		  guint             id,
 		  GError           *error,
 		  const gchar      *output,
+		  gsize             output_length,
 		  gpointer          user_data)
 {
 	if (error) {
