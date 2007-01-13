@@ -32,26 +32,23 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_REVISION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION))
 #define GIGGLE_REVISION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionClass))
 
-typedef struct GiggleRevision      GiggleRevision;
-typedef struct GiggleRevisionClass GiggleRevisionClass;
-typedef enum   GiggleRevisionType  GiggleRevisionType;
-typedef struct GiggleBranchInfo    GiggleBranchInfo;
+#define GIGGLE_TYPE_REVISION_TYPE       giggle_revision_type_get_type ()
 
-struct GiggleRevisionClass {
-	GObjectClass parent_class;
-};
+typedef struct _GiggleRevision      GiggleRevision;
+typedef struct _GiggleRevisionClass GiggleRevisionClass;
+typedef struct _GiggleBranchInfo    GiggleBranchInfo;
 
-struct GiggleBranchInfo {
+struct _GiggleBranchInfo {
 	gchar *name;
 };
 
-enum GiggleRevisionType {
+typedef enum {
 	GIGGLE_REVISION_BRANCH,
 	GIGGLE_REVISION_MERGE,
 	GIGGLE_REVISION_COMMIT
-};
+} GiggleRevisionType;
 
-struct GiggleRevision {
+struct _GiggleRevision {
 	GObject             parent_instance;
 
 	/* All this should be priv... */
@@ -63,7 +60,12 @@ struct GiggleRevision {
 	GHashTable         *branches;
 };
 
+struct _GiggleRevisionClass {
+	GObjectClass parent_class;
+};
+
 GType             giggle_revision_get_type      (void);
+GType             giggle_revision_type_get_type (void);
 GiggleRevision *  giggle_revision_new_commit    (GiggleBranchInfo *branch);
 GiggleRevision *  giggle_revision_new_branch    (GiggleBranchInfo *old,
 						 GiggleBranchInfo *new);
@@ -72,6 +74,7 @@ GiggleRevision *  giggle_revision_new_merge     (GiggleBranchInfo *to,
 void              giggle_revision_validate      (GtkTreeModel     *model,
 						 gint              n_column);
 const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
+const gchar      *giggle_revision_get_author    (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
