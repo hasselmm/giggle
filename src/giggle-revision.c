@@ -279,10 +279,3 @@ giggle_revision_get_long_log  (GiggleRevision   *revision)
 	return priv->long_log;
 }
 
-const gchar *
-giggle_revision_get_patch (GiggleRevision *revision)
-{
-	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
-
-	return NULL;
-}

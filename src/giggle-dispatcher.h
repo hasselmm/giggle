@@ -18,8 +18,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GIGGLE_DISPATCH_H__
-#define __GIGGLE_DISPATCH_H__
+#ifndef __GIGGLE_DISPATCHER_H__
+#define __GIGGLE_DISPATCHER_H__
 
 #include <glib-object.h>
 
@@ -63,4 +63,4 @@ void              giggle_dispatcher_cancel  (GiggleDispatcher      *dispatcher,
 
 G_END_DECLS
 
-#endif /* __GIGGLE_DISPATCH_H__ */
+#endif /* __GIGGLE_DISPATCHER_H__ */
