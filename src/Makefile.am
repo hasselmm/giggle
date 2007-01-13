@@ -15,6 +15,8 @@ giggle_SOURCES =				\
 	giggle-dummy.h                  	\
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
+	giggle-revision.c			\
+	giggle-revision.h			\
 	giggle-window.c				\
 	giggle-window.h				\
 	giggle-main.c
@@ -25,12 +27,6 @@ giggle_LDADD = 					\
 noinst_PROGRAMS = 			        \
 	test-patch-view		   	        \
 	test-graph-renderer
-
-test_patch_view_SOURCES =			\
-	test-patch-view.c
-
-test_patch_view_LDADD = 			\
-	$(GIGGLE_LIBS)
 
 test_graph_renderer_SOURCES =		        \
 	giggle-graph-renderer.c	giggle-graph-renderer.h	\

@@ -20,40 +20,40 @@
 
 #include <config.h>
 
-#include "giggle-dummy.h"
+#include "giggle-revision.h"
 
-typedef struct GiggleDummyPriv GiggleDummyPriv;
+typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 
-struct GiggleDummyPriv {
+struct GiggleRevisionPriv {
 	guint i;
 };
 
-static void  giggle_dummy_finalize (GObject *object);
+static void  giggle_revision_finalize (GObject *object);
 
-G_DEFINE_TYPE (GiggleDummy, giggle_dummy, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleRevision, giggle_revision, G_TYPE_OBJECT);
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DUMMY, GiggleDummyPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionPriv))
 
 static void
-giggle_dummy_class_init (GiggleDummyClass *class)
+giggle_revision_class_init (GiggleRevisionClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	object_class->finalize = giggle_dummy_finalize;
+	object_class->finalize = giggle_revision_finalize;
 
-	g_type_class_add_private (object_class, sizeof (GiggleDummyPriv));
+	g_type_class_add_private (object_class, sizeof (GiggleRevisionPriv));
 }
 
 static void
-giggle_dummy_init (GiggleDummy *dummy)
+giggle_revision_init (GiggleRevision *revision)
 {
 }
 
 static void
-giggle_dummy_finalize (GObject *object)
+giggle_revision_finalize (GObject *object)
 {
 	/* FIXME: Free object data */
 
-	G_OBJECT_CLASS (giggle_dummy_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
 }
 
