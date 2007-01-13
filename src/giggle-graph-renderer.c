@@ -20,7 +20,7 @@ struct GiggleCellRendererGraphPrivate {
 enum {
 	PROP_0,
 	PROP_BRANCHES_INFO,
-	PROP_REVISION_INFO,
+	PROP_REVISION,
 };
 
 static void giggle_cell_renderer_graph_finalize     (GObject                 *object);
@@ -70,11 +70,12 @@ giggle_cell_renderer_graph_class_init (GiggleCellRendererGraphClass *class)
 							       "branches-info",
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (object_class,
-					 PROP_REVISION_INFO,
-					 g_param_spec_pointer ("revision-info",
-							       "revision-info",
-							       "revision-info",
-							       G_PARAM_READWRITE));
+					 PROP_REVISION,
+					 g_param_spec_object ("revision-info",
+							      "revision-info",
+							      "revision-info",
+							      GIGGLE_TYPE_REVISION,
+							      G_PARAM_READWRITE));
 	g_type_class_add_private (object_class,
 				  sizeof (GiggleCellRendererGraphPrivate));
 }
@@ -107,8 +108,8 @@ giggle_cell_renderer_graph_get_property (GObject *object,
 	case PROP_BRANCHES_INFO:
 		g_value_set_pointer (value, priv->branches);
 		break;
-	case PROP_REVISION_INFO:
-		g_value_set_pointer (value, priv->revision);
+	case PROP_REVISION:
+		g_value_set_object (value, priv->revision);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -127,8 +128,11 @@ giggle_cell_renderer_graph_set_property (GObject      *object,
 	case PROP_BRANCHES_INFO:
 		priv->branches = g_value_get_pointer (value);
 		break;
-	case PROP_REVISION_INFO:
-		priv->revision = g_value_get_pointer (value);
+	case PROP_REVISION:
+		if (priv->revision) {
+			g_object_unref (priv->revision);
+		}
+		priv->revision = GIGGLE_REVISION (g_value_dup_object (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);

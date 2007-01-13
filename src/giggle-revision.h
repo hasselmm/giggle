@@ -52,7 +52,7 @@ enum GiggleRevisionType {
 };
 
 struct GiggleRevision {
-	GObject parent_instance;
+	GObject             parent_instance;
 
 	/* All this should be priv... */
 	GiggleRevisionType  type;
@@ -74,8 +74,6 @@ void              giggle_revision_validate      (GtkTreeModel     *model,
 const gchar      *giggle_revision_get_sha       (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_short_log (GiggleRevision   *revision);
 const gchar      *giggle_revision_get_long_log  (GiggleRevision   *revision);
-const gchar      *giggle_revision_get_patch     (GiggleRevision   *revision);
-
 GiggleBranchInfo *giggle_branch_info_new        (const gchar      *name);
 void              giggle_branch_info_free       (GiggleBranchInfo *info);
 
