@@ -22,25 +22,41 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 #include <glade/glade.h>
+#include <gtksourceview/gtksourceview.h>
+#include <gtksourceview/gtksourcelanguagesmanager.h>
 
 #include "giggle-window.h"
+#include "giggle-graph-renderer.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
 	GtkWidget    *content_vbox;
 	GtkWidget    *menubar_hbox;
+	GtkWidget    *revision_treeview;
+	GtkWidget    *diff_view;
 
 	GtkUIManager *ui_manager;
 };
 
-static void  window_finalize        (GObject      *object);
-static void  window_add_widget_cb   (GtkUIManager *merge, 
-				     GtkWidget    *widget, 
-				     GiggleWindow *window);
-static void  window_action_foo_cb   (GtkAction    *action,
-				     GiggleWindow *window);
+enum {
+	REVISION_COL_SHORT_LOG,
+	REVISION_COL_AUTHOR,
+	REVISION_COL_DATE,
+	REVISION_NUM_COLS
+};
 
+static void window_finalize                (GObject           *object);
+static void window_setup_revision_treeview (GiggleWindow      *window);
+static void window_setup_diff_view         (GiggleWindow      *window,
+					    GtkWidget         *scrolled);
+static void window_add_widget_cb           (GtkUIManager      *merge,
+					    GtkWidget         *widget,
+					    GiggleWindow      *window);
+static void window_action_about_cb         (GtkAction         *action,
+					    GiggleWindow      *window);
+static void window_action_foo_cb           (GtkAction         *action,
+					    GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
 	{ "FileMenu", NULL,
@@ -51,9 +67,17 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Edit"), NULL, NULL,
 	  NULL
 	},
+	{ "HelpMenu", NULL,
+	  N_("_Help"), NULL, NULL,
+	  NULL
+	},
 	{ "Foo", NULL,
 	  N_("_Foo"), NULL, N_("Foo bar baz"),
 	  G_CALLBACK (window_action_foo_cb)
+	},
+	{ "About", NULL,
+	  N_("_About"), NULL, N_("About this application"),
+	  G_CALLBACK (window_action_about_cb)
 	}
 };
 
@@ -64,6 +88,10 @@ static const gchar *ui_layout =
 	"      <menuitem action='Foo'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
+	"      <menuitem action='Foo'/>"
+	"    </menu>"
+	"    <menu action='HelpMenu'>"
+	"      <menuitem action='About'/>"
 	"    </menu>"
 	"  </menubar>"
 	"</ui>";
@@ -92,6 +120,8 @@ giggle_window_init (GiggleWindow *window)
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
+
+	gtk_window_set_title (GTK_WINDOW (window), "Giggle");
 	
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -103,6 +133,12 @@ giggle_window_init (GiggleWindow *window)
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
 	priv->menubar_hbox = glade_xml_get_widget (xml, "menubar_hbox");
+	priv->revision_treeview = glade_xml_get_widget (xml, "revision_treeview");
+	window_setup_revision_treeview (window);
+
+	window_setup_diff_view (
+		window,
+		glade_xml_get_widget (xml, "diff_scrolledwindow"));
 
 	g_object_unref (xml);
 
@@ -144,6 +180,126 @@ window_finalize (GObject *object)
 }
 
 static void
+window_setup_revision_treeview (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkListStore     *model;
+	GtkCellRenderer  *cell;
+	
+	priv = GET_PRIV (window);
+
+	model = gtk_list_store_new (REVISION_NUM_COLS,
+				    G_TYPE_STRING,
+				    G_TYPE_STRING,
+				    G_TYPE_STRING,
+				    G_TYPE_STRING);
+
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview),
+				 GTK_TREE_MODEL (model));
+
+	g_object_unref (model);
+	
+	cell = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_attributes (
+		GTK_TREE_VIEW (priv->revision_treeview),
+		-1,
+		_("Graph"),
+		cell,
+		NULL);
+
+	cell = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_attributes (
+		GTK_TREE_VIEW (priv->revision_treeview),
+		-1,
+		_("Short Log"),
+		cell,
+		"text", REVISION_COL_SHORT_LOG,
+		NULL);
+
+	cell = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_attributes (
+		GTK_TREE_VIEW (priv->revision_treeview),
+		-1,
+		_("Author"),
+		cell,
+		"text", REVISION_COL_AUTHOR,
+		NULL);
+
+	cell = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_attributes (
+		GTK_TREE_VIEW (priv->revision_treeview),
+		-1,
+		_("Date"),
+		cell,
+		"text", REVISION_COL_DATE,
+		NULL);
+}
+
+static const gchar *test_diff =
+	"diff --git a/src/test-patch-view.c b/src/test-patch-view.c\n"
+	"index 6999aa3..2c90d9a 100644\n"
+	"--- a/src/test-patch-view.c\n"
+	"+++ b/src/test-patch-view.c\n"
+	"@@ -1,9 +1,47 @@\n"
+	" #include <gtk/gtk.h>\n"
+	"+#include <gtksourceview/gtksourceview.h>\n"
+	"+#include <gtksourceview/gtksourcelanguagesmanager.h>\n"
+	"+\n"
+	"+static GtkWidget *\n"
+	"+giggle_diff_view_new (void)\n"
+	"+{\n"
+	"+       GtkWidget                 *view;\n"
+	"+       GtkTextBuffer             *buffer;\n"
+	"+       GtkSourceLanguage         *language;\n"
+	"+       GtkSourceLanguagesManager *manager;\n"
+	"+\n"
+	"+       view = gtk_source_view_new ();\n"
+	"+       gtk_text_view_set_editable (GTK_TEXT_VIEW (view), FALSE);\n"
+	"+\n"
+	"+       buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));\n"
+	"+\n"
+	"+       manager = gtk_source_languages_manager_new ();\n"
+	"+       language = gtk_source_languages_manager_get_language_from_mime_type (\n"
+	"+               manager, \"text/x-patch\");\n"
+	"+       g_object_unref (manager);\n"
+	"+\n"
+	"+       gtk_source_buffer_set_language  (GTK_SOURCE_BUFFER (buffer), language);\n"
+	"+\n";
+
+static void
+window_setup_diff_view (GiggleWindow *window,
+			GtkWidget    *scrolled)
+{
+	GiggleWindowPriv          *priv;
+	GtkTextBuffer             *buffer;
+	GtkSourceLanguage         *language;
+	GtkSourceLanguagesManager *manager;
+
+	priv = GET_PRIV (window);
+	
+	priv->diff_view = gtk_source_view_new ();
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->diff_view), FALSE);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_view));
+
+	manager = gtk_source_languages_manager_new ();
+	language = gtk_source_languages_manager_get_language_from_mime_type (
+		manager, "text/x-patch");
+
+	gtk_source_buffer_set_language (GTK_SOURCE_BUFFER (buffer), language);
+	gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
+	
+	g_object_unref (manager);
+
+	gtk_widget_show (priv->diff_view);
+	
+	gtk_container_add (GTK_CONTAINER (scrolled), priv->diff_view);
+
+	/* FIXME: Just testing for now... */
+	gtk_text_buffer_set_text (buffer, test_diff, -1);
+}
+
+static void
 window_add_widget_cb (GtkUIManager *merge, 
 		      GtkWidget    *widget, 
 		      GiggleWindow *window)
@@ -153,6 +309,16 @@ window_add_widget_cb (GtkUIManager *merge,
 	priv = GET_PRIV (window);
 
 	gtk_box_pack_start (GTK_BOX (priv->menubar_hbox), widget, TRUE, TRUE, 0);
+}
+
+static void
+window_action_about_cb (GtkAction    *action,
+			GiggleWindow *window)
+{
+	gtk_show_about_dialog (GTK_WINDOW (window),
+			       "name", "Giggle",
+			       "copyright", "Copyright 2007 Imendio AB",
+			       NULL);
 }
 
 static void
