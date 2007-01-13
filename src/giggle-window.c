@@ -121,10 +121,6 @@ static const gchar *ui_layout =
 	"  </menubar>"
 	"</ui>";
 
-/* testing... */
-static GiggleBranchInfo *branch1;
-static GiggleBranchInfo *branch2;
-
 
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW);
 
@@ -512,6 +508,8 @@ window_create_test_model (GiggleWindow *window)
 	GtkListStore     *store;
 	GtkTreeIter       iter;
 	GiggleRevision   *revision;
+	GiggleBranchInfo *branch1;
+	GiggleBranchInfo *branch2;
 	GList            *branches = NULL;
 
 	priv = GET_PRIV (window);
