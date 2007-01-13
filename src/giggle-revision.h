@@ -23,6 +23,7 @@
 
 #include <glib-object.h>
 
+#include <gdk/gdk.h>
 #include <gtk/gtktreemodel.h>
 
 G_BEGIN_DECLS
