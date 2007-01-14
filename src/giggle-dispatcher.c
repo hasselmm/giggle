@@ -181,7 +181,6 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 						       (GChildWatchFunc) dispatcher_job_finished_cb,
 						       dispatcher);
 	g_strfreev (argv);
-	g_error_free (error);
 
 	return TRUE;
 

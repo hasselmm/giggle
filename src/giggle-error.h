@@ -28,7 +28,6 @@ G_BEGIN_DECLS
 #define GIGGLE_ERROR giggle_error_quark()
 
 typedef enum {
-	GIGGLE_ERROR_DISPATCH_CANCELLED,
 	GIGGLE_ERROR_DISPATCH_COMMAND_NOT_FOUND
 } GiggleError;
 
