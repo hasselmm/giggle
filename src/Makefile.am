@@ -15,8 +15,12 @@ giggle_SOURCES =				\
 	giggle-error.h                          \
 	giggle-git.c                            \
 	giggle-git.h                            \
+	giggle-git-diff.c                       \
+	giggle-git-diff.h                       \
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
+	giggle-job.c                            \
+	giggle-job.h                            \
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
 	giggle-revision.c			\
