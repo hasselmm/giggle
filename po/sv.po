@@ -1,0 +1,83 @@
+# Giggle
+# Copyright (C) 2007 Imendio AB
+# This file is distributed under the same license as the PACKAGE package.
+# Richard Hult <richard@imendio.com>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Giggle 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-01-14 12:44+0100\n"
+"PO-Revision-Date: 2007-01-14 12:41+0200\n"
+"Last-Translator: Richard Hult <richard@imendio.com>\n"
+"Language-Team: sv <sv@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../data/main-window.glade.h:1
+msgid "Giggle"
+msgstr "Giggle"
+
+#: ../src/giggle-dispatcher.c:210
+#, c-format
+msgid "Job '%s' cancelled"
+msgstr "Jobb \"%s\" avbrutet"
+
+#: ../src/giggle-window.c:103
+msgid "_File"
+msgstr "_Arkiv"
+
+#: ../src/giggle-window.c:107
+msgid "_Edit"
+msgstr "_Redigera"
+
+#: ../src/giggle-window.c:111
+msgid "_Help"
+msgstr "_Hjälp"
+
+#: ../src/giggle-window.c:115
+msgid "_Quit"
+msgstr "_Avsluta"
+
+#: ../src/giggle-window.c:115
+msgid "Quit the application"
+msgstr "Avsluta applikationen"
+
+#: ../src/giggle-window.c:119
+msgid "_About"
+msgstr "_Om"
+
+#: ../src/giggle-window.c:119
+msgid "About this application"
+msgstr "Om denna applikation"
+
+#: ../src/giggle-window.c:176
+#, c-format
+msgid "The directory '%s' does not look like a GIT repository."
+msgstr "Katalogen \"%s\" ser inte ut som ett GIT-repo."
+
+#: ../src/giggle-window.c:266
+msgid "Graph"
+msgstr "Graf"
+
+#: ../src/giggle-window.c:275
+msgid "Short Log"
+msgstr "Kort logg"
+
+#: ../src/giggle-window.c:285
+msgid "Author"
+msgstr "Författare"
+
+#: ../src/giggle-window.c:295
+msgid "Date"
+msgstr "Datum"
+
+#: ../src/giggle-window.c:482
+#, c-format
+msgid ""
+"An error ocurred when retrieving a diff:\n"
+"%s"
+msgstr ""
+"Ett fel inträffade när diff hämtades:\n"
+"%s"
