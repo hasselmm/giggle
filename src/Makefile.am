@@ -60,15 +60,12 @@ test_dispatcher_LDADD =                         \
 
 test_giggle_git_SOURCES =                       \
 	giggle-dispatcher.c                     \
-	giggle-dispatcher.h                     \
 	giggle-error.c                          \
-	giggle-error.h                          \
 	giggle-sysdeps.c                        \
-	giggle-sysdeps.h                        \
 	giggle-revision.c                       \
-	giggle-revision.h                       \
 	giggle-git.c                            \
-	giggle-git.h                            \
+	giggle-git-diff.c                       \
+	giggle-job.c                            \
 	test-giggle-git.c
 
 test_giggle_git_LDADD =                         \

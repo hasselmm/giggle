@@ -25,12 +25,25 @@
 typedef struct GiggleJobPriv GiggleJobPriv;
 
 struct GiggleJobPriv {
-	guint i;
+	guint id;
 };
 
-static void  giggle_job_finalize (GObject *object);
+static void     job_finalize     (GObject      *object);
+static void     job_set_property (GObject      *object,
+				  guint         param_id,
+				  const GValue *value,
+				  GParamSpec   *pspec);
+static void     job_get_property (GObject      *object,
+				  guint         param_id,
+				  GValue       *value,
+				  GParamSpec   *pspec);
 
 G_DEFINE_TYPE (GiggleJob, giggle_job, G_TYPE_OBJECT);
+
+enum {
+	PROP_0,
+	PROP_ID
+};
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_JOB, GiggleJobPriv))
 
@@ -39,7 +52,18 @@ giggle_job_class_init (GiggleJobClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	object_class->finalize = giggle_job_finalize;
+	object_class->finalize = job_finalize;
+	object_class->get_property = job_get_property;
+	object_class->set_property = job_set_property;
+
+	g_object_class_install_property (object_class,
+					 PROP_ID,
+					 g_param_spec_uint ("id",
+							    "Id",
+							    "A unique identifier for the job.",
+							    0, G_MAXUINT,
+							    0,
+							    G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleJobPriv));
 }
@@ -47,13 +71,90 @@ giggle_job_class_init (GiggleJobClass *class)
 static void
 giggle_job_init (GiggleJob *job)
 {
+	GiggleJobPriv *priv;
+
+	priv = GET_PRIV (job);
+
+	priv->id = 0;
 }
 
 static void
-giggle_job_finalize (GObject *object)
+job_finalize (GObject *object)
 {
 	/* FIXME: Free object data */
 
 	G_OBJECT_CLASS (giggle_job_parent_class)->finalize (object);
+}
+
+static void
+job_get_property (GObject    *object,
+		  guint       param_id,
+		  GValue     *value,
+		  GParamSpec *pspec)
+{
+	GiggleJobPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_ID:
+		g_value_set_uint (value, priv->id);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+static void
+job_set_property (GObject      *object,
+		  guint         param_id,
+		  const GValue *value,
+		  GParamSpec   *pspec)
+{
+	GiggleJobPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_ID:
+		priv->id = g_value_get_uint (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+gboolean
+giggle_job_get_command_line (GiggleJob *job, gchar **command_line)
+{
+	GiggleJobClass *klass;
+
+	g_return_val_if_fail (GIGGLE_IS_JOB (job), FALSE);
+	g_return_val_if_fail (command_line != NULL, FALSE);
+
+	klass = GIGGLE_JOB_GET_CLASS (job);
+	if (klass->get_command_line) {
+		return klass->get_command_line (job, command_line);
+	} 
+	
+	*command_line = NULL;
+	return FALSE;
+}
+
+void
+giggle_job_handle_output (GiggleJob   *job,
+			  const gchar *output_str,
+			  gsize        output_len)
+{
+	GiggleJobClass *klass;
+
+	g_return_if_fail (GIGGLE_IS_JOB (job));
+
+	klass = GIGGLE_JOB_GET_CLASS (job);
+	if (klass->handle_output) {
+		klass->handle_output (job, output_str, output_len);
+	}
 }
 

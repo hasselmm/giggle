@@ -1,20 +1,24 @@
 #include "giggle-git.h"
+#include "giggle-git-diff.h"
 
 GMainLoop *main_loop;
 
 static void 
-diff_cb (GiggleGit      *git,
-	 guint           id,
-	 GError         *error,
-	 GiggleRevision *rev1,
-	 GiggleRevision *rev2,
-	 const gchar    *diff,
-	 gpointer        user_data)
+job_done_cb (GiggleGit *git,
+	     GiggleJob *job,
+	     GError    *error,
+	     gpointer   user_data)
 {
+	if (!GIGGLE_IS_GIT_DIFF (job)) {
+		g_warning ("Not a diff job");
+		g_main_loop_quit (main_loop);
+		return;
+	}
+
 	g_print ("Got a diff:\n");
-	g_print ("---------------------------------------------------------\n");
-	g_print (diff);
-	g_print ("---------------------------------------------------------\n");
+	g_print ("\n-------------------------------------------------------\n");
+	g_print (giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)));
+	g_print ("\n-------------------------------------------------------\n");
 
 	g_main_loop_quit (main_loop);
 }
@@ -25,6 +29,7 @@ main (int argc, char **argv)
 	GiggleGit *git;
 	GiggleBranchInfo   *branch1;
 	GiggleRevision *rev1, *rev2;
+	GiggleGitDiff  *diff;
 
 	g_type_init ();
 
@@ -49,8 +54,9 @@ main (int argc, char **argv)
                       "date", "2007-01-12",
                       NULL);
 
-	giggle_git_get_diff (git, rev1, rev2, 
-			     (GiggleDiffCallback)diff_cb, NULL);
+	diff = giggle_git_diff_new (rev1, rev2);
+	giggle_git_run_job (git, GIGGLE_JOB (diff), job_done_cb, NULL);
+	g_object_unref (diff);
 
 	g_main_loop_run (main_loop);
 
