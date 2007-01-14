@@ -244,6 +244,8 @@ window_finalize (GObject *object)
 		giggle_git_cancel (priv->git, priv->git_job_id);
 	}
 
+	g_object_unref (priv->git);
+
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
 }
 
@@ -469,8 +471,8 @@ window_git_get_diff_callback (GiggleGit      *git,
 	priv->git_job_id = 0;
 
 	if (error) {
-		if (error->domain == GIGGLE_ERROR /*&&
-						    error->code != GIGGLE_ERROR_DISPATCH_CANCELLED*/) {
+		if (error->domain == GIGGLE_ERROR &&
+		    error->code != GIGGLE_ERROR_DISPATCH_CANCELLED) {
 			GtkWidget *dialog;
 			
 			dialog = gtk_message_dialog_new (GTK_WINDOW (window),
