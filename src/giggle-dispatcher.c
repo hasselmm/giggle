@@ -51,24 +51,26 @@ struct GiggleDispatcherPriv {
 
 static void     giggle_dispatcher_finalize (GObject *object);
 
-static void     dispatcher_add_job       (GiggleDispatcher  *dispatcher,
-					  DispatcherJob     *job);
 
-static gboolean dispatcher_run_job       (GiggleDispatcher  *dispatcher,
-					  DispatcherJob     *job);
-static void     dispatcher_run_next_job  (GiggleDispatcher *dispatcher);
-static void     dispatcher_cancel_job    (GiggleDispatcher *dispatcher, 
-					  DispatcherJob    *job);
-static void     dispatcher_cancel_job_id (GiggleDispatcher *dispatcher,
-					  guint             id);
-static void     dispatcher_free_job      (GiggleDispatcher *dispatcher,
-					  DispatcherJob    *job);
-static void     dispatcher_job_wait_cb   (GPid              pid,
-					  gint              status,
-					  GiggleDispatcher *dispatcher);
-static void     dispatcher_job_failed    (GiggleDispatcher *dispatcher,
-					  DispatcherJob    *job,
-					  GError           *error);
+static void      dispatcher_queue_job        (GiggleDispatcher  *dispatcher,
+					      DispatcherJob     *job);
+static void      dispatcher_unqueue_job      (GiggleDispatcher  *dispatcher,
+					      guint              id);
+static gboolean  dispatcher_start_job        (GiggleDispatcher  *dispatcher,
+					      DispatcherJob     *job);
+static void      dispatcher_stop_current_job (GiggleDispatcher *dispatcher);
+static void      dispatcher_start_next_job   (GiggleDispatcher *dispatcher);
+static void      dispatcher_signal_job_failed (GiggleDispatcher *dispatcher, 
+					       DispatcherJob    *job,
+					       GError           *error);
+static void      dispatcher_job_free         (DispatcherJob    *job);
+static gboolean  dispatcher_is_free_to_start (GiggleDispatcher *dispatcher);
+static gboolean  dispatcher_is_current_job   (GiggleDispatcher *dispatcher,
+					      guint             id);
+
+static void      dispatcher_job_finished_cb  (GPid              pid,
+					      gint              status,
+					      GiggleDispatcher *dispatcher);
 
 G_DEFINE_TYPE (GiggleDispatcher, giggle_dispatcher, G_TYPE_OBJECT);
 
@@ -102,11 +104,11 @@ giggle_dispatcher_finalize (GObject *object)
 	DispatcherJob        *job;
 
 	if (priv->current_job_wait_id) {
-		g_source_remove (priv->current_job_wait_id);
+		dispatcher_stop_current_job (dispatcher);
 	}
 
 	while ((job = g_queue_pop_head (priv->queue))) {
-		dispatcher_free_job (dispatcher, job);
+		dispatcher_job_free (job);
 	}
 	g_queue_free (priv->queue);
 	
@@ -114,23 +116,40 @@ giggle_dispatcher_finalize (GObject *object)
 }
 
 static void
-dispatcher_add_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
+dispatcher_queue_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 {
 	GiggleDispatcherPriv *priv;
 
 	priv = GET_PRIV (dispatcher);
 
-	d(g_print ("GiggleDispatcher::add_job\n"));
+	d(g_print ("GiggleDispatcher::queue_job\n"));
 
-	if (g_queue_is_empty (priv->queue) && priv->current_job == NULL) {
-		dispatcher_run_job (dispatcher, job); 
-	} else {
-		g_queue_push_tail (priv->queue, job);
+	g_queue_push_tail (priv->queue, job);
+}
+
+static void
+dispatcher_unqueue_job (GiggleDispatcher *dispatcher, guint id)
+{
+	GiggleDispatcherPriv *priv;
+	GList                *l;
+
+	priv = GET_PRIV (dispatcher);
+
+	d(g_print ("GiggleDispatcher::unqueue_job\n"));
+
+	for (l = priv->queue->head; l; l = l->next) {
+		DispatcherJob *job = (DispatcherJob *) l->data;
+
+		if (job->id == id) {
+			g_queue_delete_link (priv->queue, l);
+			dispatcher_job_free (job);
+			break;
+		}
 	}
 }
 
 static gboolean
-dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
+dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 {
 	GiggleDispatcherPriv  *priv;
 	gint                   argc;
@@ -140,8 +159,6 @@ dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	priv = GET_PRIV (dispatcher);
 
 	g_assert (priv->current_job == NULL);
-
-	priv->current_job = job;
 
 	if (!g_shell_parse_argv (job->command, &argc, &argv, &error)) {
 		goto failed;
@@ -159,99 +176,69 @@ dispatcher_run_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	d(g_print ("GiggleDispatcher::run_job(job-started)\n"));
 
+	priv->current_job = job;
 	priv->current_job_wait_id = g_child_watch_add (job->pid, 
-						       (GChildWatchFunc) dispatcher_job_wait_cb,
+						       (GChildWatchFunc) dispatcher_job_finished_cb,
 						       dispatcher);
+	g_strfreev (argv);
+	g_error_free (error);
+
 	return TRUE;
 
 failed:
-	dispatcher_job_failed (dispatcher, job, error);
+	dispatcher_signal_job_failed (dispatcher, job, error);
+	dispatcher_job_free (job);
 	g_strfreev (argv);
 	g_error_free (error);
 	priv->current_job = NULL;
 	priv->current_job_wait_id = 0;
+
 	return FALSE;
 }
 
-static void 
-dispatcher_run_next_job (GiggleDispatcher *dispatcher)
+static void
+dispatcher_stop_current_job (GiggleDispatcher *dispatcher)
+{
+	GiggleDispatcherPriv *priv;
+
+	priv = GET_PRIV (dispatcher);
+
+	g_assert (priv->current_job_wait_id != 0);
+	g_source_remove (priv->current_job_wait_id);
+	priv->current_job_wait_id = 0;
+
+	g_assert (priv->current_job != NULL);
+	giggle_sysdeps_kill_pid (priv->current_job->pid);
+
+	dispatcher_job_free (priv->current_job);
+	priv->current_job = NULL;
+}
+
+static void
+dispatcher_start_next_job (GiggleDispatcher *dispatcher)
 {
 	GiggleDispatcherPriv *priv;
 	DispatcherJob        *job;
 
 	priv = GET_PRIV (dispatcher);
-	
-	g_assert (priv->current_job == NULL);
 
-	job = (DispatcherJob *) g_queue_pop_head (priv->queue);
-	if (job) {
-		if (!dispatcher_run_job (dispatcher, job)) {
-			dispatcher_run_next_job (dispatcher);
-		}
-	}
-}
-
-static void
-dispatcher_cancel_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
-{
-	GiggleDispatcherPriv *priv;
-	GError               *error;
-	gboolean              current = FALSE;
-
-	priv = GET_PRIV (dispatcher);
-
-	if (priv->current_job == job) {
-		giggle_sysdeps_kill_pid (job->pid);
-		current = TRUE;
-	}
-
-	error = g_error_new (GIGGLE_ERROR,
-			     GIGGLE_ERROR_DISPATCH_CANCELLED,
-			     _("Job '%s' cancelled"),
-			     job->command);
-
-	job->callback (dispatcher, job->id, error, NULL, 0, job->user_data);
-
-	g_error_free (error);
-
-	dispatcher_free_job (dispatcher, job);
-
-	if (current) {
-		priv->current_job = NULL;
-
-		g_source_remove (priv->current_job_wait_id);
-		priv->current_job_wait_id = 0;
-
-		dispatcher_run_next_job (dispatcher);
-	}
-}
-
-static void
-dispatcher_cancel_job_id (GiggleDispatcher *dispatcher, guint id)
-{
-	GiggleDispatcherPriv *priv;
-	GList                *l;
-
-	priv = GET_PRIV (dispatcher);
-
-	if (priv->current_job && priv->current_job->id == id) {
-		dispatcher_cancel_job (dispatcher, priv->current_job);
-		return;
-	}
-
-	for (l = priv->queue->head; l; l = l->next) {
-		DispatcherJob *job = (DispatcherJob *) l->data;
-
-		if (job->id == id) {
-			dispatcher_cancel_job (dispatcher, job);
-			g_queue_delete_link (priv->queue, l);
+	while ((job = (DispatcherJob *) g_queue_pop_head (priv->queue))) {
+		if (dispatcher_start_job (dispatcher, job)) {
 			break;
 		}
 	}
 }
 
 static void
-dispatcher_free_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
+dispatcher_signal_job_failed (GiggleDispatcher *dispatcher, 
+			      DispatcherJob    *job,
+			      GError           *error)
+{
+	job->callback (dispatcher, job->id, error, NULL, 0, job->user_data);
+}
+
+static void
+dispatcher_job_free (DispatcherJob *job)
 {
 	g_free (job->command);
 	g_free (job->wd);
@@ -260,13 +247,41 @@ dispatcher_free_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 		g_spawn_close_pid (job->pid);
 	}
 
-	g_free (job);
+	g_slice_free (DispatcherJob, job);
+}
+
+static gboolean
+dispatcher_is_free_to_start (GiggleDispatcher *dispatcher)
+{
+	GiggleDispatcherPriv *priv;
+
+	priv = GET_PRIV (dispatcher);
+
+	if (priv->current_job) {
+		return FALSE;
+	} 
+
+	return TRUE;
+}
+
+static gboolean
+dispatcher_is_current_job (GiggleDispatcher *dispatcher, guint id)
+{
+	GiggleDispatcherPriv *priv;
+
+	priv = GET_PRIV (dispatcher);
+
+	if (priv->current_job && priv->current_job->id == id) {
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void
-dispatcher_job_wait_cb (GPid              pid,
-			gint              status,
-			GiggleDispatcher *dispatcher)
+dispatcher_job_finished_cb (GPid              pid,
+			    gint              status,
+			    GiggleDispatcher *dispatcher)
 {
 	GiggleDispatcherPriv *priv;
 	DispatcherJob        *job;
@@ -279,13 +294,13 @@ dispatcher_job_wait_cb (GPid              pid,
 	priv = GET_PRIV (dispatcher);
 	job = priv->current_job;
 
-	d(g_print ("GiggleDispatcher::job_wait_cb\n"));
+	d(g_print ("GiggleDispatcher::job_finished_cb\n"));
 
 	channel = g_io_channel_unix_new (job->std_out);
 	io_status = g_io_channel_read_to_end (channel, &output, &length, &error);
 
 	if (io_status != G_IO_STATUS_NORMAL) {
-		dispatcher_job_failed (dispatcher, job, error);
+		dispatcher_signal_job_failed (dispatcher, job, error);
 		goto finished;
 	}
 
@@ -295,23 +310,12 @@ dispatcher_job_wait_cb (GPid              pid,
 
 	g_free (output);
 
-	dispatcher_free_job (dispatcher, job);
-
 finished:
+	dispatcher_job_free (job);
 	g_io_channel_unref (channel);
 	priv->current_job = NULL;
 	priv->current_job_wait_id = 0;
-	dispatcher_run_next_job (dispatcher);
-}
-
-static void
-dispatcher_job_failed (GiggleDispatcher *dispatcher,
-		       DispatcherJob    *job,
-		       GError           *error)
-{
-	job->callback (dispatcher, job->id, error, NULL, 0, job->user_data);
-	
-	dispatcher_free_job (dispatcher, job);
+	dispatcher_start_next_job (dispatcher);
 }
 
 GiggleDispatcher *
@@ -334,7 +338,7 @@ giggle_dispatcher_execute (GiggleDispatcher      *dispatcher,
 	g_return_val_if_fail (command != NULL, 0);
 	g_return_val_if_fail (callback != NULL, 0);
 
-	job = g_new0 (DispatcherJob, 1);
+	job = g_slice_new0 (DispatcherJob);
 
 	job->command = g_strdup (command);
 	job->callback = callback;
@@ -351,7 +355,11 @@ giggle_dispatcher_execute (GiggleDispatcher      *dispatcher,
 		job->wd = NULL;
 	}
 
-	dispatcher_add_job (dispatcher, job);
+	if (dispatcher_is_free_to_start (dispatcher)) {
+		dispatcher_start_job (dispatcher, job);
+	} else {
+		dispatcher_queue_job (dispatcher, job);
+	}
 
 	return job->id;
 }
@@ -362,6 +370,11 @@ giggle_dispatcher_cancel (GiggleDispatcher *dispatcher, guint id)
 	g_return_if_fail (GIGGLE_IS_DISPATCHER (dispatcher));
 	g_return_if_fail (id > 0);
 
-	dispatcher_cancel_job_id (dispatcher, id);
+	if (dispatcher_is_current_job (dispatcher, id)) {
+		dispatcher_stop_current_job (dispatcher);
+		dispatcher_start_next_job (dispatcher);
+	} else {
+		dispatcher_unqueue_job (dispatcher, id);
+	}
 }
 
