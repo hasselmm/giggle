@@ -23,6 +23,9 @@
 
 #include <glib-object.h>
 
+#include "giggle-job.h"
+#include "giggle-revision.h"
+
 G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_GIT_DIFF            (giggle_git_diff_get_type ())
@@ -36,15 +39,17 @@ typedef struct GiggleGitDiff      GiggleGitDiff;
 typedef struct GiggleGitDiffClass GiggleGitDiffClass;
 
 struct GiggleGitDiff {
-	GObject parent;
+	GiggleJob parent;
 };
 
 struct GiggleGitDiffClass {
-	GObjectClass parent_class;
+	GiggleJobClass parent_class;
 };
 
-GType		      giggle_git_diff_get_type (void);
-GiggleGitDiff          *giggle_git_diff_new      (void);
+GType		      giggle_git_diff_get_type   (void);
+GiggleGitDiff *       giggle_git_diff_new        (GiggleRevision *rev1,
+						  GiggleRevision *rev2);
+const gchar *         giggle_git_diff_get_result (GiggleGitDiff *diff);      
 
 G_END_DECLS
 

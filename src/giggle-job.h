@@ -41,10 +41,22 @@ struct GiggleJob {
 
 struct GiggleJobClass {
 	GObjectClass parent_class;
+
+	/* < Vtable > */
+	gboolean   (* get_command_line)  (GiggleJob    *job,
+					  gchar       **command_line);
+	void       (* handle_output)     (GiggleJob    *job,
+					  const gchar  *output_str,
+					  gsize         output_len);
 };
 
-GType		      giggle_job_get_type (void);
-GiggleJob          *giggle_job_new      (void);
+GType        giggle_job_get_type         (void);
+
+gboolean     giggle_job_get_command_line (GiggleJob    *job,
+					  gchar       **command_line);
+void         giggle_job_handle_output    (GiggleJob    *job,
+					  const gchar  *output_str,
+					  gsize         output_len);
 
 G_END_DECLS
 

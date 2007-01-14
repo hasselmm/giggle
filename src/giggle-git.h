@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 
-#include "giggle-revision.h"
+#include "giggle-job.h"
 
 G_BEGIN_DECLS
 
@@ -45,13 +45,10 @@ struct GiggleGitClass {
 	GObjectClass parent_class;
 };
 
-typedef void (*GiggleDiffCallback) (GiggleGit      *git,
-				    guint           id,
-				    GError         *error,
-				    GiggleRevision *rev1,
-				    GiggleRevision *rev2,
-				    const gchar    *diff,
-				    gpointer        user_data);
+typedef void (*GiggleJobDoneCallback)   (GiggleGit *git,
+					 GiggleJob *job,
+					 GError    *error,
+					 gpointer   user_data);
 
 GType		 giggle_git_get_type         (void);
 GiggleGit *      giggle_git_new              (void);
@@ -60,14 +57,13 @@ gboolean         giggle_git_set_directory    (GiggleGit    *git,
 					      const gchar  *directory,
 					      GError      **error);
 
-guint            giggle_git_get_diff         (GiggleGit          *git,
-					      GiggleRevision     *rev1,
-					      GiggleRevision     *rev2,
-					      GiggleDiffCallback  callback,
-					      gpointer            user_data);
+void             giggle_git_run_job          (GiggleGit             *git,
+					      GiggleJob             *job,
+					      GiggleJobDoneCallback  callback,
+					      gpointer               user_data);
 
-void             giggle_git_cancel           (GiggleGit          *git,
-					      guint               id);
+void             giggle_git_cancel_job       (GiggleGit          *git,
+					      GiggleJob          *job);
 
 G_END_DECLS
 

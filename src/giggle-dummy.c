@@ -75,6 +75,10 @@ giggle_dummy_init (GiggleDummy *dummy)
 static void
 dummy_finalize (GObject *object)
 {
+	GiggleDummyPriv *priv;
+
+	priv = GET_PRIV (object);
+	
 	/* FIXME: Free object data */
 
 	G_OBJECT_CLASS (giggle_dummy_parent_class)->finalize (object);
