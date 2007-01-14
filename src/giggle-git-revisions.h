@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "giggle-job.h"
+#include "giggle-revision.h"
 
 G_BEGIN_DECLS
 
@@ -45,9 +46,10 @@ struct GiggleGitRevisionsClass {
 	GiggleJobClass parent_class;
 };
 
-GType		      giggle_git_revisions_get_type   (void);
-GiggleJob *           giggle_git_revisions_new        (void);
-GList *               giggle_git_revisions_get_list   (GiggleGitRevisions *revisions);      
+GType	     giggle_git_revisions_get_type      (void);
+GiggleJob *  giggle_git_revisions_new           (void);
+GList *      giggle_git_revisions_get_revisions (GiggleGitRevisions *revisions);      
+GList *      giggle_git_revisions_get_branches  (GiggleGitRevisions *revisions);
 
 G_END_DECLS
 
