@@ -224,8 +224,7 @@ dispatcher_cancel_job_id (GiggleDispatcher *dispatcher, guint id)
 
 	if (priv->current_job && priv->current_job->id == id) {
 		dispatcher_cancel_job (dispatcher, priv->current_job);
-		priv->current_job = NULL;
-		dispatcher_run_next_job (dispatcher);
+		return;
 	}
 
 	for (l = priv->queue->head; l; l = l->next) {
