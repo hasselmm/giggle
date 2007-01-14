@@ -170,7 +170,7 @@ git_diff_handle_output (GiggleJob   *job,
 	priv->result = g_strdup (output_str);
 }
 
-GiggleGitDiff *
+GiggleJob *
 giggle_git_diff_new (GiggleRevision *rev1, GiggleRevision *rev2)
 {
 	GiggleGitDiff     *diff;
@@ -185,7 +185,7 @@ giggle_git_diff_new (GiggleRevision *rev1, GiggleRevision *rev2)
 	priv->rev1 = g_object_ref (rev1);
 	priv->rev2 = g_object_ref (rev2);
 
-	return diff;
+	return GIGGLE_JOB (diff);
 }
 
 const gchar *

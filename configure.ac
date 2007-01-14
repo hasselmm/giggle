@@ -43,7 +43,7 @@ AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[Gettext package name])
 
 AM_GLIB_GNU_GETTEXT
-AC_PROG_INTLTOOL[0.34]
+AC_PROG_INTLTOOL([0.34])
 dnl -----------------------------------------------------------
 
 dnl This will cause the automake generated makefiles to pass the
