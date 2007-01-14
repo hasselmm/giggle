@@ -211,7 +211,7 @@ giggle_window_init (GiggleWindow *window)
 			  window);
 
 	action_group = gtk_action_group_new ("MainActions");
-	/*gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);*/
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (action_group,
 				      action_entries,
 				      G_N_ELEMENTS (action_entries),
