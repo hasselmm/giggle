@@ -45,8 +45,9 @@ struct GiggleGitClass {
 	GObjectClass parent_class;
 };
 
-typedef void (*GiggleDiffCallback) (GiggleGit *git,
-				    guint      id,
+typedef void (*GiggleDiffCallback) (GiggleGit      *git,
+				    guint           id,
+				    GError         *error,
 				    GiggleRevision *rev1,
 				    GiggleRevision *rev2,
 				    const gchar    *diff,
