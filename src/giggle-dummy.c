@@ -28,7 +28,15 @@ struct GiggleDummyPriv {
 	guint i;
 };
 
-static void  giggle_dummy_finalize (GObject *object);
+static void     dummy_finalize            (GObject           *object);
+static void     dummy_get_property        (GObject           *object,
+					   guint              param_id,
+					   GValue            *value,
+					   GParamSpec        *pspec);
+static void     dummy_set_property        (GObject           *object,
+					   guint              param_id,
+					   const GValue      *value,
+					   GParamSpec        *pspec);
 
 G_DEFINE_TYPE (GiggleDummy, giggle_dummy, G_TYPE_OBJECT);
 
@@ -39,7 +47,19 @@ giggle_dummy_class_init (GiggleDummyClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	object_class->finalize = giggle_dummy_finalize;
+	object_class->finalize     = dummy_finalize;
+	object_class->get_property = dummy_get_property;
+	object_class->set_property = dummy_set_property;
+
+#if 0
+	g_object_class_install_property (object_class,
+					 PROP_MY_PROP,
+					 g_param_spec_string ("my-prop",
+							      "My Prop",
+							      "Describe the property",
+							      NULL,
+							      G_PARAM_READABLE));
+#endif
 
 	g_type_class_add_private (object_class, sizeof (GiggleDummyPriv));
 }
@@ -47,13 +67,50 @@ giggle_dummy_class_init (GiggleDummyClass *class)
 static void
 giggle_dummy_init (GiggleDummy *dummy)
 {
+	GiggleDummyPriv *priv;
+
+	priv = GET_PRIV (dummy);
 }
 
 static void
-giggle_dummy_finalize (GObject *object)
+dummy_finalize (GObject *object)
 {
 	/* FIXME: Free object data */
 
 	G_OBJECT_CLASS (giggle_dummy_parent_class)->finalize (object);
+}
+
+static void
+dummy_get_property (GObject    *object,
+		    guint       param_id,
+		    GValue     *value,
+		    GParamSpec *pspec)
+{
+	GiggleDummyPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+static void
+dummy_set_property (GObject      *object,
+		    guint         param_id,
+		    const GValue *value,
+		    GParamSpec   *pspec)
+{
+	GiggleDummyPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
 }
 
