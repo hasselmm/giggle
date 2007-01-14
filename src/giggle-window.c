@@ -28,6 +28,7 @@
 #include "giggle-window.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
+#include "giggle-git-diff.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
 
@@ -47,7 +48,7 @@ struct GiggleWindowPriv {
 	GiggleGit           *git;
 
 	/* Current job in progress. */
-	guint                git_job_id;
+	GiggleJob           *current_job;
 };
 
 enum {
@@ -67,12 +68,9 @@ static void window_add_widget_cb                  (GtkUIManager      *merge,
 						   GiggleWindow      *window);
 static void window_revision_selection_changed_cb  (GtkTreeSelection  *selection,
 						   GiggleWindow      *window);
-static void window_git_get_diff_callback          (GiggleGit         *git,
-						   guint              id,
+static void window_git_diff_result_callback       (GiggleGit         *git,
+						   GiggleJob         *job,
 						   GError            *error,
-						   GiggleRevision    *rev1,
-						   GiggleRevision    *rev2,
-						   const gchar       *diff,
 						   gpointer           user_data);
 static void window_revision_cell_data_log_func    (GtkTreeViewColumn *tree_column,
 						   GtkCellRenderer   *cell,
@@ -240,8 +238,9 @@ window_finalize (GObject *object)
 	
 	g_object_unref (priv->ui_manager);
 
-	if (priv->git_job_id) {
-		giggle_git_cancel (priv->git, priv->git_job_id);
+	if (priv->current_job) {
+		giggle_git_cancel_job (priv->git, priv->current_job);
+		g_object_unref (priv->current_job);
 	}
 
 	g_object_unref (priv->git);
@@ -388,17 +387,18 @@ window_update_revision_info (GiggleWindow   *window,
 		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
 		"", 0);
 
-	if (priv->git_job_id) {
-		giggle_git_cancel (priv->git, priv->git_job_id);
-		priv->git_job_id = 0;
+	if (priv->current_job) {
+		giggle_git_cancel_job (priv->git, priv->current_job);
+		g_object_unref (priv->current_job);
+		priv->current_job = NULL;
 	}
 	
 	if (current_revision && previous_revision) {
-		priv->git_job_id = giggle_git_get_diff (priv->git,
-							previous_revision,
-							current_revision,
-							window_git_get_diff_callback,
-							window);
+		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
+		giggle_git_run_job (priv->git,
+				    priv->current_job,
+				    window_git_diff_result_callback,
+				    window);
 	}
 }
 
@@ -454,13 +454,10 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 }
 
 static void
-window_git_get_diff_callback (GiggleGit      *git,
-			      guint           id,
-			      GError         *error,
-			      GiggleRevision *rev1,
-			      GiggleRevision *rev2,
-			      const gchar    *diff,
-			      gpointer        user_data)
+window_git_diff_result_callback (GiggleGit *git,
+				 GiggleJob *job,
+				 GError    *error,
+				 gpointer   user_data)
 {
 	GiggleWindow     *window;
 	GiggleWindowPriv *priv;
@@ -468,28 +465,27 @@ window_git_get_diff_callback (GiggleGit      *git,
 	window = GIGGLE_WINDOW (user_data);
 	priv = GET_PRIV (window);
 
-	priv->git_job_id = 0;
-
 	if (error) {
-		if (error->domain == GIGGLE_ERROR &&
-		    error->code != GIGGLE_ERROR_DISPATCH_CANCELLED) {
-			GtkWidget *dialog;
-			
-			dialog = gtk_message_dialog_new (GTK_WINDOW (window),
-							 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-							 GTK_MESSAGE_ERROR,
-							 GTK_BUTTONS_OK,
-							 _("An error ocurred when retrieving a diff:\n"
-							   "%s"), error->message);
-			
+		GtkWidget *dialog;
+		
+		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when retrieving a diff:\n"
+						   "%s"), error->message);
+		
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		}
 	} else {
 		gtk_text_buffer_set_text (
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
-			diff, -1);
+			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
+			-1);
 	}
+
+	g_object_unref (priv->current_job);
+	priv->current_job = NULL;
 }
 
 static void
