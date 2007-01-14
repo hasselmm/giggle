@@ -26,6 +26,7 @@
 #include <gtksourceview/gtksourcelanguagesmanager.h>
 
 #include "giggle-window.h"
+#include "giggle-git.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
 
@@ -41,6 +42,11 @@ struct GiggleWindowPriv {
 	GtkCellRenderer     *graph_renderer;
 	
 	GtkUIManager        *ui_manager;
+
+	GiggleGit           *giggle_git;
+
+	/* Current job in progress. */
+	guint                giggle_git_job_id;
 };
 
 enum {
@@ -53,12 +59,19 @@ static void window_setup_revision_treeview        (GiggleWindow      *window);
 static void window_setup_diff_textview            (GiggleWindow      *window,
 						   GtkWidget         *scrolled);
 static void window_update_revision_info           (GiggleWindow      *window,
-						   GiggleRevision    *revision);
+						   GiggleRevision    *current_revision,
+						   GiggleRevision    *previous_revision);
 static void window_add_widget_cb                  (GtkUIManager      *merge,
 						   GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_revision_selection_changed_cb  (GtkTreeSelection  *selection,
 						   GiggleWindow      *window);
+static void window_git_get_diff_callback          (GiggleGit         *git,
+						   guint              id,
+						   GiggleRevision    *rev1,
+						   GiggleRevision    *rev2,
+						   const gchar       *diff,
+						   gpointer           user_data);
 static void window_revision_cell_data_log_func    (GtkTreeViewColumn *tree_column,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *tree_model,
@@ -140,6 +153,7 @@ static void
 giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	gchar            *dir;
 	GladeXML         *xml;
 	GtkActionGroup   *action_group;
 	GError           *error = NULL;
@@ -147,6 +161,25 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	gtk_window_set_title (GTK_WINDOW (window), "Giggle");
+
+	priv->giggle_git = giggle_git_new ();
+	dir = g_get_current_dir ();
+	if (!giggle_git_set_directory (priv->giggle_git, dir, &error)) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("The directory '%s' does not look like a "
+						   "GIT repository."), dir);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+
+		gtk_widget_destroy (dialog);
+	}
+
+	g_free (dir);
 	
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -204,6 +237,10 @@ window_finalize (GObject *object)
 	priv = GET_PRIV (object);
 	
 	g_object_unref (priv->ui_manager);
+
+	if (priv->giggle_git_job_id) {
+		giggle_git_cancel (priv->giggle_git, priv->giggle_git_job_id);
+	}
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
 }
@@ -270,37 +307,6 @@ window_setup_revision_treeview (GiggleWindow *window)
 			  window);
 }
 
-static const gchar *test_diff =
-	"diff --git a/src/test-patch-view.c b/src/test-patch-view.c\n"
-	"index 6999aa3..2c90d9a 100644\n"
-	"--- a/src/test-patch-view.c\n"
-	"+++ b/src/test-patch-view.c\n"
-	"@@ -1,9 +1,47 @@\n"
-	" #include <gtk/gtk.h>\n"
-	"+#include <gtksourceview/gtksourceview.h>\n"
-	"+#include <gtksourceview/gtksourcelanguagesmanager.h>\n"
-	"+\n"
-	"+static GtkWidget *\n"
-	"+giggle_diff_view_new (void)\n"
-	"+{\n"
-	"+       GtkWidget                 *view;\n"
-	"+       GtkTextBuffer             *buffer;\n"
-	"+       GtkSourceLanguage         *language;\n"
-	"+       GtkSourceLanguagesManager *manager;\n"
-	"+\n"
-	"+       view = gtk_source_view_new ();\n"
-	"+       gtk_text_view_set_editable (GTK_TEXT_VIEW (view), FALSE);\n"
-	"+\n"
-	"+       buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));\n"
-	"+\n"
-	"+       manager = gtk_source_languages_manager_new ();\n"
-	"+       language = gtk_source_languages_manager_get_language_from_mime_type (\n"
-	"+               manager, \"text/x-patch\");\n"
-	"+       g_object_unref (manager);\n"
-	"+\n"
-	"+       gtk_source_buffer_set_language  (GTK_SOURCE_BUFFER (buffer), language);\n"
-	"+\n";
-
 static void
 window_setup_diff_textview (GiggleWindow *window,
 			    GtkWidget    *scrolled)
@@ -334,14 +340,15 @@ window_setup_diff_textview (GiggleWindow *window,
 	gtk_widget_show (priv->diff_textview);
 	
 	gtk_container_add (GTK_CONTAINER (scrolled), priv->diff_textview);
-
-	/* FIXME: Just testing for now... */
-	gtk_text_buffer_set_text (buffer, test_diff, -1);
 }
 
+/* Update revision info. If previous_revision is not NULL, a diff between it and
+ * the current revision will be shown.
+ */
 static void
 window_update_revision_info (GiggleWindow   *window,
-			     GiggleRevision *revision)
+			     GiggleRevision *current_revision,
+			     GiggleRevision *previous_revision)
 {
 	GiggleWindowPriv *priv;
 	const gchar      *sha;
@@ -349,13 +356,18 @@ window_update_revision_info (GiggleWindow   *window,
 	gchar            *str;
 	
 	priv = GET_PRIV (window);
-	
-	sha = giggle_revision_get_sha (revision);
-	log = giggle_revision_get_long_log (revision);
-	if (!log) {
-		log = giggle_revision_get_short_log (revision);
-	}
-	if (!log) {
+
+	if (current_revision) {
+		sha = giggle_revision_get_sha (current_revision);
+		log = giggle_revision_get_long_log (current_revision);
+		if (!log) {
+			log = giggle_revision_get_short_log (current_revision);
+		}
+		if (!log) {
+			log = "";
+		}
+	} else {
+		sha = "";
 		log = "";
 	}
 	
@@ -366,6 +378,28 @@ window_update_revision_info (GiggleWindow   *window,
 		str, -1);
 
 	g_free (str);
+
+	/* Clear the diff view until we get new content. */
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
+		"", 0);
+
+	g_print ("Diff between:\n %s\n %s\n",
+		 giggle_revision_get_short_log (current_revision),
+		 giggle_revision_get_short_log (previous_revision));
+
+	if (priv->giggle_git_job_id) {
+		giggle_git_cancel (priv->giggle_git, priv->giggle_git_job_id);
+		priv->giggle_git_job_id = 0;
+	}
+	
+	if (current_revision && previous_revision) {
+		priv->giggle_git_job_id = giggle_git_get_diff (priv->giggle_git,
+							       previous_revision,
+							       current_revision,
+							       window_git_get_diff_callback,
+							       window);
+	}
 }
 
 static void
@@ -387,7 +421,8 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	GiggleWindowPriv *priv;
 	GtkTreeModel     *model;
 	GtkTreeIter       iter;
-	GiggleRevision   *revision;
+	GiggleRevision   *current_revision;
+	GiggleRevision   *previous_revision;
 
 	priv = GET_PRIV (window);
 	
@@ -396,12 +431,49 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	}
 
 	gtk_tree_model_get (model, &iter,
-			    REVISION_COL_OBJECT, &revision,
+			    REVISION_COL_OBJECT, &current_revision,
 			    -1);
 
-	window_update_revision_info (window, revision);
+	/* Get the revision below the current, for a diff. */
+	if (gtk_tree_model_iter_next (model, &iter)) {
+		gtk_tree_model_get (model, &iter,
+				    REVISION_COL_OBJECT, &previous_revision,
+				    -1);
+	} else {
+		previous_revision = NULL;
+	}
+	
+	window_update_revision_info (window,
+				     current_revision,
+				     previous_revision);
 
-	g_object_unref (revision);
+	g_object_unref (current_revision);
+	if (previous_revision) {
+		g_object_unref (previous_revision);
+	}
+}
+
+static void
+window_git_get_diff_callback (GiggleGit      *git,
+			      guint           id,
+			      GiggleRevision *rev1,
+			      GiggleRevision *rev2,
+			      const gchar    *diff,
+			      gpointer        user_data)
+{
+	GiggleWindow     *window;
+	GiggleWindowPriv *priv;
+
+	window = GIGGLE_WINDOW (user_data);
+	priv = GET_PRIV (window);
+
+	g_print ("get_diff callback\n");
+
+	priv->giggle_git_job_id = 0;
+
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
+		diff, -1);
 }
 
 static void
@@ -522,7 +594,7 @@ window_create_test_model (GiggleWindow *window)
 
 	store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 
-	revision = giggle_revision_new_commit ("shablabla", branch1);
+	revision = giggle_revision_new_commit ("74228d16a271120ac56300e93cd181b63df15bbd", branch1);
 	g_object_set (revision,
 		      "author", "Richard Hult <richard@imendio.com>",
 		      "short-log", "Make the patch view use a monospace font",
@@ -533,7 +605,7 @@ window_create_test_model (GiggleWindow *window)
 			    REVISION_COL_OBJECT, revision,
 			    -1);
 
-	revision = giggle_revision_new_merge ("blablasha", branch1, branch2);
+	revision = giggle_revision_new_merge ("da3c13dc29c5223dab2310d54fe5a55e65ada939", branch1, branch2);
 	g_object_set (revision,
 		      "author", "Mikael Hallendal <micke@imendio.com>",
 		      "short-log", "Add cancel method to dispatcher",
@@ -544,7 +616,7 @@ window_create_test_model (GiggleWindow *window)
 			    REVISION_COL_OBJECT, revision,
 			    -1);
 
-	revision = giggle_revision_new_commit ("shablaha", branch1);
+	revision = giggle_revision_new_commit ("cef4b2fa248bf280e792d029ee33ea8214cf1d0f", branch1);
 	g_object_set (revision,
 		      "author", "Carlos Garnacho <carlosg@gnome.org>",
 		      "short-log", "Add more colors for branches",
@@ -555,19 +627,19 @@ window_create_test_model (GiggleWindow *window)
 			    REVISION_COL_OBJECT, revision,
 			    -1);
 
-	revision = giggle_revision_new_commit ("ash", branch2);
+	revision = giggle_revision_new_commit ("5af23ca9a027ae0e2f7590eadb3d9ac2fee1ce65", branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
 			    REVISION_COL_OBJECT, revision,
 			    -1);
 
-	revision = giggle_revision_new_branch ("aghaslahaga", branch1, branch2);
+	revision = giggle_revision_new_branch ("87dc870236e299d5201c5296864a0e9dbd2abfb8", branch1, branch2);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
 			    REVISION_COL_OBJECT, revision,
 			    -1);
 
-	revision = giggle_revision_new_commit ("sha", branch1);
+	revision = giggle_revision_new_commit ("12077469fb225db75a4f9c03a922feb588988a95", branch1);
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter,
 			    REVISION_COL_OBJECT, revision,
