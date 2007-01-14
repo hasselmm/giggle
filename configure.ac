@@ -38,13 +38,13 @@ AC_DEFINE(_GNU_SOURCE, 1, [Enable GNU Extensions])
 dnl  ------------------
 dnl | Language Support |---------------------------------------
 dnl  ------------------
-#GETTEXT_PACKAGE=giggle
-#AC_SUBST(GETTEXT_PACKAGE)
-#AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[Gettext package name])
+GETTEXT_PACKAGE=giggle
+AC_SUBST(GETTEXT_PACKAGE)
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[Gettext package name])
 
-#AM_GLIB_GNU_GETTEXT
+AM_GLIB_GNU_GETTEXT
+AC_PROG_INTLTOOL[0.34]
 dnl -----------------------------------------------------------
-
 
 dnl This will cause the automake generated makefiles to pass the
 dnl correct flags to aclocal.
@@ -55,6 +55,7 @@ AC_OUTPUT([
 	Makefile 
 	src/Makefile
 	data/Makefile
+	po/Makefile.in
 ])
 
 echo

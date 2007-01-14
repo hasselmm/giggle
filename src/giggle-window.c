@@ -26,6 +26,7 @@
 #include <gtksourceview/gtksourcelanguagesmanager.h>
 
 #include "giggle-window.h"
+#include "giggle-error.h"
 #include "giggle-git.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
@@ -210,7 +211,7 @@ giggle_window_init (GiggleWindow *window)
 			  window);
 
 	action_group = gtk_action_group_new ("MainActions");
-	/*gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);*/
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (action_group,
 				      action_entries,
 				      G_N_ELEMENTS (action_entries),
@@ -242,6 +243,8 @@ window_finalize (GObject *object)
 	if (priv->git_job_id) {
 		giggle_git_cancel (priv->git, priv->git_job_id);
 	}
+
+	g_object_unref (priv->git);
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
 }
@@ -467,9 +470,26 @@ window_git_get_diff_callback (GiggleGit      *git,
 
 	priv->git_job_id = 0;
 
-	gtk_text_buffer_set_text (
-		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
-		diff, -1);
+	if (error) {
+		if (error->domain == GIGGLE_ERROR &&
+		    error->code != GIGGLE_ERROR_DISPATCH_CANCELLED) {
+			GtkWidget *dialog;
+			
+			dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+							 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+							 GTK_MESSAGE_ERROR,
+							 GTK_BUTTONS_OK,
+							 _("An error ocurred when retrieving a diff:\n"
+							   "%s"), error->message);
+			
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+		}
+	} else {
+		gtk_text_buffer_set_text (
+			gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
+			diff, -1);
+	}
 }
 
 static void

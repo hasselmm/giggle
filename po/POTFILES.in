@@ -1,0 +1,3 @@
+data/main-window.glade
+src/giggle-dispatcher.c
+src/giggle-window.c

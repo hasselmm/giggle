@@ -97,10 +97,19 @@ giggle_dispatcher_init (GiggleDispatcher *dispatcher)
 static void
 giggle_dispatcher_finalize (GObject *object)
 {
-/*	GiggleDispatcherPriv *priv = GET_PRIV (object);*/
+	GiggleDispatcher     *dispatcher = GIGGLE_DISPATCHER (object);
+	GiggleDispatcherPriv *priv = GET_PRIV (object);
+	DispatcherJob        *job;
 
-	/* FIXME: Free object data */
+	if (priv->current_job_wait_id) {
+		g_source_remove (priv->current_job_wait_id);
+	}
 
+	while ((job = g_queue_pop_head (priv->queue))) {
+		dispatcher_free_job (dispatcher, job);
+	}
+	g_queue_free (priv->queue);
+	
 	G_OBJECT_CLASS (giggle_dispatcher_parent_class)->finalize (object);
 }
 
@@ -209,7 +218,10 @@ dispatcher_cancel_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	if (current) {
 		priv->current_job = NULL;
+
+		g_source_remove (priv->current_job_wait_id);
 		priv->current_job_wait_id = 0;
+
 		dispatcher_run_next_job (dispatcher);
 	}
 }
@@ -224,8 +236,7 @@ dispatcher_cancel_job_id (GiggleDispatcher *dispatcher, guint id)
 
 	if (priv->current_job && priv->current_job->id == id) {
 		dispatcher_cancel_job (dispatcher, priv->current_job);
-		priv->current_job = NULL;
-		dispatcher_run_next_job (dispatcher);
+		return;
 	}
 
 	for (l = priv->queue->head; l; l = l->next) {

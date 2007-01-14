@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <glib/gi18n.h>
 #include <gtk/gtkmain.h>
 
 #include "giggle-window.h"
@@ -28,7 +29,13 @@ main (int argc, char **argv)
 {
 	GtkWidget *window;
 	
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
+        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
+
 	gtk_init (&argc, &argv);
+
+	g_set_application_name ("Giggle");
 
 	window = giggle_window_new ();
 	gtk_window_set_default_size (GTK_WINDOW (window), 600, 500);
