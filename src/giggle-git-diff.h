@@ -47,7 +47,7 @@ struct GiggleGitDiffClass {
 };
 
 GType		      giggle_git_diff_get_type   (void);
-GiggleGitDiff *       giggle_git_diff_new        (GiggleRevision *rev1,
+GiggleJob *           giggle_git_diff_new        (GiggleRevision *rev1,
 						  GiggleRevision *rev2);
 const gchar *         giggle_git_diff_get_result (GiggleGitDiff *diff);      
 

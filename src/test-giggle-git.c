@@ -26,10 +26,10 @@ job_done_cb (GiggleGit *git,
 int 
 main (int argc, char **argv)
 {
-	GiggleGit *git;
-	GiggleBranchInfo   *branch1;
-	GiggleRevision *rev1, *rev2;
-	GiggleGitDiff  *diff;
+	GiggleGit        *git;
+	GiggleBranchInfo *branch1;
+	GiggleRevision   *rev1, *rev2;
+	GiggleJob        *diff;
 
 	g_type_init ();
 
@@ -55,7 +55,7 @@ main (int argc, char **argv)
                       NULL);
 
 	diff = giggle_git_diff_new (rev1, rev2);
-	giggle_git_run_job (git, GIGGLE_JOB (diff), job_done_cb, NULL);
+	giggle_git_run_job (git, diff, job_done_cb, NULL);
 	g_object_unref (diff);
 
 	g_main_loop_run (main_loop);
