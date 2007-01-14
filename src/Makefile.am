@@ -18,6 +18,8 @@ giggle_SOURCES =				\
 	giggle-git.h                            \
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
+	giggle-git-revisions.c			\
+	giggle-git-revisions.h			\
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
 	giggle-job.c                            \
