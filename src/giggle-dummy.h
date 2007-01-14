@@ -44,7 +44,7 @@ struct GiggleDummyClass {
 };
 
 GType		      giggle_dummy_get_type (void);
-GiggleDummy          *giggle_dummy_new      (void);
+GiggleDummy *         giggle_dummy_new      (void);
 
 G_END_DECLS
 
