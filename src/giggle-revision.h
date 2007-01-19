@@ -35,17 +35,9 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_REVISION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION))
 #define GIGGLE_REVISION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionClass))
 
-#define GIGGLE_TYPE_REVISION_TYPE       giggle_revision_type_get_type ()
-
 typedef struct _GiggleRevision      GiggleRevision;
 typedef struct _GiggleRevisionClass GiggleRevisionClass;
 typedef struct _GiggleBranchInfo    GiggleBranchInfo;
-
-typedef enum {
-	GIGGLE_REVISION_BRANCH,
-	GIGGLE_REVISION_MERGE,
-	GIGGLE_REVISION_COMMIT
-} GiggleRevisionType;
 
 struct _GiggleRevision {
 	GObject parent_instance;
@@ -56,22 +48,7 @@ struct _GiggleRevisionClass {
 };
 
 GType              giggle_revision_get_type          (void);
-GType              giggle_revision_type_get_type     (void);
-GiggleRevision *   giggle_revision_new_commit        (const gchar      *sha,
-						      GiggleBranchInfo *branch);
-GiggleRevision *   giggle_revision_new_branch        (const gchar      *sha,
-						      GiggleBranchInfo *old,
-						      GiggleBranchInfo *new);
-GiggleRevision *   giggle_revision_new_merge         (const gchar      *sha,
-						      GiggleBranchInfo *to,
-						      GiggleBranchInfo *from);
-void               giggle_revision_validate          (GtkTreeModel     *model,
-						      gint              n_column);
-GiggleRevisionType giggle_revision_get_revision_type (GiggleRevision   *revision);
-GdkColor *         giggle_revision_get_color         (GiggleRevision   *revision,
-						      GiggleBranchInfo *branch_info);
-GiggleBranchInfo * giggle_revision_get_branch1       (GiggleRevision   *revision);
-GiggleBranchInfo * giggle_revision_get_branch2       (GiggleRevision   *revision);
+GiggleRevision *   giggle_revision_new               (const gchar *sha);
 
 const gchar      * giggle_revision_get_sha           (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_author        (GiggleRevision   *revision);
@@ -79,15 +56,12 @@ const gchar      * giggle_revision_get_date          (GiggleRevision   *revision
 const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_long_log      (GiggleRevision   *revision);
 
-GList            *giggle_revision_get_children       (GiggleRevision *revision);
+GList            *giggle_revision_get_children       (GiggleRevision   *revision);
 GList            * giggle_revision_get_parents       (GiggleRevision   *revision);
 void               giggle_revision_add_parent        (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
 void               giggle_revision_remove_parent     (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
-
-GiggleBranchInfo * giggle_branch_info_new            (const gchar      *name);
-void               giggle_branch_info_free           (GiggleBranchInfo *info);
 
 G_END_DECLS
 

@@ -244,14 +244,14 @@ git_revisions_get_revision (const gchar *str,
 
 	if (!(revision = g_hash_table_lookup (revisions_hash, ids[0]))) {
 		/* revision hasn't been created in a previous step, create it */
-		revision = giggle_revision_new_commit (ids[0], NULL);
+		revision = giggle_revision_new (ids[0]);
 		g_hash_table_insert (revisions_hash, g_strdup (ids[0]), revision);
 	}
 
 	/* add parents */
 	while (ids[i] != NULL) {
 		if (!(parent = g_hash_table_lookup (revisions_hash, ids[i]))) {
-			parent = giggle_revision_new_commit (ids[i], NULL);
+			parent = giggle_revision_new (ids[i]);
 			g_hash_table_insert (revisions_hash, g_strdup (ids[i]), parent);
 		}
 

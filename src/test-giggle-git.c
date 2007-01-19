@@ -27,7 +27,6 @@ int
 main (int argc, char **argv)
 {
 	GiggleGit        *git;
-	GiggleBranchInfo *branch1;
 	GiggleRevision   *rev1, *rev2;
 	GiggleJob        *diff;
 
@@ -38,16 +37,14 @@ main (int argc, char **argv)
 	git = giggle_git_new ();
 	giggle_git_set_directory (git, "/home/micke/Source/giggle", NULL);
 
-	branch1 = giggle_branch_info_new ("master");
-
-	rev1 = giggle_revision_new_commit ("4c7b72b6dc089db58d25d2a2a07de6a4d15f3560", branch1);
+	rev1 = giggle_revision_new ("4c7b72b6dc089db58d25d2a2a07de6a4d15f3560");
         g_object_set (rev1,
                       "author", "Richard Hult <richard@imendio.com>",
                       "short-log", "Make the patch view use a monospace font",
                       "date", "2007-01-12",
                       NULL);
 
-	rev2 = giggle_revision_new_commit ("883a8b6ed7f068d01e70e3e516164f497f9babd9", branch1);
+	rev2 = giggle_revision_new ("883a8b6ed7f068d01e70e3e516164f497f9babd9");
 	g_object_set (rev2,
                       "author", "Richard Hult <richard@imendio.com>",
                       "short-log", "Make the patch view use a monospace font",
