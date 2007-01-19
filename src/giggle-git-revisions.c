@@ -28,7 +28,6 @@ typedef struct GiggleGitRevisionsPriv GiggleGitRevisionsPriv;
 
 struct GiggleGitRevisionsPriv {
 	GList *revisions;
-	GList *branches;
 };
 
 static void     git_revisions_finalize            (GObject           *object);
@@ -89,7 +88,6 @@ giggle_git_revisions_init (GiggleGitRevisions *revisions)
 	priv = GET_PRIV (revisions);
 
 	priv->revisions = NULL;
-	priv->branches = NULL;
 }
 
 static void
@@ -101,9 +99,6 @@ git_revisions_finalize (GObject *object)
 
 	g_list_foreach (priv->revisions, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->revisions);
-
-	/* do not free branches list content */
-	g_list_free (priv->branches);
 
 	G_OBJECT_CLASS (giggle_git_revisions_parent_class)->finalize (object);
 }
@@ -290,16 +285,3 @@ giggle_git_revisions_get_revisions (GiggleGitRevisions *revisions)
 
 	return priv->revisions;
 }
-
-GList *
-giggle_git_revisions_get_branches (GiggleGitRevisions *revisions)
-{
-	GiggleGitRevisionsPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_GIT_REVISIONS (revisions), NULL);
-
-	priv = GET_PRIV (revisions);
-
-	return priv->branches;
-}
-

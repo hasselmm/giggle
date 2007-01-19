@@ -54,7 +54,6 @@ struct GiggleWindowPriv {
 
 enum {
 	REVISION_COL_OBJECT,
-	REVISION_COL_BRANCHES,
 	REVISION_NUM_COLS
 };
 
@@ -257,20 +256,17 @@ window_git_get_revisions_cb (GiggleGit    *git,
 	GiggleWindowPriv *priv;
 	GtkListStore *store;
 	GtkTreeIter iter;
-	GList *branches_list;
 	GList *revisions;
 
 	window = GIGGLE_WINDOW (user_data);
 	priv = GET_PRIV (window);
-	store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION, G_TYPE_POINTER);
-	branches_list = g_list_copy (giggle_git_revisions_get_branches (GIGGLE_GIT_REVISIONS (job)));
-
+	store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
 	revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
+
 	while (revisions) {
 		gtk_list_store_append (store, &iter);
 		gtk_list_store_set (store, &iter,
 				    REVISION_COL_OBJECT, g_object_ref ((GObject*) revisions->data),
-				    REVISION_COL_BRANCHES, branches_list,
 				    -1);
 		revisions = revisions->next;
 	}
@@ -278,6 +274,7 @@ window_git_get_revisions_cb (GiggleGit    *git,
 	giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), GTK_TREE_MODEL (store), 0);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), GTK_TREE_MODEL (store));
 	g_object_unref (store);
+	g_object_unref (job);
 }
 
 static void
