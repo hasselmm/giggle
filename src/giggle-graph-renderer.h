@@ -47,7 +47,11 @@ struct GiggleGraphRendererClass {
 };
 
 GType		 giggle_graph_renderer_get_type (void);
-GtkCellRenderer *giggle_graph_renderer_new      (GList *branches);
+GtkCellRenderer *giggle_graph_renderer_new      (void);
+
+void             giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
+						       GtkTreeModel        *model,
+						       gint                 column);
 
 G_END_DECLS
 

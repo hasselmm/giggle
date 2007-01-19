@@ -39,6 +39,9 @@ struct GiggleRevisionPriv {
 
 	/* Is filled out in the validation process. */
 	GHashTable         *branches;
+
+	GList              *parents;
+	GList              *children;
 };
 
 struct _GiggleBranchInfo {
@@ -121,7 +124,7 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 		object_class,
 		PROP_AUTHOR,
 		g_param_spec_string ("author",
-				     "Authur",
+				     "Author",
 				     "Author of the revision",
 				     NULL,
 				     G_PARAM_READWRITE));
@@ -571,3 +574,86 @@ giggle_revision_get_branch2 (GiggleRevision *revision)
 	return priv->branch2;
 }
 
+static void
+giggle_revision_add_child (GiggleRevision *revision,
+			   GiggleRevision *child)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REVISION (child));
+
+	priv = GET_PRIV (revision);
+
+	priv->children = g_list_prepend (priv->children, child);
+}
+
+static void
+giggle_revision_remove_child (GiggleRevision *revision,
+			      GiggleRevision *child)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REVISION (child));
+
+	priv = GET_PRIV (revision);
+
+	/* the child could have been added several times? */
+	priv->children = g_list_remove_all (priv->children, child);
+}
+
+GList*
+giggle_revision_get_parents (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+
+	return priv->parents;
+}
+
+GList*
+giggle_revision_get_children (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+
+	return priv->children;
+}
+
+void
+giggle_revision_add_parent (GiggleRevision *revision,
+			    GiggleRevision *parent)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REVISION (parent));
+
+	priv = GET_PRIV (revision);
+
+	priv->parents = g_list_prepend (priv->parents, parent);
+	giggle_revision_add_child (parent, revision);
+}
+
+void
+giggle_revision_remove_parent (GiggleRevision *revision,
+			       GiggleRevision *parent)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REVISION (parent));
+
+	priv = GET_PRIV (revision);
+
+	/* the parent could have been added several times? */
+	priv->parents = g_list_remove_all (priv->parents, parent);
+	giggle_revision_remove_child (parent, revision);
+}

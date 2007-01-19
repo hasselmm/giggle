@@ -275,8 +275,7 @@ window_git_get_revisions_cb (GiggleGit    *git,
 		revisions = revisions->next;
 	}
 
-	/* FIXME: needed, but when the graph is figured out correctly */
-	/* giggle_revision_validate (GTK_TREE_MODEL (store), 0); */
+	giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), GTK_TREE_MODEL (store), 0);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), GTK_TREE_MODEL (store));
 	g_object_unref (store);
 }
@@ -291,7 +290,7 @@ window_setup_revision_treeview (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	priv->graph_renderer = giggle_graph_renderer_new (NULL);
+	priv->graph_renderer = giggle_graph_renderer_new ();
 	gtk_tree_view_insert_column_with_attributes (
 		GTK_TREE_VIEW (priv->revision_treeview),
 		-1,

@@ -36,17 +36,16 @@ giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
 
 noinst_PROGRAMS = 			        \
-	test-graph-renderer                     \
 	test-dispatcher                         \
 	test-giggle-git
 
-test_graph_renderer_SOURCES =			\
-	giggle-revision.c giggle-revision.h	\
-	giggle-graph-renderer.c	giggle-graph-renderer.h	\
-	test-graph-renderer.c
+#test_graph_renderer_SOURCES =			\
+#	giggle-revision.c giggle-revision.h	\
+#	giggle-graph-renderer.c	giggle-graph-renderer.h	\
+#	test-graph-renderer.c
 
-test_graph_renderer_LDADD =		        \
-	$(GIGGLE_LIBS)
+#test_graph_renderer_LDADD =		        \
+#	$(GIGGLE_LIBS)
 
 test_dispatcher_SOURCES =                       \
 	giggle-dispatcher.c                     \

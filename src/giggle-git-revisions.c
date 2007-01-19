@@ -46,13 +46,10 @@ static gboolean git_revisions_get_command_line    (GiggleJob         *job,
 static void     git_revisions_handle_output       (GiggleJob         *job,
 						   const gchar       *output_str,
 						   gsize              output_len);
-static GiggleRevision* git_revisions_get_revision (const gchar  *str,
-						   GHashTable   *ids_table,
-						   GList       **branches);
+static GiggleRevision* git_revisions_get_revision (const gchar *str,
+						   GHashTable  *revisions_hash);
 static void     git_revisions_set_committer_info  (GiggleRevision *revision,
 						   const gchar    *line);
-static GList*   git_revisions_get_revisions       (GList *str_list, 
-						   GList **branches);
 
 
 G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB);
@@ -159,21 +156,26 @@ git_revisions_handle_output (GiggleJob   *job,
 			     gsize        output_len)
 {
 	GiggleGitRevisionsPriv *priv;
-	GList                  *list = NULL;
+	GiggleRevision         *revision;
+	GHashTable             *revisions_hash;
 	gchar                  *str;
 
 	priv = GET_PRIV (job);
-
+	priv->revisions = NULL;
 	str = (gchar *) output_str;
+	revisions_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+						g_free, g_object_unref);
 
 	while (strlen (str) > 0) {
-		list = g_list_prepend (list, g_strdup (str));
+		revision = git_revisions_get_revision (str, revisions_hash);
+		priv->revisions = g_list_prepend (priv->revisions, revision);
 
 		/* go to the next entry, they're separated by NULLs */
 		str += strlen (str) + 1;
 	}
 
-	priv->revisions = git_revisions_get_revisions (list, &priv->branches);
+	priv->revisions = g_list_reverse (priv->revisions);
+	g_hash_table_destroy (revisions_hash);
 }
 
 static void
@@ -201,33 +203,17 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 	g_free (date);
 }
 
-static GiggleRevision*
-git_revisions_get_revision (const gchar  *str,
-			    GHashTable   *ids_table,
-			    GList       **branches)
+static void
+git_revisions_parse_revision_info (GiggleRevision  *revision,
+				   gchar          **lines)
 {
-	GiggleRevision *revision = NULL;
-	gchar *rev, *parent1, *parent2, *short_log;
-	gchar **lines, **strarr;
+	gint i = 0;
 	GString *long_log = NULL;
-	gint i = 1;
+	gchar *short_log;
 
-	lines = g_strsplit (str, "\n", -1);
-
-	/* first string contains rev and parent(s) SHA */
-	strarr = g_strsplit (lines[0], " ", 3);
-	rev = g_strdup (strarr[0]);
-	parent1 = (strarr[1]) ? g_strdup (strarr[1]) : NULL;
-	parent2 = (strarr[1] && strarr[2]) ? g_strdup (strarr[2]) : NULL;
-	g_strfreev (strarr);
-
-	revision = giggle_revision_new_commit (rev, NULL);
-
-	/* parse the rest of lines */
 	while (lines[i]) {
 		if (g_str_has_prefix (lines[i], "committer ")) {
-			git_revisions_set_committer_info (revision,
-							  lines[i] + strlen ("committer "));
+			git_revisions_set_committer_info (revision, lines[i] + strlen ("committer "));
 		} else if (g_str_has_prefix (lines[i], " ")) {
 			if (!long_log) {
 				/* no short log neither, get some */
@@ -243,34 +229,42 @@ git_revisions_get_revision (const gchar  *str,
 
 		i++;
 	}
-
-	if (long_log) {
-		g_object_set (revision, "long-log", long_log->str, NULL);
-		g_string_free (long_log, TRUE);
-	}
-
-	/* FIXME: figure out how do revisions relate among themselves */
-
-	g_strfreev (lines);
-
-	return revision;
 }
 
-static GList*
-git_revisions_get_revisions (GList *str_list, GList **branches)
+static GiggleRevision*
+git_revisions_get_revision (const gchar *str,
+			    GHashTable  *revisions_hash)
 {
-	GList *list = NULL;
-	GHashTable *ids;
+	GiggleRevision *revision, *parent;
+	gchar **lines, **ids;
+	gint i = 1;
 
-	/* hashtable to keep track of revisions */
-	ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	lines = g_strsplit (str, "\n", -1);
+	ids = g_strsplit (lines[0], " ", -1);
 
-	while (str_list) {
-		list = g_list_prepend (list, git_revisions_get_revision (str_list->data, ids, branches));
-		str_list = str_list->next;
+	if (!(revision = g_hash_table_lookup (revisions_hash, ids[0]))) {
+		/* revision hasn't been created in a previous step, create it */
+		revision = giggle_revision_new_commit (ids[0], NULL);
+		g_hash_table_insert (revisions_hash, g_strdup (ids[0]), revision);
 	}
 
-	return list;
+	/* add parents */
+	while (ids[i] != NULL) {
+		if (!(parent = g_hash_table_lookup (revisions_hash, ids[i]))) {
+			parent = giggle_revision_new_commit (ids[i], NULL);
+			g_hash_table_insert (revisions_hash, g_strdup (ids[i]), parent);
+		}
+
+		giggle_revision_add_parent (revision, parent);
+		i++;
+	}
+
+	git_revisions_parse_revision_info (revision, lines);
+
+	g_strfreev (ids);
+	g_strfreev (lines);
+
+	return g_object_ref (revision);
 }
 
 GiggleJob *

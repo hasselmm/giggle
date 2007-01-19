@@ -28,22 +28,42 @@
 #define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 
 /* included padding */
+#define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 2
 #define DOT_SPACE 15
 #define DOT_RADIUS 3
-#define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 5
+#define INITIAL_PATH 1
 
 typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
 
 struct GiggleGraphRendererPrivate {
-	GList          *branches;
+	gint            n_paths;
+	GHashTable     *paths_info;
 	GiggleRevision *revision;
+};
+
+typedef struct GiggleGraphRendererPathState GiggleGraphRendererPathState;
+
+struct GiggleGraphRendererPathState {
+	GdkColor *upper_color;
+	GdkColor *lower_color;
 };
 
 enum {
 	PROP_0,
-	PROP_BRANCHES_INFO,
 	PROP_REVISION,
 };
+
+static GdkColor colors[] = {
+	{ 0x0, 0xdddd, 0x0000, 0x0000 }, /* red   */
+	{ 0x0, 0x0000, 0xdddd, 0x0000 }, /* green */
+	{ 0x0, 0x0000, 0x0000, 0xdddd }, /* blue  */
+	{ 0x0, 0xdddd, 0xdddd, 0x0000 }, /* yellow */
+	{ 0x0, 0xdddd, 0x0000, 0xdddd }, /* pink?  */
+	{ 0x0, 0x0000, 0xdddd, 0xdddd }, /* cyan   */
+	{ 0x0, 0x6666, 0x6666, 0x6666 }, /* grey   */
+};
+
+static GQuark revision_paths_state_quark;
 
 static void giggle_graph_renderer_finalize     (GObject         *object);
 static void giggle_graph_renderer_get_property (GObject         *object,
@@ -86,13 +106,6 @@ giggle_graph_renderer_class_init (GiggleGraphRendererClass *class)
 
 	g_object_class_install_property (
 		object_class,
-		PROP_BRANCHES_INFO,
-		g_param_spec_pointer ("branches-info",
-				      "branches-info",
-				      "branches-info",
-				      G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class,
 		PROP_REVISION,
 		g_param_spec_object ("revision",
 				     "revision",
@@ -102,6 +115,8 @@ giggle_graph_renderer_class_init (GiggleGraphRendererClass *class)
 
 	g_type_class_add_private (object_class,
 				  sizeof (GiggleGraphRendererPrivate));
+
+	revision_paths_state_quark = g_quark_from_static_string ("giggle-revision-paths-state");
 }
 
 static void
@@ -113,7 +128,13 @@ giggle_graph_renderer_init (GiggleGraphRenderer *instance)
 static void
 giggle_graph_renderer_finalize (GObject *object)
 {
-	/* FIXME: free stuff */
+	GiggleGraphRendererPrivate *priv;
+
+	priv = GET_PRIV (object);
+
+	if (priv->paths_info) {
+		g_hash_table_destroy (priv->paths_info);
+	}
 
 	G_OBJECT_CLASS (giggle_graph_renderer_parent_class)->finalize (object);
 }
@@ -127,9 +148,6 @@ giggle_graph_renderer_get_property (GObject    *object,
 	GiggleGraphRendererPrivate *priv = GIGGLE_GRAPH_RENDERER (object)->_priv;
 
 	switch (param_id) {
-	case PROP_BRANCHES_INFO:
-		g_value_set_pointer (value, priv->branches);
-		break;
 	case PROP_REVISION:
 		g_value_set_object (value, priv->revision);
 		break;
@@ -147,9 +165,6 @@ giggle_graph_renderer_set_property (GObject      *object,
 	GiggleGraphRendererPrivate *priv = GIGGLE_GRAPH_RENDERER (object)->_priv;
 
 	switch (param_id) {
-	case PROP_BRANCHES_INFO:
-		priv->branches = g_value_get_pointer (value);
-		break;
 	case PROP_REVISION:
 		if (priv->revision) {
 			g_object_unref (priv->revision);
@@ -171,7 +186,6 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 				gint            *height)
 {
 	GiggleGraphRendererPrivate *priv;
-	GList                      *elem;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
@@ -180,13 +194,7 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 	}
 
 	if (width) {
-		elem = priv->branches;
-		*width = 0;
-
-		while (elem) {
-			*width += DOT_SPACE;
-			elem = elem->next;
-		}
+		*width = DOT_SPACE * priv->n_paths + (DOT_SPACE / 2);
 	}
 
 	if (x_offset) {
@@ -199,6 +207,23 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 }
 
 static void
+get_list_foreach (gpointer  key,
+		  gpointer  value,
+		  GList    **list)
+{
+	*list = g_list_prepend (*list, key);
+}
+
+static GList*
+get_list (GHashTable *table)
+{
+	GList *list = NULL;
+
+	g_hash_table_foreach (table, (GHFunc) get_list_foreach, &list);
+	return list;
+}
+
+static void
 giggle_graph_renderer_render (GtkCellRenderer *cell,
 			      GdkWindow       *window,
 			      GtkWidget       *widget,
@@ -207,115 +232,241 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 			      GdkRectangle    *expose_area,
 			      guint            flags)
 {
-	GiggleGraphRendererPrivate *priv;
-	gint                        x, y, h;
-	cairo_t                    *cr;
-	GList                      *list;
-	GdkColor                   *color;
-	GiggleRevision             *revision;
-	gint                        x1, y1, x2, y2;
+	GiggleGraphRendererPrivate   *priv;
+	GiggleGraphRendererPathState *path_state;
+	GiggleRevision               *revision;
+	GHashTable                   *paths_state;
+	cairo_t                      *cr;
+	gint                          x, y, h;
+	gint                          cur_pos, pos;
+	GList                        *children, *paths, *path;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
 	g_return_if_fail (priv->revision != NULL);
 
-	x1 = y1 = x2 = y2 = 0;
 	cr = gdk_cairo_create (window);
-	x = cell_area->x + cell->xpad;
-	y = cell_area->y + cell->ypad;
-	h = cell_area->height - cell->ypad * 2;
-	list = priv->branches;
+	x = cell_area->x;
+	y = cell_area->y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER;
+	h = cell_area->height + (2 * GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
 	revision = priv->revision;
 
-	while (list) {
-		GiggleRevisionType  type;
-		GiggleBranchInfo   *branch1;
-		GiggleBranchInfo   *branch2;
-		
-		color = giggle_revision_get_color (revision, list->data);
-		if (color) {
-			/* paint something only if there's info about it */
-			gdk_cairo_set_source_color (cr, color);
+	paths_state = g_object_get_qdata (G_OBJECT (revision), revision_paths_state_quark);
+	children = giggle_revision_get_children (revision);
+	cur_pos = (gint) g_hash_table_lookup (priv->paths_info, revision);
+	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
+	paths = path = get_list (paths_state);
 
-			type = giggle_revision_get_revision_type (revision);
-			branch1 = giggle_revision_get_branch1 (revision);
-			branch2 = giggle_revision_get_branch2 (revision);
-			
-			if ((type == GIGGLE_REVISION_BRANCH && branch1 == list->data) ||
-			    (type == GIGGLE_REVISION_MERGE && branch1 == list->data) ||
-			    type == GIGGLE_REVISION_COMMIT ||
-			    (branch1 == list->data && branch2 == list->data)) {
-				/* draw full line */
+	/* paint paths */
+	while (path) {
+		pos = GPOINTER_TO_INT (path->data);
+		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
 
-				/* evil hack to paint continously across rows, paint
-				 * outside the cell renderer area */
-				cairo_move_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
-				cairo_line_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
-				cairo_stroke  (cr);
-
-				if (type == GIGGLE_REVISION_COMMIT && branch1 == list->data) {
-					/* paint circle */
-					cairo_arc (cr,
-						   x + (DOT_SPACE / 2),
-						   y + (DOT_SPACE / 2),
-						   DOT_RADIUS, 0, 2 * G_PI);
-					cairo_fill (cr);
-					cairo_stroke (cr);
-				}
-				else if (branch1 == list->data ||
-					   type == GIGGLE_REVISION_BRANCH || type == GIGGLE_REVISION_MERGE) {
-					x1 = x + (DOT_SPACE / 2);
-					y1 = y + (DOT_SPACE / 2);
-				}
-			}
-			else if (type == GIGGLE_REVISION_BRANCH && branch2 == list->data) {
-				/* paint line going to the row above */
-				cairo_move_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y + (DOT_SPACE / 2));
-				cairo_line_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
-				cairo_stroke  (cr);
-				
-				x2 = x + (DOT_SPACE / 2);
-				y2 = y + (DOT_SPACE / 2);
-			}
-			else if (type == GIGGLE_REVISION_MERGE && branch2 == list->data) {
-				/* paint line coming from the row below */
-				cairo_move_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y + (DOT_SPACE / 2));
-				cairo_line_to (cr,
-					       x + (DOT_SPACE / 2),
-					       y + h + GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
-				cairo_stroke  (cr);
-				
-				x2 = x + (DOT_SPACE / 2);
-				y2 = y + (DOT_SPACE / 2);
-			}
+		if (path_state->lower_color) {
+			gdk_cairo_set_source_color (cr, path_state->lower_color);
+			cairo_move_to (cr, (pos * DOT_SPACE), y + (h / 2));
+			cairo_line_to (cr, (pos * DOT_SPACE), y + h);
+			cairo_stroke  (cr);
 		}
 
-		x += DOT_SPACE;
-		list = list->next;
+		if (path_state->upper_color) {
+			gdk_cairo_set_source_color (cr, path_state->upper_color);
+			cairo_move_to (cr, (pos * DOT_SPACE), y);
+			cairo_line_to (cr, (pos * DOT_SPACE), y + (h / 2));
+			cairo_stroke  (cr);
+		}
+
+		path = path->next;
 	}
 
-	/* paint line between branches/merges */
-	cairo_move_to (cr, x1, y1);
-	cairo_line_to (cr, x2, y2);
-	cairo_stroke  (cr);
+	/* paint connections between paths */
+	while (children) {
+		pos = (gint) g_hash_table_lookup (priv->paths_info, children->data);
+		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
+
+		if (path_state->upper_color) {
+			gdk_cairo_set_source_color (cr, path_state->upper_color);
+			cairo_move_to (cr,
+				       (cur_pos * DOT_SPACE),
+				       y + (h / 2));
+			cairo_line_to (cr,
+				       (pos * DOT_SPACE),
+				       y + (h / 2));
+			cairo_stroke  (cr);
+		}
+
+		children = children->next;
+	}
+
+	/* paint circle */
+	cairo_set_source_rgb (cr, 0, 0, 0);
+	cairo_arc (cr,
+		   (cur_pos * DOT_SPACE),
+		   y + (h / 2),
+		   DOT_RADIUS, 0, 2 * G_PI);
+	cairo_fill (cr);
+	cairo_stroke (cr);
 
 	cairo_destroy (cr);
+	g_list_free (paths);
 }
 
 GtkCellRenderer *
-giggle_graph_renderer_new (GList *branches)
+giggle_graph_renderer_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_GRAPH_RENDERER,
-			     "branches-info", branches,
-			     NULL);
+	return g_object_new (GIGGLE_TYPE_GRAPH_RENDERER, NULL);
+}
+
+static void
+find_free_path (GHashTable *visible_paths,
+		gint       *n_paths,
+		gint       *path)
+{
+	gint cur_path = 1;
+
+	/* find first path not in list */
+	while (g_hash_table_lookup (visible_paths, GINT_TO_POINTER (cur_path))) {
+		cur_path++;
+	}
+
+	*path = cur_path;
+
+	/* increment number of paths */
+	if (*path > *n_paths) {
+		*n_paths = *path;
+	}
+}
+
+static void
+get_initial_status_foreach (gpointer key,
+			    gpointer value,
+			    gpointer user_data)
+{
+	GiggleGraphRendererPathState *path_state;
+	GHashTable *table = (GHashTable *) user_data;
+
+	path_state = g_new0 (GiggleGraphRendererPathState, 1);
+	path_state->lower_color = value;
+	path_state->upper_color = value;
+	g_hash_table_insert (table, key, path_state);
+}
+
+static void
+get_initial_status (GHashTable *paths,
+		    GHashTable *visible_paths)
+{
+	g_hash_table_foreach (visible_paths, (GHFunc) get_initial_status_foreach, paths);
+}
+
+static void
+giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
+						GiggleRevision      *revision,
+						GHashTable          *visible_paths,
+						gint                *n_color)
+{
+	GiggleGraphRendererPathState *path_state;
+	GiggleGraphRendererPrivate   *priv;
+	GHashTable                   *paths_state;
+	GList                        *children;
+	gboolean                      current_path_reused = FALSE;
+	gboolean                      update_color;
+	gint                          n_path;
+
+	priv = renderer->_priv;
+	children = giggle_revision_get_children (revision);
+	update_color = (g_list_length (children) > 1);
+	paths_state = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
+	get_initial_status (paths_state, visible_paths);
+
+	while (children) {
+		path_state = g_new0 (GiggleGraphRendererPathState, 1);
+		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, children->data));
+
+		if (!n_path) {
+			/* there wasn't a path for this revision, choose one */
+			if (!current_path_reused) {
+				n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
+				current_path_reused = TRUE;
+			} else {
+				find_free_path (visible_paths, &priv->n_paths, &n_path);
+			}
+
+			g_hash_table_insert (priv->paths_info, children->data, GINT_TO_POINTER (n_path));
+			path_state->lower_color = g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path));
+
+			if (update_color) {
+				*n_color = (*n_color + 1) % G_N_ELEMENTS (colors);
+				path_state->upper_color = &colors[*n_color];
+			} else {
+				path_state->upper_color = path_state->lower_color;
+			}
+		} else {
+			path_state->lower_color = g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path));
+			path_state->upper_color = path_state->lower_color;
+		}
+
+		g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), path_state->upper_color);
+		g_hash_table_insert (paths_state, GINT_TO_POINTER (n_path), path_state);
+
+		children = children->next;
+	}
+
+	if (!current_path_reused) {
+		/* current path is a dead end, remove it from the visible paths table */
+		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
+		g_hash_table_remove (visible_paths, GINT_TO_POINTER (n_path));
+		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (n_path));
+		path_state->upper_color = NULL;
+	}
+
+	g_object_set_qdata_full (G_OBJECT (revision), revision_paths_state_quark,
+				 paths_state, (GDestroyNotify) g_hash_table_destroy);
+}
+
+void
+giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
+				      GtkTreeModel        *model,
+				      gint                 column)
+{
+	GiggleGraphRendererPrivate *priv;
+	GtkTreeIter                 iter;
+	gint                        n_children;
+	gint                        n_color = 0;
+	GiggleRevision             *revision;
+	GHashTable                 *visible_paths;
+	gboolean                    initialized = FALSE;
+	GType                       contained_type;
+
+	g_return_if_fail (GIGGLE_IS_GRAPH_RENDERER (renderer));
+	g_return_if_fail (GTK_IS_TREE_MODEL (model));
+
+	priv = renderer->_priv;
+	contained_type = gtk_tree_model_get_column_type (model, column);
+
+	g_return_if_fail (contained_type == GIGGLE_TYPE_REVISION);
+
+	if (priv->paths_info) {
+		g_hash_table_destroy (priv->paths_info);
+	}
+
+	priv->paths_info = g_hash_table_new (g_direct_hash, g_direct_equal);
+	visible_paths = g_hash_table_new (g_direct_hash, g_direct_equal);
+	n_children = gtk_tree_model_iter_n_children (model, NULL);
+
+	while (n_children) {
+		/* need to calculate state backwards for proper color asignment */
+		n_children--;
+		gtk_tree_model_iter_nth_child (model, &iter, NULL, n_children);
+		gtk_tree_model_get (model, &iter, column, &revision, -1);
+
+		if (!initialized) {
+			g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (INITIAL_PATH));
+			g_hash_table_insert (visible_paths, GINT_TO_POINTER (INITIAL_PATH), &colors[n_color]);
+			initialized = TRUE;
+		}
+
+		giggle_graph_renderer_calculate_revision_state (renderer, revision, visible_paths, &n_color);
+	}
+
+	g_hash_table_destroy (visible_paths);
 }

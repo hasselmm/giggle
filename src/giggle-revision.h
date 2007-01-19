@@ -48,7 +48,7 @@ typedef enum {
 } GiggleRevisionType;
 
 struct _GiggleRevision {
-	GObject             parent_instance;
+	GObject parent_instance;
 };
 
 struct _GiggleRevisionClass {
@@ -78,6 +78,13 @@ const gchar      * giggle_revision_get_author        (GiggleRevision   *revision
 const gchar      * giggle_revision_get_date          (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_long_log      (GiggleRevision   *revision);
+
+GList            *giggle_revision_get_children       (GiggleRevision *revision);
+GList            * giggle_revision_get_parents       (GiggleRevision   *revision);
+void               giggle_revision_add_parent        (GiggleRevision   *revision,
+						      GiggleRevision   *parent);
+void               giggle_revision_remove_parent     (GiggleRevision   *revision,
+						      GiggleRevision   *parent);
 
 GiggleBranchInfo * giggle_branch_info_new            (const gchar      *name);
 void               giggle_branch_info_free           (GiggleBranchInfo *info);
