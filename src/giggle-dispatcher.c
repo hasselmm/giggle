@@ -224,6 +224,9 @@ dispatcher_stop_current_job (GiggleDispatcher *dispatcher)
 	g_source_remove (priv->current_job_wait_id);
 	priv->current_job_wait_id = 0;
 
+	g_source_remove (priv->current_job_read_id);
+	priv->current_job_read_id = 0;
+
 	g_assert (priv->current_job != NULL);
 	giggle_sysdeps_kill_pid (priv->current_job->pid);
 
@@ -308,6 +311,9 @@ dispatcher_job_finished_cb (GPid              pid,
 
 	d(g_print ("GiggleDispatcher::job_finished_cb\n"));
 
+	g_source_remove (priv->current_job_read_id);
+	priv->current_job_read_id = 0;
+
 	job->callback (dispatcher, job->id, NULL, 
 		       priv->output->str, priv->length, 
 		       job->user_data);
@@ -341,7 +347,7 @@ dispatcher_job_read_cb (GIOChannel       *source,
 	 * if something unexpected happens
 	 */
 
-	return FALSE;
+	return TRUE;
 }
 
 GiggleDispatcher *
