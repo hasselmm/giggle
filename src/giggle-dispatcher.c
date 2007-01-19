@@ -82,7 +82,7 @@ static gboolean  dispatcher_job_read_cb      (GIOChannel       *source,
 					      GiggleDispatcher *dispatcher);
 
 
-G_DEFINE_TYPE (GiggleDispatcher, giggle_dispatcher, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleDispatcher, giggle_dispatcher, G_TYPE_OBJECT)
 
 static void
 giggle_dispatcher_class_init (GiggleDispatcherClass *class)

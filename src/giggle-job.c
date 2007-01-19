@@ -38,7 +38,7 @@ static void     job_get_property (GObject      *object,
 				  GValue       *value,
 				  GParamSpec   *pspec);
 
-G_DEFINE_TYPE (GiggleJob, giggle_job, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleJob, giggle_job, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,

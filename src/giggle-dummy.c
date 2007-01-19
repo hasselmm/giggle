@@ -38,7 +38,7 @@ static void     dummy_set_property        (GObject           *object,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
 
-G_DEFINE_TYPE (GiggleDummy, giggle_dummy, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleDummy, giggle_dummy, G_TYPE_OBJECT)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DUMMY, GiggleDummyPriv))
 

@@ -52,7 +52,7 @@ static void     git_revisions_set_committer_info  (GiggleRevision *revision,
 						   const gchar    *line);
 
 
-G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB);
+G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_REVISIONS, GiggleGitRevisionsPriv))
 

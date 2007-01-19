@@ -134,7 +134,7 @@ static const gchar *ui_layout =
 	"</ui>";
 
 
-G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW);
+G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 

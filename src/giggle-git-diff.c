@@ -47,7 +47,7 @@ static void     git_diff_handle_output       (GiggleJob         *job,
 					      const gchar       *output_str,
 					      gsize              output_len);
 
-G_DEFINE_TYPE (GiggleGitDiff, giggle_git_diff, GIGGLE_TYPE_JOB);
+G_DEFINE_TYPE (GiggleGitDiff, giggle_git_diff, GIGGLE_TYPE_JOB)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_DIFF, GiggleGitDiffPriv))
 

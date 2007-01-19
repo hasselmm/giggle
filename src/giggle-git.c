@@ -65,7 +65,7 @@ static void     git_execute_callback    (GiggleDispatcher  *dispatcher,
 					 gsize              output_len,
 					 GiggleGit         *git);
 
-G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,

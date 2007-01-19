@@ -53,7 +53,7 @@ static void revision_set_property       (GObject        *object,
 					 const GValue   *value,
 					 GParamSpec     *pspec);
 
-G_DEFINE_TYPE (GiggleRevision, giggle_revision, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GiggleRevision, giggle_revision, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
