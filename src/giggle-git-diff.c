@@ -100,7 +100,7 @@ git_diff_finalize (GObject *object)
 	}
 
 	if (priv->rev2) {
-		g_object_unref (priv->rev1);
+		g_object_unref (priv->rev2);
 	}
 
 	g_free (priv->result);
