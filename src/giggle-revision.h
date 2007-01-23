@@ -37,7 +37,6 @@ G_BEGIN_DECLS
 
 typedef struct _GiggleRevision      GiggleRevision;
 typedef struct _GiggleRevisionClass GiggleRevisionClass;
-typedef struct _GiggleBranchInfo    GiggleBranchInfo;
 
 struct _GiggleRevision {
 	GObject parent_instance;

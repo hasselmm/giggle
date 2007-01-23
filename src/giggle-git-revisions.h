@@ -49,7 +49,6 @@ struct GiggleGitRevisionsClass {
 GType	     giggle_git_revisions_get_type      (void);
 GiggleJob *  giggle_git_revisions_new           (void);
 GList *      giggle_git_revisions_get_revisions (GiggleGitRevisions *revisions);      
-GList *      giggle_git_revisions_get_branches  (GiggleGitRevisions *revisions);
 
 G_END_DECLS
 

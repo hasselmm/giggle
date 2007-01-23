@@ -32,15 +32,8 @@ struct GiggleRevisionPriv {
 	gchar              *short_log;
 	gchar              *long_log;
 
-	/* Is filled out in the validation process. */
-	GHashTable         *branches;
-
 	GList              *parents;
 	GList              *children;
-};
-
-struct _GiggleBranchInfo {
-	gchar *name;
 };
 
 static void revision_finalize           (GObject        *object);
@@ -137,10 +130,6 @@ revision_finalize (GObject *object)
 	revision = GIGGLE_REVISION (object);
 
 	priv = GET_PRIV (revision);
-
-	if (priv->branches) {
-		g_hash_table_destroy (priv->branches);
-	}
 
 	g_free (priv->sha);
 	g_free (priv->author);
