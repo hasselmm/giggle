@@ -90,8 +90,12 @@ static void window_revision_cell_data_date_func   (GtkTreeViewColumn *tree_colum
 						   gpointer           data);
 static void window_action_quit_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_open_cb                 (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_set_current_directory          (GiggleWindow      *window,
+						   const gchar       *directory);
 
 
 static const GtkActionEntry action_entries[] = {
@@ -106,6 +110,10 @@ static const GtkActionEntry action_entries[] = {
 	{ "HelpMenu", NULL,
 	  N_("_Help"), NULL, NULL,
 	  NULL
+	},
+	{ "Open", GTK_STOCK_OPEN,
+	  N_("_Open"), "<control>O", N_("Open a GIT repository"),
+	  G_CALLBACK (window_action_open_cb)
 	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
@@ -122,6 +130,7 @@ static const gchar *ui_layout =
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='FileMenu'>"
 	/*"      <separator/>"*/
+	"      <menuitem action='Open'/>"
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
@@ -161,24 +170,7 @@ giggle_window_init (GiggleWindow *window)
 	gtk_window_set_title (GTK_WINDOW (window), "Giggle");
 
 	priv->git = giggle_git_new ();
-	dir = g_get_current_dir ();
-	if (!giggle_git_set_directory (priv->git, dir, &error)) {
-		GtkWidget *dialog;
 
-		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
-						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-						 GTK_MESSAGE_ERROR,
-						 GTK_BUTTONS_OK,
-						 _("The directory '%s' does not look like a "
-						   "GIT repository."), dir);
-
-		gtk_dialog_run (GTK_DIALOG (dialog));
-
-		gtk_widget_destroy (dialog);
-	}
-
-	g_free (dir);
-	
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
 	if (!xml) {
@@ -225,6 +217,10 @@ giggle_window_init (GiggleWindow *window)
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
+
+	dir = g_get_current_dir ();
+	window_set_current_directory (window, dir);
+	g_free (dir);
 }
 
 static void
@@ -283,7 +279,6 @@ window_setup_revision_treeview (GiggleWindow *window)
 	GiggleWindowPriv *priv;
 	GtkCellRenderer  *cell;
 	GtkTreeSelection *selection;
-	GiggleJob        *job;
 
 	priv = GET_PRIV (window);
 
@@ -325,11 +320,6 @@ window_setup_revision_treeview (GiggleWindow *window)
 		window_revision_cell_data_date_func,
 		window,
 		NULL);
-
-	job = giggle_git_revisions_new ();
-	giggle_git_run_job (priv->git, job,
-			    window_git_get_revisions_cb,
-			    window);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
@@ -595,6 +585,27 @@ window_action_quit_cb (GtkAction    *action,
 }
 
 static void
+window_action_open_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	GtkWidget *file_chooser;
+	const gchar *directory;
+
+	file_chooser =
+		gtk_file_chooser_dialog_new (_("Select GIT repository"),
+					     GTK_WINDOW (window),
+					     GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+					     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+					     GTK_STOCK_OK, GTK_RESPONSE_OK,
+					     NULL);
+	gtk_dialog_run (GTK_DIALOG (file_chooser));
+	directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
+	window_set_current_directory (window, directory);
+
+	gtk_widget_destroy (file_chooser);
+}
+
+static void
 window_action_about_cb (GtkAction    *action,
 			GiggleWindow *window)
 {
@@ -602,6 +613,40 @@ window_action_about_cb (GtkAction    *action,
 			       "name", "Giggle",
 			       "copyright", "Copyright 2007 Imendio AB",
 			       NULL);
+}
+
+static void
+window_set_current_directory (GiggleWindow *window,
+			      const gchar  *directory)
+{
+	GiggleWindowPriv *priv;
+	GiggleJob        *job;
+	GError           *error = NULL;
+
+	priv = GET_PRIV (window);
+
+	if (!giggle_git_set_directory (priv->git, directory, &error)) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("The directory '%s' does not look like a "
+						   "GIT repository."), directory);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+
+		gtk_widget_destroy (dialog);
+	}
+
+	/* empty the treeview */
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), NULL);
+
+	job = giggle_git_revisions_new ();
+	giggle_git_run_job (priv->git, job,
+			    window_git_get_revisions_cb,
+			    window);
 }
 
 GtkWidget *
