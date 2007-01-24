@@ -95,9 +95,9 @@ static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
-static void window_set_current_directory          (GiggleWindow      *window,
-						   const gchar       *directory);
-
+static void window_directory_changed_cb           (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
 	{ "FileMenu", NULL,
@@ -169,6 +169,10 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_new ();
+	g_signal_connect (priv->git,
+			  "notify::directory",
+			  G_CALLBACK (window_directory_changed_cb),
+			  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -218,7 +222,22 @@ giggle_window_init (GiggleWindow *window)
 	gtk_ui_manager_ensure_update (priv->ui_manager);
 
 	dir = g_get_current_dir ();
-	window_set_current_directory (window, dir);
+
+	if (!giggle_git_set_directory (priv->git, dir, &error)) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("The directory '%s' does not look like a "
+						   "GIT repository."), dir);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+
+		gtk_widget_destroy (dialog);
+	}
+
 	g_free (dir);
 }
 
@@ -617,7 +636,9 @@ window_action_open_cb (GtkAction    *action,
 
 	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
 		directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
-		window_set_current_directory (window, directory);
+
+		/* FIXME: no error handling */
+		giggle_git_set_directory (priv->git, directory, NULL);
 	}
 
 	gtk_widget_destroy (file_chooser);
@@ -634,31 +655,18 @@ window_action_about_cb (GtkAction    *action,
 }
 
 static void
-window_set_current_directory (GiggleWindow *window,
-			      const gchar  *directory)
+window_directory_changed_cb (GiggleGit    *git,
+			     GParamSpec   *arg,
+			     GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
-	GError           *error = NULL;
 	gchar            *title;
+	const gchar      *directory;
 
 	priv = GET_PRIV (window);
 
-	if (!giggle_git_set_directory (priv->git, directory, &error)) {
-		GtkWidget *dialog;
-
-		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
-						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-						 GTK_MESSAGE_ERROR,
-						 GTK_BUTTONS_OK,
-						 _("The directory '%s' does not look like a "
-						   "GIT repository."), directory);
-
-		gtk_dialog_run (GTK_DIALOG (dialog));
-
-		gtk_widget_destroy (dialog);
-	}
-
+	directory = giggle_git_get_directory (git);
 	title = g_strdup_printf ("%s - Giggle", directory);
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
