@@ -8,6 +8,8 @@ AM_CPPFLAGS =					\
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =				\
+	giggle-branch.c				\
+	giggle-branch.h				\
 	giggle-dispatcher.c             	\
 	giggle-dispatcher.h             	\
 	giggle-dummy.c                  	\
@@ -16,6 +18,8 @@ giggle_SOURCES =				\
 	giggle-error.h                          \
 	giggle-git.c                            \
 	giggle-git.h                            \
+	giggle-git-branches.c			\
+	giggle-git-branches.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-revisions.c			\
