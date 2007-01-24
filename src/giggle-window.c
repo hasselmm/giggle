@@ -597,19 +597,28 @@ static void
 window_action_open_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-	GtkWidget *file_chooser;
-	const gchar *directory;
+	GiggleWindowPriv *priv;
+	GtkWidget        *file_chooser;
+	const gchar      *directory;
 
-	file_chooser =
-		gtk_file_chooser_dialog_new (_("Select GIT repository"),
-					     GTK_WINDOW (window),
-					     GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-					     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-					     GTK_STOCK_OK, GTK_RESPONSE_OK,
-					     NULL);
-	gtk_dialog_run (GTK_DIALOG (file_chooser));
-	directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
-	window_set_current_directory (window, directory);
+	priv = GET_PRIV (window);
+
+	file_chooser = gtk_file_chooser_dialog_new (
+		_("Select GIT repository"),
+		GTK_WINDOW (window),
+		GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OK, GTK_RESPONSE_OK,
+		NULL);
+
+	gtk_file_chooser_set_current_folder (
+		GTK_FILE_CHOOSER (file_chooser),
+		giggle_git_get_directory (priv->git));
+
+	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
+		directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
+		window_set_current_directory (window, directory);
+	}
 
 	gtk_widget_destroy (file_chooser);
 }
