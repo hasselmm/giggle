@@ -28,6 +28,7 @@
 #include "giggle-window.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
+#include "giggle-git-branches.h"
 #include "giggle-git-diff.h"
 #include "giggle-git-revisions.h"
 #include "giggle-revision.h"
@@ -167,8 +168,6 @@ giggle_window_init (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	gtk_window_set_title (GTK_WINDOW (window), "Giggle");
-
 	priv->git = giggle_git_new ();
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
@@ -270,6 +269,16 @@ window_git_get_revisions_cb (GiggleGit    *git,
 	giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), GTK_TREE_MODEL (store), 0);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), GTK_TREE_MODEL (store));
 	g_object_unref (store);
+	g_object_unref (job);
+}
+
+static void
+window_git_get_branches_cb (GiggleGit    *git,
+			    GiggleJob    *job,
+			    GError       *error,
+			    gpointer      user_data)
+{
+	/* FIXME: do something with branches */
 	g_object_unref (job);
 }
 
@@ -622,6 +631,7 @@ window_set_current_directory (GiggleWindow *window,
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
 	GError           *error = NULL;
+	gchar            *title;
 
 	priv = GET_PRIV (window);
 
@@ -640,12 +650,21 @@ window_set_current_directory (GiggleWindow *window,
 		gtk_widget_destroy (dialog);
 	}
 
+	title = g_strdup_printf ("%s - Giggle", directory);
+	gtk_window_set_title (GTK_WINDOW (window), title);
+	g_free (title);
+
 	/* empty the treeview */
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), NULL);
 
 	job = giggle_git_revisions_new ();
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_revisions_cb,
+			    window);
+
+	job = giggle_git_branches_new ();
+	giggle_git_run_job (priv->git, job,
+			    window_git_get_branches_cb,
 			    window);
 }
 
