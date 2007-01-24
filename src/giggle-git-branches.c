@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "giggle-git-branches.h"
+#include "giggle-branch.h"
 
 typedef struct GiggleGitBranchesPriv GiggleGitBranchesPriv;
 
@@ -126,11 +127,42 @@ git_branches_get_command_line (GiggleJob *job, gchar **command_line)
 	return TRUE;
 }
 
+static GiggleBranch *
+git_branches_get_branch (GiggleJob   *job,
+			 const gchar *str)
+{
+	GiggleBranch  *branch;
+	gchar        **data;
+
+	data = g_strsplit (str, " ", 2);
+	/* FIXME: use sha to set head revision */
+	branch = giggle_branch_new (data[1] + strlen ("refs/heads/"));
+	g_strfreev (data);
+
+	return branch;
+}
+
 static void
 git_branches_handle_output (GiggleJob   *job,
 			    const gchar *output_str,
 			    gsize        output_len)
 {
+	GiggleGitBranchesPriv  *priv;
+	gchar                 **lines;
+	gint                    n_line = 0;
+
+	priv = GET_PRIV (job);
+	lines = g_strsplit (output_str, "\n", -1);
+
+	while (lines[n_line] && *lines[n_line]) {
+		priv->branches =
+			g_list_prepend (priv->branches,
+					git_branches_get_branch (job, lines[n_line]));
+		n_line++;
+	}
+
+	priv->branches = g_list_reverse (priv->branches);
+	g_strfreev (lines);
 }
 
 GiggleJob *
