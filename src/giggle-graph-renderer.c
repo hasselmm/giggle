@@ -28,7 +28,6 @@
 #define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 
 /* included padding */
-#define GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER 2
 #define DOT_SPACE 15
 #define DOT_RADIUS 3
 #define INITIAL_PATH 1
@@ -194,7 +193,8 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 	}
 
 	if (width) {
-		*width = DOT_SPACE * priv->n_paths + (DOT_SPACE / 2);
+		/* the +1 is because we leave half at each side */
+		*width = DOT_SPACE * (priv->n_paths + 1);
 	}
 
 	if (x_offset) {
@@ -247,8 +247,8 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 	cr = gdk_cairo_create (window);
 	x = cell_area->x;
-	y = cell_area->y - GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER;
-	h = cell_area->height + (2 * GROSS_HACK_TO_PAINT_OUTSIDE_RENDERER);
+	y = background_area->y;
+	h = background_area->height;
 	revision = priv->revision;
 
 	paths_state = g_object_get_qdata (G_OBJECT (revision), revision_paths_state_quark);
@@ -264,15 +264,15 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 		if (path_state->lower_color) {
 			gdk_cairo_set_source_color (cr, path_state->lower_color);
-			cairo_move_to (cr, (pos * DOT_SPACE), y + (h / 2));
-			cairo_line_to (cr, (pos * DOT_SPACE), y + h);
+			cairo_move_to (cr, x + (pos * DOT_SPACE), y + (h / 2));
+			cairo_line_to (cr, x + (pos * DOT_SPACE), y + h);
 			cairo_stroke  (cr);
 		}
 
 		if (path_state->upper_color) {
 			gdk_cairo_set_source_color (cr, path_state->upper_color);
-			cairo_move_to (cr, (pos * DOT_SPACE), y);
-			cairo_line_to (cr, (pos * DOT_SPACE), y + (h / 2));
+			cairo_move_to (cr, x + (pos * DOT_SPACE), y);
+			cairo_line_to (cr, x + (pos * DOT_SPACE), y + (h / 2));
 			cairo_stroke  (cr);
 		}
 
@@ -287,10 +287,10 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 		if (path_state->upper_color) {
 			gdk_cairo_set_source_color (cr, path_state->upper_color);
 			cairo_move_to (cr,
-				       (cur_pos * DOT_SPACE),
+				       x + (cur_pos * DOT_SPACE),
 				       y + (h / 2));
 			cairo_line_to (cr,
-				       (pos * DOT_SPACE),
+				       x + (pos * DOT_SPACE),
 				       y + (h / 2));
 			cairo_stroke  (cr);
 		}
@@ -301,7 +301,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	/* paint circle */
 	cairo_set_source_rgb (cr, 0, 0, 0);
 	cairo_arc (cr,
-		   (cur_pos * DOT_SPACE),
+		   x + (cur_pos * DOT_SPACE),
 		   y + (h / 2),
 		   DOT_RADIUS, 0, 2 * G_PI);
 	cairo_fill (cr);
