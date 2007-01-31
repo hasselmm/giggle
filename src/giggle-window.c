@@ -658,6 +658,7 @@ window_action_about_cb (GtkAction    *action,
 	gtk_show_about_dialog (GTK_WINDOW (window),
 			       "name", "Giggle",
 			       "copyright", "Copyright 2007 Imendio AB",
+			       "translator-credits", _("translator-credits"),
 			       NULL);
 }
 

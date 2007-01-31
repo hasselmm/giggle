@@ -197,8 +197,20 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 	returned = strptime (date, "%s %z", &tm);
 	if (returned && !*returned) {
 		char buf[256]; // that's a lot more than necessary
+		char* timezone;
 		strftime(buf, sizeof(buf), "%c", &tm);
 		g_free(date);
+
+		// fixing broken continental time zones
+		timezone = g_strrstr(buf, "CET");
+		if(!timezone) {
+			timezone = g_strrstr(buf, "CEST");
+		}
+		if(timezone) {
+			timezone[0] = 'I';
+			timezone[1] = 'D';
+		}
+
 		date = g_strdup(buf);
 	}
 #endif
