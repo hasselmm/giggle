@@ -176,6 +176,10 @@ git_revisions_handle_output (GiggleJob   *job,
 static void
 git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 {
+#if STRPTIME_HAS_GNU
+	struct tm tm = {};
+	const gchar* returned = NULL;
+#endif
 	gchar *author, *date;
 	gchar **strarr;
 
@@ -188,6 +192,16 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 	strarr = g_strsplit (line, "> ", 2);
 	date = g_strdup (strarr[1]);
 	g_strfreev (strarr);
+
+#if STRPTIME_HAS_GNU
+	returned = strptime (date, "%s %z", &tm);
+	if (returned && !*returned) {
+		char buf[256]; // that's a lot more than necessary
+		strftime(buf, sizeof(buf), "%c", &tm);
+		g_free(date);
+		date = g_strdup(buf);
+	}
+#endif
 
 	g_object_set (revision,
 		      "author", author,

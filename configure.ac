@@ -26,6 +26,7 @@ IMENDIO_COMPILE_WARNINGS
 dnl  ------------------
 dnl | Pkgconfig checks |---------------------------------------
 dnl  ------------------
+
 PKG_CHECK_MODULES(GIGGLE, [
         glib-2.0 >= 2.12
 	gthread-2.0
@@ -33,9 +34,22 @@ PKG_CHECK_MODULES(GIGGLE, [
 	gtksourceview-1.0 > 1.8
 	libglade-2.0 > 2.4
 ])
-dnl -----------------------------------------------------------
+
+dnl  ----------------------
+dnl | library requirements |-----------------------------------
+dnl  ----------------------
 
 AC_DEFINE(_GNU_SOURCE, 1, [Enable GNU Extensions])
+
+dnl Make sure that strptime can be used (read: has gnu extensions)
+AC_MSG_CHECKING([for GNU extensions of strptime()])
+AC_RUN_IFELSE(AC_LANG_PROGRAM([[#include <time.h>
+const char* date = "1168635922 +0100";]],[[struct tm tm;
+char const* returned = strptime(date, "%s %z", &tm);
+if(!returned || *returned) return 1;]]),
+	      [AC_MSG_RESULT(available)
+	      AC_DEFINE(STRPTIME_HAS_GNU, 1, [strptime() has GNU extensions %s and %z])],
+	      AC_MSG_RESULT(not available))
 
 dnl  ------------------
 dnl | Language Support |---------------------------------------
