@@ -307,6 +307,7 @@ window_setup_revision_treeview (GiggleWindow *window)
 	GiggleWindowPriv *priv;
 	GtkCellRenderer  *cell;
 	GtkTreeSelection *selection;
+	gint              n_columns;
 
 	priv = GET_PRIV (window);
 
@@ -320,7 +321,10 @@ window_setup_revision_treeview (GiggleWindow *window)
 		NULL);
 
 	cell = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (
+	g_object_set(cell,
+		     "ellipsize", PANGO_ELLIPSIZE_END,
+		     NULL);
+	n_columns = gtk_tree_view_insert_column_with_data_func (
 		GTK_TREE_VIEW (priv->revision_treeview),
 		-1,
 		_("Short Log"),
@@ -328,6 +332,9 @@ window_setup_revision_treeview (GiggleWindow *window)
 		window_revision_cell_data_log_func,
 		window,
 		NULL);
+	gtk_tree_view_column_set_expand (
+		gtk_tree_view_get_column (GTK_TREE_VIEW (priv->revision_treeview), n_columns - 1),
+		TRUE);
 
 	cell = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (
