@@ -357,8 +357,9 @@ window_setup_revision_treeview (GiggleWindow *window)
 		NULL);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
-	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
-
+	gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
+	gtk_tree_view_set_rubber_banding (GTK_TREE_VIEW (priv->revision_treeview), TRUE);
+	
 	g_signal_connect (selection,
 			  "changed",
 			  G_CALLBACK (window_revision_selection_changed_cb),
@@ -475,37 +476,56 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 {
 	GiggleWindowPriv *priv;
 	GtkTreeModel     *model;
-	GtkTreeIter       iter;
-	GiggleRevision   *current_revision;
-	GiggleRevision   *previous_revision;
+	GtkTreeIter       first_iter;
+	GtkTreeIter       last_iter;
+	GiggleRevision   *first_revision;
+	GiggleRevision   *last_revision;
+	GList            *rows;
+	GList            *last_row;
+	gboolean          valid;
 
 	priv = GET_PRIV (window);
-	
-	if (!gtk_tree_selection_get_selected (selection, &model, &iter)) {
+	rows = gtk_tree_selection_get_selected_rows (selection, &model);
+	first_revision = last_revision = NULL;
+
+	if (!rows) {
 		return;
 	}
 
-	gtk_tree_model_get (model, &iter,
-			    REVISION_COL_OBJECT, &current_revision,
-			    -1);
+	/* get the first row iter */
+	gtk_tree_model_get_iter (model, &first_iter,
+				 (GtkTreePath *) rows->data);
 
-	/* Get the revision below the current, for a diff. */
-	if (gtk_tree_model_iter_next (model, &iter)) {
-		gtk_tree_model_get (model, &iter,
-				    REVISION_COL_OBJECT, &previous_revision,
-				    -1);
+	if (g_list_length (rows) == 1) {
+		/* if just one row is selected, get the previous revision */
+		last_iter = first_iter;
+		valid = gtk_tree_model_iter_next (model, &last_iter);
 	} else {
-		previous_revision = NULL;
+		last_row = g_list_last (rows);
+		valid = gtk_tree_model_get_iter (model, &last_iter,
+						 (GtkTreePath *) last_row->data);
 	}
-	
-	window_update_revision_info (window,
-				     current_revision,
-				     previous_revision);
 
-	g_object_unref (current_revision);
-	if (previous_revision) {
-		g_object_unref (previous_revision);
+	gtk_tree_model_get (model, &first_iter,
+			    REVISION_COL_OBJECT, &first_revision,
+			    -1);
+	if (valid) {
+		gtk_tree_model_get (model, &last_iter,
+				    REVISION_COL_OBJECT, &last_revision,
+				    -1);
 	}
+
+	window_update_revision_info (window,
+				     first_revision,
+				     last_revision);
+
+	g_object_unref (first_revision);
+	if (last_revision) {
+		g_object_unref (last_revision);
+	}
+
+	g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (rows);
 }
 
 static void
