@@ -2,7 +2,6 @@
 # Copyright (C) 2007 Imendio AB
 # This file is distributed under the same license as the giggle package.
 # Sven Herzberg <sven@imendio.com>, 2007.
-# , fuzzy
 # 
 # 
 msgid ""
