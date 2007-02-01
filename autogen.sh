@@ -127,7 +127,8 @@ do
 	  test -r $dr/aclocal.m4 && chmod u+w $dr/aclocal.m4
         fi
       fi
-      if grep "^AC_PROG_INTLTOOL" $CONFIGURE >/dev/null; then
+      if grep "^AC_PROG_INTLTOOL" $CONFIGURE >/dev/null ||
+         grep "^IT_PROG_INTLTOOL" $CONFIGURE >/dev/null; then
         echo "Running intltoolize..."
 	intltoolize --copy --force --automake
       fi
