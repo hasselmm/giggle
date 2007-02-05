@@ -119,7 +119,7 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Open"), "<control>O", N_("Open a GIT repository"),
 	  G_CALLBACK (window_action_open_cb)
 	},
-	{ "SavePatch", GTK_STOCK_OPEN,
+	{ "SavePatch", GTK_STOCK_SAVE,
 	  N_("_Save patch"), "<control>S", N_("Save a patch"),
 	  G_CALLBACK (window_action_save_patch_cb)
 	},
@@ -154,6 +154,8 @@ static const gchar *ui_layout =
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
+
+#define SAVE_PATCH_UI_PATH "/ui/MainMenubar/FileMenu/SavePatch"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
@@ -200,7 +202,7 @@ window_create_menu (GiggleWindow *window)
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
 
-	action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/MainMenubar/FileMenu/SavePatch");
+	action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 	gtk_action_set_sensitive (action, FALSE);
 }
 
@@ -473,7 +475,7 @@ window_update_revision_info (GiggleWindow   *window,
 	}
 	
 	if (current_revision && previous_revision) {
-		action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/MainMenubar/FileMenu/SavePatch");
+		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, FALSE);
 
 		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
@@ -587,7 +589,7 @@ window_git_diff_result_callback (GiggleGit *git,
 
 		action = gtk_ui_manager_get_action (
 			priv->ui_manager,
-			"/ui/MainMenubar/FileMenu/SavePatch");
+			SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, TRUE);
 	}
 
