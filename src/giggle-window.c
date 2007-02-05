@@ -24,6 +24,7 @@
 #include <glade/glade.h>
 #include <gtksourceview/gtksourceview.h>
 #include <gtksourceview/gtksourcelanguagesmanager.h>
+#include <string.h>
 
 #include "giggle-window.h"
 #include "giggle-error.h"
@@ -93,6 +94,8 @@ static void window_action_quit_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_save_patch_cb           (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
@@ -116,6 +119,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Open"), "<control>O", N_("Open a GIT repository"),
 	  G_CALLBACK (window_action_open_cb)
 	},
+	{ "SavePatch", GTK_STOCK_OPEN,
+	  N_("_Save patch"), "<control>S", N_("Save a patch"),
+	  G_CALLBACK (window_action_save_patch_cb)
+	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
@@ -132,6 +139,7 @@ static const gchar *ui_layout =
 	"    <menu action='FileMenu'>"
 	/*"      <separator/>"*/
 	"      <menuitem action='Open'/>"
+	"      <menuitem action='SavePatch'/>"
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
@@ -158,12 +166,50 @@ giggle_window_class_init (GiggleWindowClass *class)
 }
 
 static void
+window_create_menu (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkActionGroup   *action_group;
+	GtkAction        *action;
+	GError           *error = NULL;
+
+	priv = GET_PRIV (window);
+	priv->ui_manager = gtk_ui_manager_new ();
+	g_signal_connect (priv->ui_manager,
+			  "add_widget",
+			  G_CALLBACK (window_add_widget_cb),
+			  window);
+
+	action_group = gtk_action_group_new ("MainActions");
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
+	gtk_action_group_add_actions (action_group,
+				      action_entries,
+				      G_N_ELEMENTS (action_entries),
+				      window);
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+
+	gtk_window_add_accel_group (GTK_WINDOW (window),
+				    gtk_ui_manager_get_accel_group (priv->ui_manager));
+
+	g_object_unref (action_group);
+
+	gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_layout, -1, &error);
+	if (error) {
+		g_error ("Couldn't create UI: %s}\n", error->message);
+	}
+
+	gtk_ui_manager_ensure_update (priv->ui_manager);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/MainMenubar/FileMenu/SavePatch");
+	gtk_action_set_sensitive (action, FALSE);
+}
+
+static void
 giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	gchar            *dir;
 	GladeXML         *xml;
-	GtkActionGroup   *action_group;
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
@@ -195,31 +241,7 @@ giggle_window_init (GiggleWindow *window)
 
 	g_object_unref (xml);
 
-	priv->ui_manager = gtk_ui_manager_new ();
-	g_signal_connect (priv->ui_manager,
-			  "add_widget",
-			  G_CALLBACK (window_add_widget_cb),
-			  window);
-
-	action_group = gtk_action_group_new ("MainActions");
-	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
-	gtk_action_group_add_actions (action_group,
-				      action_entries,
-				      G_N_ELEMENTS (action_entries),
-				      window);
-	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
-
-	gtk_window_add_accel_group (GTK_WINDOW (window),
-				    gtk_ui_manager_get_accel_group (priv->ui_manager));
-
-	g_object_unref (action_group);
-
-	gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_layout, -1, &error);
-	if (error) {
-		g_error ("Couldn't create UI: %s}\n", error->message);
-	}
-
-	gtk_ui_manager_ensure_update (priv->ui_manager);
+	window_create_menu (window);
 
 	dir = g_get_current_dir ();
 
@@ -413,6 +435,7 @@ window_update_revision_info (GiggleWindow   *window,
 	const gchar      *sha;
 	const gchar      *log;
 	gchar            *str;
+	GtkAction        *action;
 	
 	priv = GET_PRIV (window);
 
@@ -450,6 +473,9 @@ window_update_revision_info (GiggleWindow   *window,
 	}
 	
 	if (current_revision && previous_revision) {
+		action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/MainMenubar/FileMenu/SavePatch");
+		gtk_action_set_sensitive (action, FALSE);
+
 		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
 				    priv->current_job,
@@ -536,6 +562,7 @@ window_git_diff_result_callback (GiggleGit *git,
 {
 	GiggleWindow     *window;
 	GiggleWindowPriv *priv;
+	GtkAction        *action;
 
 	window = GIGGLE_WINDOW (user_data);
 	priv = GET_PRIV (window);
@@ -557,6 +584,11 @@ window_git_diff_result_callback (GiggleGit *git,
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
 			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
 			-1);
+
+		action = gtk_ui_manager_get_action (
+			priv->ui_manager,
+			"/ui/MainMenubar/FileMenu/SavePatch");
+		gtk_action_set_sensitive (action, TRUE);
 	}
 
 	g_object_unref (priv->current_job);
@@ -666,6 +698,59 @@ window_action_open_cb (GtkAction    *action,
 
 		/* FIXME: no error handling */
 		giggle_git_set_directory (priv->git, directory, NULL);
+	}
+
+	gtk_widget_destroy (file_chooser);
+}
+
+static void
+window_action_save_patch_cb (GtkAction    *action,
+			     GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *file_chooser;
+	GtkTextBuffer    *text_buffer;
+	GtkTextIter       iter_start, iter_end;
+	gchar            *text, *path;
+	GError           *error = NULL;
+
+	priv = GET_PRIV (window);
+
+	file_chooser = gtk_file_chooser_dialog_new (
+		_("Save patch file"),
+		GTK_WINDOW (window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OK, GTK_RESPONSE_OK,
+		NULL);
+
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (file_chooser), TRUE);
+
+	/* FIXME: remember the last selected folder */
+
+	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
+		text_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview));
+		gtk_text_buffer_get_bounds (text_buffer, &iter_start, &iter_end);
+
+		text = gtk_text_buffer_get_text (text_buffer, &iter_start, &iter_end, TRUE);
+		path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_chooser));
+
+		if (!g_file_set_contents (path, text, strlen (text), &error)) {
+			GtkWidget *dialog;
+
+			dialog = gtk_message_dialog_new (
+				GTK_WINDOW (window),
+				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_ERROR,
+				GTK_BUTTONS_CLOSE,
+				_("There was an error saving to file: \n%s"),
+				error->message);
+
+			gtk_dialog_run (GTK_DIALOG (dialog));
+
+			gtk_widget_destroy (dialog);
+			g_error_free (error);
+		}
 	}
 
 	gtk_widget_destroy (file_chooser);
