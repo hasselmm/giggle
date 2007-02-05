@@ -28,8 +28,9 @@
 #define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 
 /* included padding */
-#define DOT_SPACE 15
-#define DOT_RADIUS 3
+#define PATH_SPACE(font_size) (font_size * 2)
+#define DOT_RADIUS(font_size) (font_size / 2)
+#define LINE_WIDTH(font_size) ((font_size / 6) << 1) /* we want the closest even number <= size/3 */
 #define INITIAL_PATH 1
 
 typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
@@ -185,16 +186,18 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 				gint            *height)
 {
 	GiggleGraphRendererPrivate *priv;
+	gint size;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
+	size = PANGO_PIXELS (pango_font_description_get_size (widget->style->font_desc));
 
 	if (height) {
-		*height = DOT_SPACE;
+		*height = PATH_SPACE (size);
 	}
 
 	if (width) {
 		/* the +1 is because we leave half at each side */
-		*width = DOT_SPACE * (priv->n_paths + 1);
+		*width = PATH_SPACE (size) * (priv->n_paths + 1);
 	}
 
 	if (x_offset) {
@@ -240,6 +243,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	gint                          x, y, h;
 	gint                          cur_pos, pos;
 	GList                        *children, *paths, *path;
+	gint                          size;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
@@ -250,12 +254,14 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	y = background_area->y;
 	h = background_area->height;
 	revision = priv->revision;
+	size = PANGO_PIXELS (pango_font_description_get_size (widget->style->font_desc));
 
 	paths_state = g_object_get_qdata (G_OBJECT (revision), revision_paths_state_quark);
 	children = giggle_revision_get_children (revision);
 	cur_pos = (gint) g_hash_table_lookup (priv->paths_info, revision);
 	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
 	paths = path = get_list (paths_state);
+	cairo_set_line_width (cr, LINE_WIDTH (size));
 
 	/* paint paths */
 	while (path) {
@@ -264,15 +270,15 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 		if (path_state->lower_color) {
 			gdk_cairo_set_source_color (cr, path_state->lower_color);
-			cairo_move_to (cr, x + (pos * DOT_SPACE), y + (h / 2));
-			cairo_line_to (cr, x + (pos * DOT_SPACE), y + h);
+			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
+			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + h);
 			cairo_stroke  (cr);
 		}
 
 		if (path_state->upper_color) {
 			gdk_cairo_set_source_color (cr, path_state->upper_color);
-			cairo_move_to (cr, x + (pos * DOT_SPACE), y);
-			cairo_line_to (cr, x + (pos * DOT_SPACE), y + (h / 2));
+			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y);
+			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_stroke  (cr);
 		}
 
@@ -287,10 +293,10 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 		if (path_state->upper_color) {
 			gdk_cairo_set_source_color (cr, path_state->upper_color);
 			cairo_move_to (cr,
-				       x + (cur_pos * DOT_SPACE),
+				       x + (cur_pos * PATH_SPACE (size)),
 				       y + (h / 2));
 			cairo_line_to (cr,
-				       x + (pos * DOT_SPACE),
+				       x + (pos * PATH_SPACE (size)),
 				       y + (h / 2));
 			cairo_stroke  (cr);
 		}
@@ -301,9 +307,18 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	/* paint circle */
 	cairo_set_source_rgb (cr, 0, 0, 0);
 	cairo_arc (cr,
-		   x + (cur_pos * DOT_SPACE),
+		   x + (cur_pos * PATH_SPACE (size)),
 		   y + (h / 2),
-		   DOT_RADIUS, 0, 2 * G_PI);
+		   DOT_RADIUS (size), 0, 2 * G_PI);
+	cairo_stroke (cr);
+
+	/* paint internal circle */
+	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
+	gdk_cairo_set_source_color (cr, path_state->lower_color);
+	cairo_arc (cr,
+		   x + (cur_pos * PATH_SPACE (size)),
+		   y + (h / 2),
+		   DOT_RADIUS (size) - 1, 0, 2 * G_PI);
 	cairo_fill (cr);
 	cairo_stroke (cr);
 
