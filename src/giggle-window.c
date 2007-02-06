@@ -48,6 +48,9 @@ struct GiggleWindowPriv {
 	
 	GtkUIManager        *ui_manager;
 
+	GtkRecentManager    *recent_manager;
+	GtkActionGroup      *recent_action_group;
+
 	GiggleGit           *git;
 
 	/* Current job in progress. */
@@ -101,6 +104,7 @@ static void window_action_about_cb                (GtkAction         *action,
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
+static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
 	{ "FileMenu", NULL,
@@ -137,9 +141,11 @@ static const gchar *ui_layout =
 	"<ui>"
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='FileMenu'>"
-	/*"      <separator/>"*/
 	"      <menuitem action='Open'/>"
 	"      <menuitem action='SavePatch'/>"
+	"      <separator/>"
+	"      <placeholder name='RecentRepositories'/>"
+	"      <separator/>"
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
@@ -155,7 +161,9 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
+#define RECENT_FILES_GROUP "giggle"
 #define SAVE_PATCH_UI_PATH "/ui/MainMenubar/FileMenu/SavePatch"
+#define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/FileMenu/RecentRepositories"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
@@ -204,6 +212,16 @@ window_create_menu (GiggleWindow *window)
 
 	action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 	gtk_action_set_sensitive (action, FALSE);
+
+	/* create recent repositories resources */
+	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
+	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, 0);
+
+	priv->recent_manager = gtk_recent_manager_get_default ();
+	g_signal_connect_swapped (priv->recent_manager, "changed",
+				  G_CALLBACK (window_recent_repositories_update), window);
+
+	window_recent_repositories_update (window);
 }
 
 static void
@@ -280,8 +298,134 @@ window_finalize (GObject *object)
 	}
 
 	g_object_unref (priv->git);
+	g_object_unref (priv->recent_manager);
+	g_object_unref (priv->recent_action_group);
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
+}
+
+static void
+window_recent_repositories_add (GiggleWindow *window,
+				const gchar  *repository)
+{
+	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
+	GiggleWindowPriv *priv;
+	GtkRecentData    *data;
+
+	g_return_if_fail (repository != NULL);
+
+	priv = GET_PRIV (window);
+
+	data = g_slice_new0 (GtkRecentData);
+	data->groups = groups;
+	data->mime_type = g_strdup ("x-directory/normal");
+	data->app_name = (gchar *) g_get_application_name ();
+	data->app_exec = g_strjoin (g_get_prgname (), " %u", NULL);
+
+	gtk_recent_manager_add_full (priv->recent_manager,
+                                     repository, data);
+}
+
+static void
+window_recent_repository_activate (GtkAction    *action,
+				   GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	const gchar      *directory;
+
+	priv = GET_PRIV (window);
+
+	directory = g_object_get_data (G_OBJECT (action), "recent-action-path");
+	giggle_git_set_directory (priv->git, directory, NULL);
+}
+
+static void
+window_recent_repositories_clear (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GList            *actions, *l;
+
+	priv = GET_PRIV (window);
+	actions = l = gtk_action_group_list_actions (priv->recent_action_group);
+
+	for (l = actions; l != NULL; l = l->next) {
+		gtk_action_group_remove_action (priv->recent_action_group, l->data);
+	}
+
+	g_list_free (actions);
+}
+
+/* this should not be necessary when there's
+ * GtkRecentManager/GtkUIManager integration
+ */
+static void
+window_recent_repositories_reload (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GList            *recent_items, *l;
+	GtkRecentInfo    *info;
+	GtkAction        *action;
+	guint             recent_menu_id;
+	gchar            *action_name, *label;
+	gint              count = 0;
+
+	priv = GET_PRIV (window);
+
+	recent_items = l = gtk_recent_manager_get_items (priv->recent_manager);
+	recent_menu_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
+
+	/* FIXME: the max count is hardcoded */
+	while (l && count < 10) {
+		info = l->data;
+
+		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
+			action_name = g_strdup_printf ("recent-repository-%d", count);
+			label = g_strdup (gtk_recent_info_get_uri_display (info));
+
+			/* FIXME: add accel? */
+
+			action = gtk_action_new (action_name,
+						 label,
+						 NULL,
+						 NULL);
+
+			g_object_set_data_full (G_OBJECT (action), "recent-action-path",
+						g_strdup (gtk_recent_info_get_uri_display (info)),
+						(GDestroyNotify) g_free);
+
+			g_signal_connect (action,
+					  "activate",
+					  G_CALLBACK (window_recent_repository_activate),
+					  window);
+
+			gtk_action_group_add_action (priv->recent_action_group, action);
+
+			gtk_ui_manager_add_ui (priv->ui_manager,
+					       recent_menu_id,
+					       RECENT_REPOS_PLACEHOLDER_PATH,
+					       action_name,
+					       action_name,
+					       GTK_UI_MANAGER_MENUITEM,
+					       FALSE);
+
+			g_object_unref (action);
+			g_free (action_name);
+			g_free (label);
+			count++;
+		}
+
+		l = l->next;
+	}
+
+	g_list_foreach (recent_items, (GFunc) gtk_recent_info_unref, NULL);
+	g_list_free (recent_items);
+}
+
+static void
+window_recent_repositories_update (GiggleWindow *window)
+{
+	window_recent_repositories_clear (window);
+	window_recent_repositories_reload (window);
 }
 
 static void
@@ -777,6 +921,7 @@ window_directory_changed_cb (GiggleGit    *git,
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
 	gchar            *title;
+	gchar            *uri;
 	const gchar      *directory;
 
 	priv = GET_PRIV (window);
@@ -785,6 +930,11 @@ window_directory_changed_cb (GiggleGit    *git,
 	title = g_strdup_printf ("%s - Giggle", directory);
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
+
+	/* add repository uri to recents */
+	uri = g_filename_to_uri (directory, NULL, NULL);
+	window_recent_repositories_add (window, uri);
+	g_free (uri);
 
 	/* empty the treeview */
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), NULL);
