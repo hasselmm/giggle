@@ -2,3 +2,4 @@ Makefile.in.in
 POTFILES
 stamp-it
 *.gmo
+giggle.pot
