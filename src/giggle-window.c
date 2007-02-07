@@ -104,6 +104,9 @@ static void window_action_about_cb                (GtkAction         *action,
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
+static void window_git_dir_changed_cb             (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
@@ -238,6 +241,10 @@ giggle_window_init (GiggleWindow *window)
 	g_signal_connect (priv->git,
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
+			  window);
+	g_signal_connect (priv->git,
+			  "notify::git-dir",
+			  G_CALLBACK (window_git_dir_changed_cb),
 			  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
@@ -921,7 +928,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
 	gchar            *title;
-	gchar            *uri;
 	const gchar      *directory;
 
 	priv = GET_PRIV (window);
@@ -930,11 +936,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	title = g_strdup_printf ("%s - Giggle", directory);
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
-
-	/* add repository uri to recents */
-	uri = g_filename_to_uri (directory, NULL, NULL);
-	window_recent_repositories_add (window, uri);
-	g_free (uri);
 
 	/* empty the treeview */
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), NULL);
@@ -948,6 +949,17 @@ window_directory_changed_cb (GiggleGit    *git,
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_branches_cb,
 			    window);
+}
+
+static void
+window_git_dir_changed_cb (GiggleGit    *git,
+			   GParamSpec   *pspec,
+			   GiggleWindow *window)
+{
+	/* add repository uri to recents */
+	gchar *uri = g_filename_to_uri (giggle_git_get_git_dir (git), NULL, NULL);
+	window_recent_repositories_add (window, uri);
+	g_free (uri);
 }
 
 GtkWidget *

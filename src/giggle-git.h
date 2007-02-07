@@ -56,6 +56,7 @@ const gchar *    giggle_git_get_directory    (GiggleGit    *git);
 gboolean         giggle_git_set_directory    (GiggleGit    *git,
 					      const gchar  *directory,
 					      GError      **error);
+const gchar *    giggle_git_get_git_dir      (GiggleGit    *git);
 
 void             giggle_git_run_job          (GiggleGit             *git,
 					      GiggleJob             *job,

@@ -224,7 +224,7 @@ git_verify_directory (GiggleGit    *git,
 
 		if (git_dir) {
 			/* split into {dir, NULL} */
-			gchar** split = g_strsplit (std_out, "\n", 1);
+			gchar** split = g_strsplit (std_out, "\n", 2);
 			*git_dir = *split;
 			*split = NULL;
 			g_strfreev (split);
@@ -315,6 +315,18 @@ giggle_git_set_directory (GiggleGit    *git,
 	g_object_notify (G_OBJECT (git), "git-dir");
 
 	return TRUE;
+}
+
+const gchar *
+giggle_git_get_git_dir (GiggleGit *git)
+{
+	GiggleGitPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	priv = GET_PRIV (git);
+
+	return priv->git_dir;
 }
 
 void 
