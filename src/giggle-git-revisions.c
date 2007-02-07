@@ -228,21 +228,19 @@ static void
 git_revisions_parse_revision_info (GiggleRevision  *revision,
 				   gchar          **lines)
 {
-	gint i = 0;
+	gint     i = 0;
 	GString *long_log = NULL;
-	gchar *short_log;
 
 	while (lines[i]) {
 		if (g_str_has_prefix (lines[i], "committer ")) {
 			git_revisions_set_committer_info (revision, lines[i] + strlen ("committer "));
 		} else if (g_str_has_prefix (lines[i], " ")) {
+			g_strstrip (lines[i]);
+
 			if (!long_log) {
 				/* no short log neither, get some */
-				short_log = g_strdup (lines[i]);
-				g_object_set (revision, "short-log", g_strstrip (short_log), NULL);
+				g_object_set (revision, "short-log", lines[i], NULL);
 				long_log = g_string_new ("");
-
-				g_free (short_log);
 			}
 
 			g_string_append_printf (long_log, "%s\n", lines[i]);
@@ -250,6 +248,9 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 
 		i++;
 	}
+
+	g_object_set (revision, "long-log", long_log->str, NULL);
+	g_string_free (long_log, TRUE);
 }
 
 static GiggleRevision*

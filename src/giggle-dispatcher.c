@@ -227,6 +227,12 @@ dispatcher_stop_current_job (GiggleDispatcher *dispatcher)
 	g_source_remove (priv->current_job_read_id);
 	priv->current_job_read_id = 0;
 
+	g_io_channel_unref (priv->channel);
+	priv->channel = NULL;
+
+	g_string_free (priv->output, TRUE);
+	priv->output = NULL;
+
 	g_assert (priv->current_job != NULL);
 	giggle_sysdeps_kill_pid (priv->current_job->pid);
 

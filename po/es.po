@@ -1,17 +1,16 @@
-# German translation of giggle.
+# Spanish translation of giggle.
 # Copyright (C) 2007 Imendio AB
 # This file is distributed under the same license as the giggle package.
-# Sven Herzberg <sven@imendio.com>, 2007.
-# 
-# 
+# Carlos Garnacho <carlosg@gnome.org>, 2007.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: giggle VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-01-31 13:54+0100\n"
-"PO-Revision-Date: 2007-01-31 10:56+0100\n"
-"Last-Translator: Sven Herzberg <sven@imendio.com>\n"
-"Language-Team: German <gnome-de@gnome.org>\n"
+"POT-Creation-Date: 2007-02-01 02:58+0100\n"
+"PO-Revision-Date: 2007-02-01 02:58+0100\n"
+"Last-Translator: Carlos Garnacho <carlosg@gnome.org>\n"
+"Language-Team: Spanish <traductores@es.gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -22,48 +21,48 @@ msgstr "Giggle"
 
 #: ../src/giggle-window.c:104
 msgid "_File"
-msgstr "_Datei"
+msgstr "_Archivo"
 
 #: ../src/giggle-window.c:108
 msgid "_Edit"
-msgstr "_Bearbeiten"
+msgstr "_Editar"
 
 #: ../src/giggle-window.c:112
 msgid "_Help"
-msgstr "_Hilfe"
+msgstr "A_yuda"
 
 #: ../src/giggle-window.c:116
 msgid "_Open"
-msgstr "Ö_ffnen"
+msgstr "_Abrir"
 
 #: ../src/giggle-window.c:116
 msgid "Open a GIT repository"
-msgstr "Ein GIT-Repository öffnen"
+msgstr "Abrir un repositorio GIT"
 
 #: ../src/giggle-window.c:120
 msgid "_Quit"
-msgstr "_Beenden"
+msgstr "_Salir"
 
 #: ../src/giggle-window.c:120
 msgid "Quit the application"
-msgstr "Das Programm beenden"
+msgstr "Salir de la aplicación"
 
 #: ../src/giggle-window.c:124
 msgid "_About"
-msgstr "_Info"
+msgstr "Acerca _de"
 
 #: ../src/giggle-window.c:124
 msgid "About this application"
-msgstr "Informationen über dieses Programm"
+msgstr "Acerca de esta aplicación"
 
 #: ../src/giggle-window.c:233
 #, c-format
 msgid "The directory '%s' does not look like a GIT repository."
-msgstr "Der Ordner »%s« sieht nicht nach einem GIT-Repository aus."
+msgstr "La carpeta '%s' no parece un repositorio GIT."
 
 #: ../src/giggle-window.c:318
 msgid "Graph"
-msgstr "Baum"
+msgstr "Gráfico"
 
 #: ../src/giggle-window.c:330
 msgid "Short Log"
@@ -75,7 +74,7 @@ msgstr "Autor"
 
 #: ../src/giggle-window.c:353
 msgid "Date"
-msgstr "Datum"
+msgstr "Fecha"
 
 #: ../src/giggle-window.c:530
 #, c-format
@@ -83,13 +82,13 @@ msgid ""
 "An error ocurred when retrieving a diff:\n"
 "%s"
 msgstr ""
-"Beim Empfangen von Änderungen trat ein Fehler auf:\n"
+"Ha ocurrido un error extrayendo el diff:\n"
 "%s"
 
 #: ../src/giggle-window.c:633
 msgid "Select GIT repository"
-msgstr "Ein GIT-Repository auswählen"
+msgstr "Seleccionar repositorio GIT"
 
 #: ../src/giggle-window.c:661
 msgid "translator-credits"
-msgstr "Sven Herzberg"
+msgstr "Carlos Garnacho"
