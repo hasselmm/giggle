@@ -30,6 +30,7 @@ typedef struct GiggleGitPriv GiggleGitPriv;
 struct GiggleGitPriv {
 	GiggleDispatcher *dispatcher;
 	gchar            *directory;
+	gchar            *git_dir;
 
 	GHashTable       *jobs;
 };
@@ -56,6 +57,7 @@ static void     git_set_property        (GObject           *object,
 					 GParamSpec        *pspec);
 static gboolean git_verify_directory    (GiggleGit         *git,
 					 const gchar       *directory,
+					 gchar            **git_dir,
 					 GError           **error);
 static void     git_job_data_free       (GitJobData        *data);
 static void     git_execute_callback    (GiggleDispatcher  *dispatcher,
@@ -69,7 +71,8 @@ G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
-	PROP_DIRECTORY
+	PROP_DIRECTORY,
+	PROP_GIT_DIR
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
@@ -87,7 +90,14 @@ giggle_git_class_init (GiggleGitClass *class)
 					 PROP_DIRECTORY,
 					 g_param_spec_string ("directory",
 							      "Directory",
-							      "The Git repository path",
+							      "the working directory",
+							      NULL,
+							      G_PARAM_READABLE));
+	g_object_class_install_property (object_class,
+					 PROP_GIT_DIR,
+					 g_param_spec_string ("git-dir",
+						 	      "Git-Directory",
+							      "The equivalent of $GIT_DIR",
 							      NULL,
 							      G_PARAM_READABLE));
 
@@ -152,6 +162,9 @@ git_get_property (GObject    *object,
 	case PROP_DIRECTORY:
 		g_value_set_string (value, priv->directory);
 		break;
+	case PROP_GIT_DIR:
+		g_value_set_string (value, priv->git_dir);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -178,10 +191,33 @@ git_set_property (GObject      *object,
 static gboolean 
 git_verify_directory (GiggleGit    *git,
 		      const gchar  *directory,
+		      gchar       **git_dir,
 		      GError      **error)
 {
-	/* FIXME: Do some funky stuff to verify that it's a valid GIT repo */
-	return TRUE;
+	/* Do some funky stuff to verify that it's a valid GIT repo */
+	gchar* argv[] = {"/usr/bin/git", "rev-parse", "--git-dir", NULL};
+	gchar* git_dir_local = NULL;
+
+	/* TODO:
+	 * - check the return value, not the string
+	 * - read stderr and put it into a GError if we don't like the return value
+	 */
+
+	g_spawn_sync(directory, argv, NULL, 0, NULL, NULL, (git_dir != NULL) ? &git_dir_local : NULL, NULL, NULL, error);
+
+	/* parse the output to check for the result */
+	if(git_dir_local && git_dir) {
+		/* split into {dir, NULL} */
+		gchar** split = g_strsplit(git_dir_local, "\n", 1);
+		*git_dir = *split;
+		*split = NULL;
+		g_strfreev(split);
+	} else if(git_dir) {
+		*git_dir = NULL;
+	}
+	g_free(git_dir_local);
+
+	return git_dir_local != NULL;
 }
 
 static void
@@ -241,13 +277,14 @@ giggle_git_set_directory (GiggleGit    *git,
 			  GError      **error)
 {
 	GiggleGitPriv *priv;
+	gchar* git_dir;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), FALSE);
 	g_return_val_if_fail (directory != NULL, FALSE);
 
 	priv = GET_PRIV (git);
 
-	if (!git_verify_directory (git, directory, error)) {
+	if (!git_verify_directory (git, directory, &git_dir, error)) {
 		return FALSE;
 	}
 
@@ -255,6 +292,10 @@ giggle_git_set_directory (GiggleGit    *git,
 	priv->directory = g_strdup (directory);
 
 	g_object_notify (G_OBJECT (git), "directory");
+
+	g_free (priv->git_dir);
+	priv->git_dir = git_dir;
+	g_object_notify (G_OBJECT (git), "git-dir");
 
 	return TRUE;
 }
