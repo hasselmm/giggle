@@ -66,6 +66,7 @@ static void     git_execute_callback    (GiggleDispatcher  *dispatcher,
 					 const gchar       *output_str,
 					 gsize              output_len,
 					 GiggleGit         *git);
+static GQuark   giggle_git_error_quark  (void);
 
 G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT)
 
@@ -188,6 +189,12 @@ git_set_property (GObject      *object,
 	}
 }
 
+static GQuark
+giggle_git_error_quark (void)
+{
+	return g_quark_from_string("GiggleGitError");
+}
+
 static gboolean 
 git_verify_directory (GiggleGit    *git,
 		      const gchar  *directory,
@@ -195,29 +202,39 @@ git_verify_directory (GiggleGit    *git,
 		      GError      **error)
 {
 	/* Do some funky stuff to verify that it's a valid GIT repo */
-	gchar* argv[] = {"/usr/bin/git", "rev-parse", "--git-dir", NULL};
-	gchar* git_dir_local = NULL;
+	gchar   *argv[] = {"/usr/bin/git", "rev-parse", "--git-dir", NULL};
+	gchar   *std_out = NULL;
+	gchar   *std_err = NULL;
+	gint     exit_code = 0;
+	gboolean verified = FALSE;
 
-	/* TODO:
-	 * - check the return value, not the string
-	 * - read stderr and put it into a GError if we don't like the return value
-	 */
-
-	g_spawn_sync(directory, argv, NULL, 0, NULL, NULL, (git_dir != NULL) ? &git_dir_local : NULL, NULL, NULL, error);
-
-	/* parse the output to check for the result */
-	if(git_dir_local && git_dir) {
-		/* split into {dir, NULL} */
-		gchar** split = g_strsplit(git_dir_local, "\n", 1);
-		*git_dir = *split;
-		*split = NULL;
-		g_strfreev(split);
-	} else if(git_dir) {
+	if(git_dir) {
 		*git_dir = NULL;
 	}
-	g_free(git_dir_local);
 
-	return git_dir_local != NULL;
+	g_spawn_sync (directory, argv, NULL,
+		      0, NULL, NULL,
+		      &std_out, &std_err,
+		      &exit_code, error);
+
+	if (exit_code != 0) {
+		g_set_error(error, giggle_git_error_quark(), 0 /* error code */, "%s", std_err);
+	} else {
+		verified = TRUE;
+
+		if (git_dir) {
+			/* split into {dir, NULL} */
+			gchar** split = g_strsplit (std_out, "\n", 1);
+			*git_dir = *split;
+			*split = NULL;
+			g_strfreev (split);
+		}
+	}
+
+	g_free(std_out);
+	g_free(std_err);
+
+	return verified;
 }
 
 static void
