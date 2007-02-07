@@ -225,9 +225,14 @@ git_verify_directory (GiggleGit    *git,
 		if (git_dir) {
 			/* split into {dir, NULL} */
 			gchar** split = g_strsplit (std_out, "\n", 2);
-			*git_dir = *split;
-			*split = NULL;
+			*git_dir = g_strdup(*split);
 			g_strfreev (split);
+
+			if(!g_path_is_absolute(*git_dir)) {
+				gchar* full_path = g_build_path(G_DIR_SEPARATOR_S, directory, *git_dir, NULL);
+				g_free(*git_dir);
+				*git_dir = full_path;
+			}
 		}
 	}
 
