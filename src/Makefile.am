@@ -10,6 +10,8 @@ bin_PROGRAMS = giggle
 giggle_SOURCES =				\
 	giggle-branch.c				\
 	giggle-branch.h				\
+	giggle-configuration.c			\
+	giggle-configuration.h			\
 	giggle-dispatcher.c             	\
 	giggle-dispatcher.h             	\
 	giggle-dummy.c                  	\
@@ -22,12 +24,18 @@ giggle_SOURCES =				\
 	giggle-git-branches.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
+	giggle-git-read-config.c		\
+	giggle-git-read-config.h		\
 	giggle-git-revisions.c			\
 	giggle-git-revisions.h			\
+	giggle-git-write-config.c		\
+	giggle-git-write-config.h		\
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
 	giggle-job.c                            \
 	giggle-job.h                            \
+	giggle-personal-details-window.c	\
+	giggle-personal-details-window.h	\
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
 	giggle-revision.c			\

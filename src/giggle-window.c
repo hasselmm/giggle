@@ -34,6 +34,7 @@
 #include "giggle-git-revisions.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
+#include "giggle-personal-details-window.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
@@ -99,6 +100,8 @@ static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_save_patch_cb           (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_personal_details_cb     (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
@@ -134,6 +137,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
 	},
+	{ "PersonalDetails", NULL,
+	  N_("Personal _Details"), NULL, N_("Personal details"),
+	  G_CALLBACK (window_action_personal_details_cb)
+	},
 	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
@@ -152,6 +159,7 @@ static const gchar *ui_layout =
 	"      <menuitem action='Quit'/>"
 	"    </menu>"
 	"    <menu action='EditMenu'>"
+	"      <menuitem action='PersonalDetails'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -237,7 +245,7 @@ giggle_window_init (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	priv->git = giggle_git_new ();
+	priv->git = giggle_git_get ();
 	g_signal_connect (priv->git,
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
@@ -907,6 +915,22 @@ window_action_save_patch_cb (GtkAction    *action,
 	}
 
 	gtk_widget_destroy (file_chooser);
+}
+
+static void
+window_action_personal_details_cb (GtkAction    *action,
+				   GiggleWindow *window)
+{
+	GtkWidget *personal_details;
+
+	personal_details = giggle_personal_details_window_new ();
+	gtk_window_set_transient_for (GTK_WINDOW (personal_details),
+				      GTK_WINDOW (window));
+	gtk_widget_show (personal_details);
+
+	g_signal_connect_after (G_OBJECT (personal_details), "response",
+				G_CALLBACK (gtk_widget_destroy), NULL);
+
 }
 
 static void

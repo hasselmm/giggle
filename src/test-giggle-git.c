@@ -34,7 +34,7 @@ main (int argc, char **argv)
 
 	main_loop = g_main_loop_new (NULL, FALSE);
 
-	git = giggle_git_new ();
+	git = giggle_git_get ();
 	giggle_git_set_directory (git, "/home/micke/Source/giggle", NULL);
 
 	rev1 = giggle_revision_new ("4c7b72b6dc089db58d25d2a2a07de6a4d15f3560");
