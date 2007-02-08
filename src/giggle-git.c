@@ -35,10 +35,6 @@ struct GiggleGitPriv {
 	GHashTable       *jobs;
 };
 
-typedef enum {
-	GIT_JOB_TYPE_GET_PATCH
-} GitJobType;
-
 typedef struct {
 	guint                  id;
 	GiggleJob             *job;
