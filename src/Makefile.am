@@ -18,6 +18,8 @@ giggle_SOURCES =				\
 	giggle-dummy.h                  	\
 	giggle-error.c                          \
 	giggle-error.h                          \
+	giggle-file-list.c			\
+	giggle-file-list.h			\
 	giggle-git.c                            \
 	giggle-git.h                            \
 	giggle-git-branches.c			\
@@ -49,6 +51,7 @@ giggle_LDADD = 					\
 
 noinst_PROGRAMS = 			        \
 	test-dispatcher                         \
+	test-file-list				\
 	test-giggle-git
 
 #test_graph_renderer_SOURCES =			\
@@ -70,6 +73,18 @@ test_dispatcher_SOURCES =                       \
 
 test_dispatcher_LDADD =                         \
 	$(GIGGLE_LIBS) 
+
+test_file_list_SOURCES =			\
+	giggle-dispatcher.c			\
+	giggle-error.c				\
+	giggle-sysdeps.c			\
+	giggle-git.c				\
+	giggle-job.c				\
+	giggle-file-list.c			\
+	test-file-list.c
+
+test_file_list_LDADD =				\
+	$(GIGGLE_LIBS)
 
 test_giggle_git_SOURCES =                       \
 	giggle-dispatcher.c                     \
