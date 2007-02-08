@@ -318,12 +318,26 @@ window_recent_repositories_add (GiggleWindow *window,
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData    *data;
+	gchar* display_name;
 
 	g_return_if_fail (repository != NULL);
 
 	priv = GET_PRIV (window);
 
+	if(g_str_has_suffix(repository, "/.git")) {
+		/* "file:///path/to/project/.git" */
+		gchar* dirname = g_path_get_dirname(repository);
+		display_name = g_path_get_basename(dirname);
+		g_free(dirname);
+	} else {
+		/* "file:///path/to/project.git" */
+		gchar const      *separator;
+		separator = g_strrstr(repository, G_DIR_SEPARATOR_S);
+		g_return_if_fail(separator && *separator);
+		display_name = g_strdup(separator+1);
+	}
 	data = g_slice_new0 (GtkRecentData);
+	data->display_name = display_name;
 	data->groups = groups;
 	data->mime_type = g_strdup ("x-directory/normal");
 	data->app_name = (gchar *) g_get_application_name ();
