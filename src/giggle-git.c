@@ -30,6 +30,7 @@ typedef struct GiggleGitPriv GiggleGitPriv;
 struct GiggleGitPriv {
 	GiggleDispatcher *dispatcher;
 	gchar            *directory;
+	gchar            *git_dir;
 
 	GHashTable       *jobs;
 };
@@ -56,6 +57,7 @@ static void     git_set_property        (GObject           *object,
 					 GParamSpec        *pspec);
 static gboolean git_verify_directory    (GiggleGit         *git,
 					 const gchar       *directory,
+					 gchar            **git_dir,
 					 GError           **error);
 static void     git_job_data_free       (GitJobData        *data);
 static void     git_execute_callback    (GiggleDispatcher  *dispatcher,
@@ -64,12 +66,14 @@ static void     git_execute_callback    (GiggleDispatcher  *dispatcher,
 					 const gchar       *output_str,
 					 gsize              output_len,
 					 GiggleGit         *git);
+static GQuark   giggle_git_error_quark  (void);
 
 G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
-	PROP_DIRECTORY
+	PROP_DIRECTORY,
+	PROP_GIT_DIR
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
@@ -87,7 +91,14 @@ giggle_git_class_init (GiggleGitClass *class)
 					 PROP_DIRECTORY,
 					 g_param_spec_string ("directory",
 							      "Directory",
-							      "The Git repository path",
+							      "the working directory",
+							      NULL,
+							      G_PARAM_READABLE));
+	g_object_class_install_property (object_class,
+					 PROP_GIT_DIR,
+					 g_param_spec_string ("git-dir",
+						 	      "Git-Directory",
+							      "The equivalent of $GIT_DIR",
 							      NULL,
 							      G_PARAM_READABLE));
 
@@ -152,6 +163,9 @@ git_get_property (GObject    *object,
 	case PROP_DIRECTORY:
 		g_value_set_string (value, priv->directory);
 		break;
+	case PROP_GIT_DIR:
+		g_value_set_string (value, priv->git_dir);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -175,13 +189,57 @@ git_set_property (GObject      *object,
 	}
 }
 
+static GQuark
+giggle_git_error_quark (void)
+{
+	return g_quark_from_string("GiggleGitError");
+}
+
 static gboolean 
 git_verify_directory (GiggleGit    *git,
 		      const gchar  *directory,
+		      gchar       **git_dir,
 		      GError      **error)
 {
-	/* FIXME: Do some funky stuff to verify that it's a valid GIT repo */
-	return TRUE;
+	/* Do some funky stuff to verify that it's a valid GIT repo */
+	gchar   *argv[] = {"/usr/bin/git", "rev-parse", "--git-dir", NULL};
+	gchar   *std_out = NULL;
+	gchar   *std_err = NULL;
+	gint     exit_code = 0;
+	gboolean verified = FALSE;
+
+	if(git_dir) {
+		*git_dir = NULL;
+	}
+
+	g_spawn_sync (directory, argv, NULL,
+		      0, NULL, NULL,
+		      &std_out, &std_err,
+		      &exit_code, error);
+
+	if (exit_code != 0) {
+		g_set_error(error, giggle_git_error_quark(), 0 /* error code */, "%s", std_err);
+	} else {
+		verified = TRUE;
+
+		if (git_dir) {
+			/* split into {dir, NULL} */
+			gchar** split = g_strsplit (std_out, "\n", 2);
+			*git_dir = g_strdup(*split);
+			g_strfreev (split);
+
+			if(!g_path_is_absolute(*git_dir)) {
+				gchar* full_path = g_build_path(G_DIR_SEPARATOR_S, directory, *git_dir, NULL);
+				g_free(*git_dir);
+				*git_dir = full_path;
+			}
+		}
+	}
+
+	g_free(std_out);
+	g_free(std_err);
+
+	return verified;
 }
 
 static void
@@ -251,13 +309,14 @@ giggle_git_set_directory (GiggleGit    *git,
 			  GError      **error)
 {
 	GiggleGitPriv *priv;
+	gchar* git_dir;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), FALSE);
 	g_return_val_if_fail (directory != NULL, FALSE);
 
 	priv = GET_PRIV (git);
 
-	if (!git_verify_directory (git, directory, error)) {
+	if (!git_verify_directory (git, directory, &git_dir, error)) {
 		return FALSE;
 	}
 
@@ -266,7 +325,23 @@ giggle_git_set_directory (GiggleGit    *git,
 
 	g_object_notify (G_OBJECT (git), "directory");
 
+	g_free (priv->git_dir);
+	priv->git_dir = git_dir;
+	g_object_notify (G_OBJECT (git), "git-dir");
+
 	return TRUE;
+}
+
+const gchar *
+giggle_git_get_git_dir (GiggleGit *git)
+{
+	GiggleGitPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	priv = GET_PRIV (git);
+
+	return priv->git_dir;
 }
 
 void 
