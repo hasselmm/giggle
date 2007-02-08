@@ -326,12 +326,26 @@ window_recent_repositories_add (GiggleWindow *window,
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData    *data;
+	gchar* display_name;
 
 	g_return_if_fail (repository != NULL);
 
 	priv = GET_PRIV (window);
 
+	if(g_str_has_suffix(repository, "/.git")) {
+		/* "file:///path/to/project/.git" */
+		gchar* dirname = g_path_get_dirname(repository);
+		display_name = g_path_get_basename(dirname);
+		g_free(dirname);
+	} else {
+		/* "file:///path/to/project.git" */
+		gchar const      *separator;
+		separator = g_strrstr(repository, G_DIR_SEPARATOR_S);
+		g_return_if_fail(separator && *separator);
+		display_name = g_strdup(separator+1);
+	}
 	data = g_slice_new0 (GtkRecentData);
+	data->display_name = display_name;
 	data->groups = groups;
 	data->mime_type = g_strdup ("x-directory/normal");
 	data->app_name = (gchar *) g_get_application_name ();
@@ -674,6 +688,7 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	priv = GET_PRIV (window);
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
 	first_revision = last_revision = NULL;
+	valid = FALSE;
 
 	if (!rows) {
 		return;
@@ -683,14 +698,12 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	gtk_tree_model_get_iter (model, &first_iter,
 				 (GtkTreePath *) rows->data);
 
-	if (g_list_length (rows) == 1) {
-		/* if just one row is selected, get the previous revision */
-		last_iter = first_iter;
-		valid = gtk_tree_model_iter_next (model, &last_iter);
-	} else {
+	if (g_list_length (rows) > 1) {
 		last_row = g_list_last (rows);
 		valid = gtk_tree_model_get_iter (model, &last_iter,
 						 (GtkTreePath *) last_row->data);
+	} else {
+		valid = FALSE;
 	}
 
 	gtk_tree_model_get (model, &first_iter,
@@ -700,6 +713,10 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 		gtk_tree_model_get (model, &last_iter,
 				    REVISION_COL_OBJECT, &last_revision,
 				    -1);
+	} else {
+		/* maybe select a better parent? */
+		GList* parents = giggle_revision_get_parents (first_revision);
+		last_revision = parents ? g_object_ref(parents->data) : NULL;
 	}
 
 	window_update_revision_info (window,
