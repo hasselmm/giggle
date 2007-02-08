@@ -212,15 +212,25 @@ git_execute_callback (GiggleDispatcher *dispatcher,
 		giggle_job_handle_output (data->job, output_str, output_len);
 	}
 
-	data->callback (git, data->job, error, data->user_data);
+	if (data->callback) {
+		data->callback (git, data->job, error, data->user_data);
+	}
 
 	g_hash_table_remove (priv->jobs, GINT_TO_POINTER (id));
 }
 
 GiggleGit *
-giggle_git_new (void)
+giggle_git_get (void)
 {
-	return g_object_new (GIGGLE_TYPE_GIT, NULL);
+	static GiggleGit *git = NULL;
+
+	if (!git) {
+		git = g_object_new (GIGGLE_TYPE_GIT, NULL);
+	} else {
+		g_object_ref (git);
+	}
+
+	return git;
 }
 
 const gchar *
@@ -270,7 +280,6 @@ giggle_git_run_job (GiggleGit             *git,
 
 	g_return_if_fail (GIGGLE_IS_GIT (git));
 	g_return_if_fail (GIGGLE_IS_JOB (job));
-	g_return_if_fail (callback != NULL);
 	
 	priv = GET_PRIV (git);
 
