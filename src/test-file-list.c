@@ -5,7 +5,7 @@
 int
 main (int argc, gchar *argv[])
 {
-	GtkWidget *window, *file_list;
+	GtkWidget *window, *scrolled_window, *file_list;
 	GiggleGit *git;
 
 	gtk_init (&argc, &argv);
@@ -14,9 +14,11 @@ main (int argc, gchar *argv[])
 	giggle_git_set_directory (git, g_get_current_dir (), NULL);
 
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	file_list = giggle_file_list_new ();
 
-	gtk_container_add (GTK_CONTAINER (window), file_list);
+	gtk_container_add (GTK_CONTAINER (window), scrolled_window);
+	gtk_container_add (GTK_CONTAINER (scrolled_window), file_list);
 	gtk_widget_show_all (window);
 
 	gtk_main ();
