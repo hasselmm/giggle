@@ -48,6 +48,8 @@ GiggleGitIgnore *  giggle_git_ignore_new               (const gchar     *directo
 
 gboolean           giggle_git_ignore_name_matches      (GiggleGitIgnore *git_ignore,
 							const gchar     *name);
+void               giggle_git_ignore_add_glob          (GiggleGitIgnore *git_ignore,
+							const gchar     *glob);
 
 
 G_END_DECLS

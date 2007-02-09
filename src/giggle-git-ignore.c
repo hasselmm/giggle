@@ -28,8 +28,8 @@
 typedef struct GiggleGitIgnorePriv GiggleGitIgnorePriv;
 
 struct GiggleGitIgnorePriv {
-	gchar  *directory_path;
-	gchar **globs;
+	gchar     *directory_path;
+	GPtrArray *globs;
 };
 
 static void       git_ignore_finalize           (GObject               *object);
@@ -79,6 +79,12 @@ giggle_git_ignore_class_init (GiggleGitIgnoreClass *class)
 static void
 giggle_git_ignore_init (GiggleGitIgnore *git_ignore)
 {
+	GiggleGitIgnorePriv *priv;
+
+	priv = GET_PRIV (git_ignore);
+
+	/* reserve some slots to avoid many reallocations */
+	priv->globs = g_ptr_array_sized_new (10);
 }
 
 static void
@@ -89,10 +95,7 @@ git_ignore_finalize (GObject *object)
 	priv = GET_PRIV (object);
 
 	g_free (priv->directory_path);
-
-	if (priv->globs) {
-		g_strfreev (priv->globs);
-	}
+	g_ptr_array_free (priv->globs, TRUE);
 
 	G_OBJECT_CLASS (giggle_git_ignore_parent_class)->finalize (object);
 }
@@ -142,25 +145,59 @@ git_ignore_constructor (GType                  type,
 			guint                  n_construct_properties,
 			GObjectConstructParam *construct_params)
 {
-	GObject             *object;
-	GiggleGitIgnorePriv *priv;
-	gchar               *dot_git_path, *contents;
+	GObject              *object;
+	GiggleGitIgnorePriv  *priv;
+	gchar                *path, *contents;
+	gchar               **strarr;
+	gint                  i;
 
 	object = (* G_OBJECT_CLASS (giggle_git_ignore_parent_class)->constructor) (type,
 										   n_construct_properties,
 										   construct_params);
 	priv = GET_PRIV (object);
-	dot_git_path = g_strconcat (priv->directory_path, G_DIR_SEPARATOR_S ".gitignore", NULL);
+	path = g_strconcat (priv->directory_path, G_DIR_SEPARATOR_S ".gitignore", NULL);
 
-	if (g_file_get_contents (dot_git_path,
+	if (g_file_get_contents (path,
 				 &contents, NULL, NULL)) {
-		priv->globs = g_strsplit (contents, "\n", -1);
+		strarr = g_strsplit (contents, "\n", -1);
+
+		for (i = 0; strarr[i]; i++) {
+			if (*strarr[i]) {
+				g_ptr_array_add (priv->globs, strarr[i]);
+			} else {
+				/* ignore and free empty lines */
+				g_free (strarr[i]);
+			}
+		}
+
+		/* keep the contents of strarr for priv->globs */
+		g_free (strarr);
 		g_free (contents);
 	}
 
-	g_free (dot_git_path);
+	g_free (path);
 
 	return object;
+}
+
+static void
+git_ignore_save_file (GiggleGitIgnore *git_ignore)
+{
+	GiggleGitIgnorePriv *priv;
+	gchar               *path;
+	GString             *content;
+	gint                 i;
+
+	priv = GET_PRIV (git_ignore);
+	path = g_strconcat (priv->directory_path, G_DIR_SEPARATOR_S ".gitignore", NULL);
+	content = g_string_new ("");
+
+	for (i = 0; i < priv->globs->len; i++) {
+		g_string_append_printf (content, "%s\n", (gchar *) g_ptr_array_index (priv->globs, i));
+	}
+
+	g_file_set_contents (path, content->str, -1, NULL);
+	g_string_free (content, TRUE);
 }
 
 GiggleGitIgnore *
@@ -179,21 +216,35 @@ giggle_git_ignore_name_matches (GiggleGitIgnore *git_ignore,
 {
 	GiggleGitIgnorePriv *priv;
 	gint                 n_glob = 0;
+	const gchar         *glob;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore), FALSE);
 
 	priv = GET_PRIV (git_ignore);
 
-	if (!priv->globs) {
-		return FALSE;
-	}
+	while (n_glob < priv->globs->len) {
+		glob = g_ptr_array_index (priv->globs, n_glob);
+		n_glob++;
 
-	while (priv->globs[n_glob]) {
-		if (fnmatch (priv->globs[n_glob], name, 0) == 0) {
+		if (fnmatch (glob, name, 0) == 0) {
 			return TRUE;
 		}
-		n_glob++;
 	}
 
 	return FALSE;
+}
+
+void
+giggle_git_ignore_add_glob (GiggleGitIgnore *git_ignore,
+			    const gchar     *glob)
+{
+	GiggleGitIgnorePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore));
+	g_return_if_fail (glob != NULL);
+
+	priv = GET_PRIV (git_ignore);
+	g_ptr_array_add (priv->globs, g_strdup (glob));
+
+	git_ignore_save_file (git_ignore);
 }
