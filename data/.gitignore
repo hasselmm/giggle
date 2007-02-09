@@ -1,2 +1,4 @@
 *.bak
 *.gladep
+Makefile.in
+Makefile

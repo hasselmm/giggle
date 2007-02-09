@@ -9,3 +9,6 @@ giggle
 *.la
 giggle-marshal.[ch]
 *~
+Makefile
+Makefile.in
+test-file-list

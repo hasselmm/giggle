@@ -3,3 +3,4 @@ POTFILES
 stamp-it
 *.gmo
 giggle.pot
+Makefile
