@@ -36,18 +36,23 @@ struct GiggleFileListPriv {
 	GtkTreeStore *store;
 	GtkTreeModel *filter_model;
 
+	GtkWidget    *popup;
+	GtkUIManager *ui_manager;
+
 	gboolean      show_all;
 };
 
 static void       file_list_finalize           (GObject        *object);
-static void       file_list_get_property       (GObject           *object,
-						guint              param_id,
-						GValue            *value,
-						GParamSpec        *pspec);
-static void       file_list_set_property       (GObject           *object,
-						guint              param_id,
-						const GValue      *value,
-						GParamSpec        *pspec);
+static void       file_list_get_property       (GObject        *object,
+						guint           param_id,
+						GValue         *value,
+						GParamSpec     *pspec);
+static void       file_list_set_property       (GObject        *object,
+						guint           param_id,
+						const GValue   *value,
+						GParamSpec     *pspec);
+static gboolean   file_list_button_press       (GtkWidget      *widget,
+						GdkEventButton *event);
 
 static void       file_list_directory_changed  (GObject        *object,
 						GParamSpec     *pspec,
@@ -59,6 +64,9 @@ static void       file_list_populate_dir       (GiggleFileList *list,
 static gboolean   file_list_filter_func        (GtkTreeModel   *model,
 						GtkTreeIter    *iter,
 						gpointer        user_data);
+
+static void       file_list_add_file           (GtkWidget      *widget,
+						GiggleFileList *list);
 
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW);
@@ -77,15 +85,38 @@ enum {
 	PROP_SHOW_ALL,
 };
 
+GtkActionEntry menu_items [] = {
+	{ "Add",    GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_add_file) },
+	{ "Remove", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, NULL },
+};
+
+GtkToggleActionEntry toggle_menu_items [] = {
+	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, NULL, TRUE },
+};
+
+const gchar *ui_description =
+	"<ui>"
+	"  <popup name='PopupMenu'>"
+	"    <menuitem action='Add'/>"
+/* FIXME: missing
+	"    <menuitem action='Remove'/>"
+	"    <separator/>"
+	"    <menuitem action='ShowAll'/>"
+*/
+	"  </popup>"
+	"</ui>";
+
 
 static void
 giggle_file_list_class_init (GiggleFileListClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = file_list_finalize;
 	object_class->get_property = file_list_get_property;
 	object_class->set_property = file_list_set_property;
+	widget_class->button_press_event = file_list_button_press;
 
 	g_object_class_install_property (object_class,
 					 PROP_SHOW_ALL,
@@ -104,6 +135,7 @@ giggle_file_list_init (GiggleFileList *list)
 	GiggleFileListPriv *priv;
 	GtkCellRenderer    *renderer;
 	GtkTreeViewColumn  *column;
+	GtkActionGroup     *action_group;
 
 	priv = GET_PRIV (list);
 
@@ -139,6 +171,20 @@ giggle_file_list_init (GiggleFileList *list)
 	gtk_tree_view_append_column (GTK_TREE_VIEW (list), column);
 	file_list_populate (list);
 
+	/* create the popup menu */
+	action_group = gtk_action_group_new ("PopupActions");
+	gtk_action_group_set_translation_domain (action_group, NULL);
+	gtk_action_group_add_actions (action_group, menu_items,
+				      G_N_ELEMENTS (menu_items), list);
+	gtk_action_group_add_toggle_actions (action_group, toggle_menu_items,
+					     G_N_ELEMENTS (toggle_menu_items), list);
+	
+	priv->ui_manager = gtk_ui_manager_new ();
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+
+	if (gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_description, -1, NULL)) {
+		priv->popup = gtk_ui_manager_get_widget (priv->ui_manager, "/ui/PopupMenu");
+	}
 }
 
 static void
@@ -151,6 +197,8 @@ file_list_finalize (GObject *object)
 	g_object_unref (priv->git);
 	g_object_unref (priv->store);
 	g_object_unref (priv->filter_model);
+
+	g_object_unref (priv->ui_manager);
 
 	G_OBJECT_CLASS (giggle_file_list_parent_class)->finalize (object);
 }
@@ -194,6 +242,24 @@ file_list_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+static gboolean
+file_list_button_press (GtkWidget      *widget,
+			GdkEventButton *event)
+{
+	GiggleFileListPriv *priv;
+
+	priv = GET_PRIV (widget);
+
+	if (event->button == 3) {
+		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
+				NULL, NULL, event->button, event->time);
+	}
+
+	GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+
+	return TRUE;
 }
 
 static void
@@ -345,6 +411,39 @@ file_list_filter_func (GtkTreeModel   *model,
 	g_free (name);
 
 	return retval;
+}
+
+static void
+file_list_add_file (GtkWidget      *widget,
+		    GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkTreeSelection   *selection;
+	GtkTreeIter         iter, parent;
+	GiggleGitIgnore    *git_ignore;
+	gchar              *name;
+
+	priv = GET_PRIV (list);
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+
+	if (gtk_tree_selection_get_selected (selection, NULL, &iter) &&
+	    gtk_tree_model_iter_parent (priv->filter_model, &parent, &iter)) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &iter,
+				    COL_NAME, &name,
+				    -1);
+
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
+				    COL_GIT_IGNORE, &git_ignore,
+				    -1);
+
+		giggle_git_ignore_add_glob (git_ignore, name);
+		gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
+
+		if (git_ignore) {
+			g_object_unref (git_ignore);
+		}
+		g_free (name);
+	}
 }
 
 GtkWidget *
