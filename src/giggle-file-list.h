@@ -46,6 +46,9 @@ struct _GiggleFileListClass {
 GType              giggle_file_list_get_type          (void);
 GtkWidget *        giggle_file_list_new               (void);
 
+gboolean           giggle_file_list_get_show_all      (GiggleFileList *list);
+void               giggle_file_list_set_show_all      (GiggleFileList *list,
+						       gboolean        show_all);
 
 G_END_DECLS
 

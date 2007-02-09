@@ -17,6 +17,8 @@ main (int argc, gchar *argv[])
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	file_list = giggle_file_list_new ();
 
+	gtk_window_set_default_size (GTK_WINDOW (window), 250, 250);
+
 	gtk_container_add (GTK_CONTAINER (window), scrolled_window);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), file_list);
 	gtk_widget_show_all (window);
