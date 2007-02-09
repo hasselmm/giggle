@@ -26,6 +26,8 @@ giggle_SOURCES =				\
 	giggle-git-branches.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
+	giggle-git-ignore.c			\
+	giggle-git-ignore.h			\
 	giggle-git-read-config.c		\
 	giggle-git-read-config.h		\
 	giggle-git-revisions.c			\
@@ -81,6 +83,7 @@ test_file_list_SOURCES =			\
 	giggle-git.c				\
 	giggle-job.c				\
 	giggle-file-list.c			\
+	giggle-git-ignore.c			\
 	test-file-list.c
 
 test_file_list_LDADD =				\

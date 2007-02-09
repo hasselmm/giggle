@@ -25,6 +25,7 @@
 
 #include "giggle-git.h"
 #include "giggle-file-list.h"
+#include "giggle-git-ignore.h"
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 
@@ -67,6 +68,7 @@ G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW);
 enum {
 	COL_NAME,
 	COL_PIXBUF,
+	COL_GIT_IGNORE,
 	LAST_COL
 };
 
@@ -111,7 +113,7 @@ giggle_file_list_init (GiggleFileList *list)
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
 
-	priv->store = gtk_tree_store_new (LAST_COL, G_TYPE_STRING, GDK_TYPE_PIXBUF);
+	priv->store = gtk_tree_store_new (LAST_COL, G_TYPE_STRING, GDK_TYPE_PIXBUF, GIGGLE_TYPE_GIT_IGNORE);
 	priv->filter_model = gtk_tree_model_filter_new (GTK_TREE_MODEL (priv->store), NULL);
 
 	gtk_tree_model_filter_set_visible_func (GTK_TREE_MODEL_FILTER (priv->filter_model),
@@ -219,6 +221,7 @@ file_list_add_element (GiggleFileList *list,
 	GdkPixbuf          *pixbuf;
 	GtkTreeIter         iter;
 	gboolean            is_dir;
+	GiggleGitIgnore    *git_ignore = NULL;
 
 	priv = GET_PRIV (list);
 	is_dir = g_file_test (path, G_FILE_TEST_IS_DIR);
@@ -231,6 +234,7 @@ file_list_add_element (GiggleFileList *list,
 		file_list_populate_dir (list, path, &iter);
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
 						   "folder", 16, 0, NULL);;
+		git_ignore = giggle_git_ignore_new (path);
 	} else {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
 						   "gnome-mime-text", 16, 0, NULL);;
@@ -239,10 +243,14 @@ file_list_add_element (GiggleFileList *list,
 	gtk_tree_store_set (priv->store, &iter,
 			    COL_PIXBUF, pixbuf,
 			    COL_NAME, (name) ? name : path,
+			    COL_GIT_IGNORE, git_ignore,
 			    -1);
-
 	if (pixbuf) {
 		g_object_unref (pixbuf);
+	}
+
+	if (git_ignore) {
+		g_object_unref (git_ignore);
 	}
 }
 
@@ -295,7 +303,10 @@ file_list_filter_func (GtkTreeModel   *model,
 {
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
+	GiggleGitIgnore    *git_ignore = NULL;
+	GtkTreeIter         parent;
 	gchar              *name;
+	gboolean            retval = TRUE;
 
 	list = GIGGLE_FILE_LIST (user_data);
 	priv = GET_PRIV (list);
@@ -310,15 +321,30 @@ file_list_filter_func (GtkTreeModel   *model,
 	/* we never want to show these files */
 	if (strcmp (name, ".git") == 0 ||
 	    strcmp (name, ".gitignore") == 0) {
-		return FALSE;
+		retval = FALSE;
+		goto failed;
 	}
 
-	/* FIXME: missing .gitignore matching */
-	if (priv->show_all) {
-		return TRUE;
+	/* get the GiggleGitIgnore from the directory iter */
+	if (gtk_tree_model_iter_parent (model, &parent, iter)) {
+		gtk_tree_model_get (model, &parent,
+				    COL_GIT_IGNORE, &git_ignore,
+				    -1);
 	}
 
-	return TRUE;
+	/* ignore file? */
+	if (!priv->show_all && git_ignore &&
+	    giggle_git_ignore_name_matches (git_ignore, name)) {
+		retval = FALSE;
+	}
+
+ failed:
+	if (git_ignore) {
+		g_object_unref (git_ignore);
+	}
+	g_free (name);
+
+	return retval;
 }
 
 GtkWidget *

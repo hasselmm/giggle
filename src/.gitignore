@@ -8,3 +8,4 @@ giggle
 *.lo
 *.la
 giggle-marshal.[ch]
+*~
