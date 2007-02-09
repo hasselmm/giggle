@@ -35,6 +35,7 @@
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-personal-details-window.h"
+#include "giggle-file-list.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
@@ -53,6 +54,8 @@ struct GiggleWindowPriv {
 	GtkActionGroup      *recent_action_group;
 
 	GiggleGit           *git;
+
+	GtkWidget           *file_list;
 
 	/* Current job in progress. */
 	GiggleJob           *current_job;
@@ -273,6 +276,10 @@ giggle_window_init (GiggleWindow *window)
 	window_setup_diff_textview (
 		window,
 		glade_xml_get_widget (xml, "diff_scrolledwindow"));
+
+	priv->file_list = giggle_file_list_new ();
+	gtk_widget_show (priv->file_list);
+	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "file_view_scrolledwindow")), priv->file_list);
 
 	g_object_unref (xml);
 
