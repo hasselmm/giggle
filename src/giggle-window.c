@@ -356,7 +356,7 @@ window_recent_repositories_add (GiggleWindow *window,
 	data->groups = groups;
 	data->mime_type = g_strdup ("x-directory/normal");
 	data->app_name = (gchar *) g_get_application_name ();
-	data->app_exec = g_strjoin (g_get_prgname (), " %u", NULL);
+	data->app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
 
 	gtk_recent_manager_add_full (priv->recent_manager,
                                      repository, data);
