@@ -65,6 +65,11 @@ static gboolean   file_list_filter_func        (GtkTreeModel   *model,
 						GtkTreeIter    *iter,
 						gpointer        user_data);
 
+static gboolean   file_list_search_equal_func   (GtkTreeModel   *model,
+						 gint            column,
+						 const gchar    *key,
+						 GtkTreeIter    *iter,
+						 gpointer        search_data);
 static gboolean   file_list_get_name_and_ignore (GiggleFileList   *list,
 						 gchar           **name,
 						 GiggleGitIgnore **git_ignore);
@@ -155,9 +160,13 @@ giggle_file_list_init (GiggleFileList *list)
 
 	gtk_tree_model_filter_set_visible_func (GTK_TREE_MODEL_FILTER (priv->filter_model),
 						file_list_filter_func, list, NULL);
-						
+
 	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
 
+	gtk_tree_view_set_search_equal_func (GTK_TREE_VIEW (list),
+					     file_list_search_equal_func,
+					     NULL, NULL);
+	
 	column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_title (column, _("Project"));
 
@@ -465,6 +474,53 @@ file_list_get_name_and_ignore (GiggleFileList   *list,
 	}
 
 	return FALSE;
+}
+
+static gboolean
+file_list_search_equal_func (GtkTreeModel *model,
+			     gint          column,
+			     const gchar  *key,
+			     GtkTreeIter  *iter,
+			     gpointer      search_data)
+{
+	gchar    *str;
+	gchar    *normalized_key, *normalized_str;
+	gchar    *casefold_key, *casefold_str;
+	gboolean  ret;
+	
+	gtk_tree_model_get (model, iter, column, &str, -1);
+
+	normalized_key = g_utf8_normalize (key, -1, G_NORMALIZE_ALL);
+	normalized_str = g_utf8_normalize (str, -1, G_NORMALIZE_ALL);
+
+	ret = TRUE;
+	if (normalized_str && normalized_key) {
+		casefold_key = g_utf8_casefold (normalized_key, -1);
+		casefold_str = g_utf8_casefold (normalized_str, -1);
+
+		if (strcmp (casefold_key, normalized_key) != 0) {
+			/* Use case sensitive match when the search key has a
+			 * mix of upper and lower case, mimicking vim smartcase
+			 * search.
+			 */
+			if (strstr (normalized_str, normalized_key)) {
+				ret = FALSE;
+			}
+		} else {
+			if (strstr (casefold_str, casefold_key)) {
+				ret = FALSE;
+			}
+		}
+
+		g_free (casefold_key);
+		g_free (casefold_str);
+	}
+
+	g_free (str);
+	g_free (normalized_key);
+	g_free (normalized_str);
+
+	return ret;
 }
 
 static void
