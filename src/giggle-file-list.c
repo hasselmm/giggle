@@ -65,12 +65,15 @@ static gboolean   file_list_filter_func        (GtkTreeModel   *model,
 						GtkTreeIter    *iter,
 						gpointer        user_data);
 
-static void       file_list_add_file           (GtkWidget      *widget,
-						GiggleFileList *list);
-static void       file_list_remove_file        (GtkWidget      *widget,
-						GiggleFileList *list);
-static void       file_list_toggle_show_all    (GtkWidget      *widget,
-						GiggleFileList *list);
+static gboolean   file_list_get_name_and_ignore (GiggleFileList   *list,
+						 gchar           **name,
+						 GiggleGitIgnore **git_ignore);
+static void       file_list_add_file            (GtkWidget        *widget,
+						 GiggleFileList   *list);
+static void       file_list_remove_file         (GtkWidget        *widget,
+						 GiggleFileList   *list);
+static void       file_list_toggle_show_all     (GtkWidget        *widget,
+						 GiggleFileList   *list);
 
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW);
@@ -142,7 +145,7 @@ giggle_file_list_init (GiggleFileList *list)
 	priv = GET_PRIV (list);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect (G_OBJECT (priv->git), "notify::git-dir",
+	g_signal_connect (G_OBJECT (priv->git), "notify::directory",
 			  G_CALLBACK (file_list_directory_changed), list);
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
@@ -250,16 +253,37 @@ static gboolean
 file_list_button_press (GtkWidget      *widget,
 			GdkEventButton *event)
 {
+	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
+	gboolean            hidden, add, remove;
+	gchar              *name;
+	GiggleGitIgnore    *git_ignore;
+	GtkAction          *action;
 
-	priv = GET_PRIV (widget);
+	list = GIGGLE_FILE_LIST (widget);
+	priv = GET_PRIV (list);
+	add = remove = FALSE;
+
+	GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
 
 	if (event->button == 3) {
+		if (file_list_get_name_and_ignore (list, &name, &git_ignore)) {
+			hidden = giggle_git_ignore_name_matches (git_ignore, name);
+			add = !hidden;
+			remove = hidden;
+
+			g_object_unref (git_ignore);
+			g_free (name);
+		}
+		
+		action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/PopupMenu/Add");
+		gtk_action_set_sensitive (action, add);
+		action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/PopupMenu/Remove");
+		gtk_action_set_sensitive (action, remove);
+		
 		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
 				NULL, NULL, event->button, event->time);
 	}
-
-	GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
 
 	return TRUE;
 }
