@@ -155,7 +155,7 @@ git_ignore_constructor (GType                  type,
 										   n_construct_properties,
 										   construct_params);
 	priv = GET_PRIV (object);
-	path = g_strconcat (priv->directory_path, G_DIR_SEPARATOR_S ".gitignore", NULL);
+	path = g_build_filename (priv->directory_path, ".gitignore", NULL);
 
 	if (g_file_get_contents (path,
 				 &contents, NULL, NULL)) {
@@ -189,7 +189,7 @@ git_ignore_save_file (GiggleGitIgnore *git_ignore)
 	gint                 i;
 
 	priv = GET_PRIV (git_ignore);
-	path = g_strconcat (priv->directory_path, G_DIR_SEPARATOR_S ".gitignore", NULL);
+	path = g_build_filename (priv->directory_path, ".gitignore", NULL);
 	content = g_string_new ("");
 
 	for (i = 0; i < priv->globs->len; i++) {
@@ -247,4 +247,31 @@ giggle_git_ignore_add_glob (GiggleGitIgnore *git_ignore,
 	g_ptr_array_add (priv->globs, g_strdup (glob));
 
 	git_ignore_save_file (git_ignore);
+}
+
+void
+giggle_git_ignore_remove_glob_for_name (GiggleGitIgnore *git_ignore,
+					const gchar     *name,
+					gboolean         perfect_match)
+{
+	GiggleGitIgnorePriv *priv;
+	const gchar         *glob;
+	gint                 i = 0;
+
+	g_return_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore));
+	g_return_if_fail (name != NULL);
+
+	priv = GET_PRIV (git_ignore);
+
+	while (i < priv->globs->len) {
+		glob = g_ptr_array_index (priv->globs, i);
+
+		if ((perfect_match && strcmp (glob, name) == 0) ||
+		    (!perfect_match && fnmatch (glob, name, 0) == 0)) {
+			g_ptr_array_remove_index (priv->globs, i);
+		} else {
+			/* no match, increment index */
+			i++;
+		}
+	}
 }
