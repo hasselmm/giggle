@@ -67,6 +67,8 @@ static gboolean   file_list_filter_func        (GtkTreeModel   *model,
 
 static void       file_list_add_file           (GtkWidget      *widget,
 						GiggleFileList *list);
+static void       file_list_remove_file        (GtkWidget      *widget,
+						GiggleFileList *list);
 static void       file_list_toggle_show_all    (GtkWidget      *widget,
 						GiggleFileList *list);
 
@@ -89,7 +91,7 @@ enum {
 
 GtkActionEntry menu_items [] = {
 	{ "Add",    GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_add_file) },
-	{ "Remove", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, NULL },
+	{ "Remove", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_remove_file) },
 };
 
 GtkToggleActionEntry toggle_menu_items [] = {
@@ -100,9 +102,7 @@ const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
 	"    <menuitem action='Add'/>"
-/* FIXME: missing
 	"    <menuitem action='Remove'/>"
-*/
 	"    <separator/>"
 	"    <menuitem action='ShowAll'/>"
 	"  </popup>"
@@ -415,15 +415,14 @@ file_list_filter_func (GtkTreeModel   *model,
 	return retval;
 }
 
-static void
-file_list_add_file (GtkWidget      *widget,
-		    GiggleFileList *list)
+static gboolean
+file_list_get_name_and_ignore (GiggleFileList   *list,
+			       gchar           **name,
+			       GiggleGitIgnore **git_ignore)
 {
 	GiggleFileListPriv *priv;
 	GtkTreeSelection   *selection;
 	GtkTreeIter         iter, parent;
-	GiggleGitIgnore    *git_ignore;
-	gchar              *name;
 
 	priv = GET_PRIV (list);
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
@@ -431,21 +430,84 @@ file_list_add_file (GtkWidget      *widget,
 	if (gtk_tree_selection_get_selected (selection, NULL, &iter) &&
 	    gtk_tree_model_iter_parent (priv->filter_model, &parent, &iter)) {
 		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &iter,
-				    COL_NAME, &name,
+				    COL_NAME, name,
 				    -1);
 
 		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
-				    COL_GIT_IGNORE, &git_ignore,
+				    COL_GIT_IGNORE, git_ignore,
 				    -1);
 
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+file_list_add_file (GtkWidget      *widget,
+		    GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GiggleGitIgnore    *git_ignore;
+	gchar              *name;
+
+	priv = GET_PRIV (list);
+
+	if (!file_list_get_name_and_ignore (list, &name, &git_ignore)) {
+		return;
+	}
+
+	if (git_ignore) {
 		giggle_git_ignore_add_glob (git_ignore, name);
 		gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
 
-		if (git_ignore) {
-			g_object_unref (git_ignore);
-		}
-		g_free (name);
+		g_object_unref (git_ignore);
 	}
+
+	g_free (name);
+}
+
+static void
+file_list_remove_file (GtkWidget      *widget,
+		       GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	gchar              *name;
+	GiggleGitIgnore    *git_ignore;
+
+	priv = GET_PRIV (list);
+
+	if (!file_list_get_name_and_ignore (list, &name, &git_ignore)) {
+		return;
+	}
+
+	if (git_ignore) {
+		if (!giggle_git_ignore_remove_glob_for_name (git_ignore, name, TRUE)) {
+			GtkWidget *dialog, *toplevel;
+
+			toplevel = gtk_widget_get_toplevel (GTK_WIDGET (list));
+			dialog = gtk_message_dialog_new (GTK_WINDOW (toplevel),
+							 GTK_DIALOG_MODAL,
+							 GTK_MESSAGE_INFO,
+							 GTK_BUTTONS_YES_NO,
+							 _("Delete glob pattern?"));
+
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
+								  _("The selected file was shadowed by a glob pattern "
+								    "that may be hiding other files, delete it?"));
+
+			if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_YES) {
+				giggle_git_ignore_remove_glob_for_name (git_ignore, name, FALSE);
+			}
+
+			gtk_widget_destroy (dialog);
+		}
+
+		gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
+		g_object_unref (git_ignore);
+	}
+
+	g_free (name);
 }
 
 static void

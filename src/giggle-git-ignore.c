@@ -249,7 +249,7 @@ giggle_git_ignore_add_glob (GiggleGitIgnore *git_ignore,
 	git_ignore_save_file (git_ignore);
 }
 
-void
+gboolean
 giggle_git_ignore_remove_glob_for_name (GiggleGitIgnore *git_ignore,
 					const gchar     *name,
 					gboolean         perfect_match)
@@ -257,9 +257,10 @@ giggle_git_ignore_remove_glob_for_name (GiggleGitIgnore *git_ignore,
 	GiggleGitIgnorePriv *priv;
 	const gchar         *glob;
 	gint                 i = 0;
+	gboolean             removed = FALSE;
 
-	g_return_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore));
-	g_return_if_fail (name != NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore), FALSE);
+	g_return_val_if_fail (name != NULL, FALSE);
 
 	priv = GET_PRIV (git_ignore);
 
@@ -269,9 +270,16 @@ giggle_git_ignore_remove_glob_for_name (GiggleGitIgnore *git_ignore,
 		if ((perfect_match && strcmp (glob, name) == 0) ||
 		    (!perfect_match && fnmatch (glob, name, 0) == 0)) {
 			g_ptr_array_remove_index (priv->globs, i);
+			removed = TRUE;
 		} else {
 			/* no match, increment index */
 			i++;
 		}
 	}
+
+	if (removed) {
+		git_ignore_save_file (git_ignore);
+	}
+
+	return removed;
 }
