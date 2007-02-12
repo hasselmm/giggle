@@ -67,6 +67,8 @@ static gboolean   file_list_filter_func        (GtkTreeModel   *model,
 
 static void       file_list_add_file           (GtkWidget      *widget,
 						GiggleFileList *list);
+static void       file_list_toggle_show_all    (GtkWidget      *widget,
+						GiggleFileList *list);
 
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW);
@@ -91,7 +93,7 @@ GtkActionEntry menu_items [] = {
 };
 
 GtkToggleActionEntry toggle_menu_items [] = {
-	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, NULL, TRUE },
+	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, G_CALLBACK (file_list_toggle_show_all), FALSE },
 };
 
 const gchar *ui_description =
@@ -100,9 +102,9 @@ const gchar *ui_description =
 	"    <menuitem action='Add'/>"
 /* FIXME: missing
 	"    <menuitem action='Remove'/>"
+*/
 	"    <separator/>"
 	"    <menuitem action='ShowAll'/>"
-*/
 	"  </popup>"
 	"</ui>";
 
@@ -154,7 +156,7 @@ giggle_file_list_init (GiggleFileList *list)
 	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
 
 	column = gtk_tree_view_column_new ();
-	gtk_tree_view_column_set_title (column, _("Name"));
+	gtk_tree_view_column_set_title (column, _("Project"));
 
 	renderer = gtk_cell_renderer_pixbuf_new ();
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, FALSE);
@@ -444,6 +446,18 @@ file_list_add_file (GtkWidget      *widget,
 		}
 		g_free (name);
 	}
+}
+
+static void
+file_list_toggle_show_all (GtkWidget      *widget,
+			   GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	gboolean active;
+
+	priv = GET_PRIV (list);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (widget));
+	giggle_file_list_set_show_all (list, active);
 }
 
 GtkWidget *
