@@ -43,13 +43,16 @@ struct _GiggleGitIgnoreClass {
 	GObjectClass parent_class;
 };
 
-GType              giggle_git_ignore_get_type          (void);
-GiggleGitIgnore *  giggle_git_ignore_new               (const gchar     *directory_path);
+GType              giggle_git_ignore_get_type               (void);
+GiggleGitIgnore *  giggle_git_ignore_new                    (const gchar     *directory_path);
 
-gboolean           giggle_git_ignore_name_matches      (GiggleGitIgnore *git_ignore,
-							const gchar     *name);
-void               giggle_git_ignore_add_glob          (GiggleGitIgnore *git_ignore,
-							const gchar     *glob);
+gboolean           giggle_git_ignore_name_matches           (GiggleGitIgnore *git_ignore,
+							     const gchar     *name);
+void               giggle_git_ignore_add_glob               (GiggleGitIgnore *git_ignore,
+							     const gchar     *glob);
+gboolean           giggle_git_ignore_remove_glob_for_name   (GiggleGitIgnore *git_ignore,
+							     const gchar     *name,
+							     gboolean         perfect_match);
 
 
 G_END_DECLS
