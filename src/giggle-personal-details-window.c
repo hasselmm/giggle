@@ -127,14 +127,20 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 {
 	GigglePersonalDetailsWindow     *window;
 	GigglePersonalDetailsWindowPriv *priv;
+	const gchar* value;
 
 	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
 	priv = GET_PRIV (window);
 
-	gtk_entry_set_text (GTK_ENTRY (priv->name_entry),
-			    giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME));
-	gtk_entry_set_text (GTK_ENTRY (priv->email_entry),
-			    giggle_configuration_get_field (configuration, CONFIG_FIELD_EMAIL));
+	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME);
+	if (value) {
+		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), value);
+	}
+
+	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_EMAIL);
+	if (value) {
+		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
+	}
 
 	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
 }

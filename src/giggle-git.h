@@ -53,6 +53,8 @@ typedef void (*GiggleJobDoneCallback)   (GiggleGit *git,
 GType		 giggle_git_get_type         (void);
 GiggleGit *      giggle_git_get              (void);
 const gchar *    giggle_git_get_description  (GiggleGit    *git);
+void             giggle_git_write_description(GiggleGit    *git,
+					      const gchar  *description);
 const gchar *    giggle_git_get_directory    (GiggleGit    *git);
 gboolean         giggle_git_set_directory    (GiggleGit    *git,
 					      const gchar  *directory,
