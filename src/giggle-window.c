@@ -45,6 +45,8 @@ struct GiggleWindowPriv {
 	/* Summary Tab */
 	GtkWidget           *label_summary;
 	GtkWidget           *textview_description;
+	GtkWidget           *save_description;
+	GtkWidget           *restore_description;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -114,6 +116,9 @@ static void window_action_about_cb                (GtkAction         *action,
 static void window_description_changed_cb         (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
+static void window_description_modified_cb        (GiggleWindow      *window);
+static void window_save_description_cb            (GiggleWindow      *window);
+static void window_restore_description_cb         (GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
@@ -278,6 +283,21 @@ giggle_window_init (GiggleWindow *window)
 	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
 
 	priv->textview_description = glade_xml_get_widget (xml, "textview_project_description");
+	g_signal_connect_swapped (gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description)),
+				  "modified-changed",
+				  G_CALLBACK (window_description_modified_cb),
+				  window);
+
+	priv->save_description = glade_xml_get_widget (xml, "save_description");
+	g_signal_connect_swapped (priv->save_description,
+				  "clicked",
+				  G_CALLBACK (window_save_description_cb),
+				  window);
+	priv->restore_description = glade_xml_get_widget (xml, "restore_description");
+	g_signal_connect_swapped (priv->restore_description,
+				  "clicked",
+				  G_CALLBACK (window_restore_description_cb),
+				  window);
 
 	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
@@ -1066,17 +1086,61 @@ window_git_dir_changed_cb (GiggleGit    *git,
 }
 
 static void
+window_save_description_cb (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkTextBuffer    *buffer;
+	GtkTextIter       start;
+	GtkTextIter       end;
+	gchar            *text;
+
+	priv = GET_PRIV (window);
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description));
+	gtk_text_buffer_get_start_iter (buffer, &start);
+	gtk_text_buffer_get_end_iter (buffer, &end);
+
+	text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+	giggle_git_write_description (priv->git, text);
+	g_free (text);
+}
+
+static void
+window_restore_description_cb (GiggleWindow *window)
+{
+	GiggleWindowPriv* priv;
+	GtkTextBuffer    *buffer;
+
+	priv = GET_PRIV (window);
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description));
+	gtk_text_buffer_set_text (buffer, giggle_git_get_description (priv->git), -1);
+	gtk_text_buffer_set_modified (buffer, FALSE);
+}
+
+static void
+window_description_modified_cb (GiggleWindow *window)
+{
+	/* called when the description within the GtkTextView changes */
+	GiggleWindowPriv* priv;
+	gboolean modified;
+
+	priv = GET_PRIV (window);
+
+	modified = gtk_text_buffer_get_modified (gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description)));
+	gtk_widget_set_sensitive (priv->save_description, modified);
+	gtk_widget_set_sensitive (priv->restore_description, modified);
+}
+
+static void
 window_description_changed_cb (GiggleGit    *git,
 			       GParamSpec   *pspec,
 			       GiggleWindow *window)
 {
+	/* called when the description of the repository changes */
 	GiggleWindowPriv *priv;
-	GtkTextBuffer    *buffer;
 
 	priv = GET_PRIV (window);
 
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description));
-	gtk_text_buffer_set_text (buffer, giggle_git_get_description (git), -1);
+	window_restore_description_cb (window);
 }
 
 GtkWidget *

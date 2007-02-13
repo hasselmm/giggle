@@ -317,6 +317,14 @@ giggle_git_get (void)
 	return git;
 }
 
+static gchar *
+giggle_git_get_description_file (const GiggleGit *git)
+{
+	GiggleGitPriv *priv = GET_PRIV (git);
+	
+	return g_build_filename (priv->git_dir, "description", NULL);
+}
+
 static void
 giggle_git_update_description (GiggleGit *git)
 {
@@ -329,7 +337,7 @@ giggle_git_update_description (GiggleGit *git)
 	g_free (priv->description);
 	priv->description = NULL;
 
-	description = g_build_filename (priv->git_dir, "description", NULL);
+	description = giggle_git_get_description_file (git);
 	error = NULL;
 	if (!g_file_get_contents (description, &(priv->description), NULL, &error)) {
 		if (error) {
@@ -354,6 +362,40 @@ giggle_git_get_description (GiggleGit *git)
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
 
 	return GET_PRIV(git)->description;
+}
+
+void
+giggle_git_write_description (GiggleGit    *git,
+			      const gchar  *description) // FIXME: add GError?
+{
+	GiggleGitPriv *priv;
+	GError        *error;
+	gchar         *filename;
+
+	g_return_if_fail (GIGGLE_IS_GIT (git));
+
+	priv = GET_PRIV (git);
+	if(description == priv->description) {
+		return;
+	}
+
+	g_free (priv->description);
+	priv->description = g_strdup (description);
+
+	error = NULL;
+	filename = giggle_git_get_description_file (git);
+	if (!g_file_set_contents (filename, priv->description, -1, &error)) {
+		if (error) {
+			g_warning ("Couldn't write description: %s", error->message);
+			g_error_free(error);
+		} else {
+			g_warning ("Couldn't write description");
+		}
+	}
+	g_free (filename);
+
+	/* notify will become unnecessary once we have file monitoring */
+	g_object_notify (G_OBJECT (git), "description");
 }
 
 const gchar *
