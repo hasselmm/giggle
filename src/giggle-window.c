@@ -270,7 +270,16 @@ giggle_window_init (GiggleWindow *window)
 
 	window_create_menu (window);
 
-	dir = g_get_current_dir ();
+	/* parse GIT_DIR into dir and unset it; if empty use the current_wd
+	 * TODO: we could try to use GIT_DIR and on error open the working dir
+	 * and if both fail, display an error dialog
+	 */
+	dir = g_strdup (g_getenv ("GIT_DIR"));
+	if (!dir || !*dir) {
+		g_free (dir);
+		dir = g_get_current_dir ();
+	}
+	g_unsetenv ("GIT_DIR");
 
 	if (!giggle_git_set_directory (priv->git, dir, &error)) {
 		GtkWidget *dialog;
