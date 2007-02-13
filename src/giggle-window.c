@@ -111,6 +111,9 @@ static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_description_changed_cb         (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
@@ -252,6 +255,10 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_get ();
+	g_signal_connect (priv->git,
+			  "notify::description",
+			  G_CALLBACK (window_description_changed_cb),
+			  window);
 	g_signal_connect (priv->git,
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
@@ -1015,8 +1022,9 @@ window_directory_changed_cb (GiggleGit    *git,
 }
 
 static void
-window_update_summary (GiggleWindow *window,
-		       GiggleGit    *git)
+window_git_dir_changed_cb (GiggleGit    *git,
+			   GParamSpec   *arg,
+			   GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	gchar const* path;
@@ -1052,19 +1060,17 @@ window_update_summary (GiggleWindow *window,
 }
 
 static void
-window_update_description (GiggleWindow *window,
-			   GiggleGit    *git)
+window_description_changed_cb (GiggleGit    *git,
+			       GParamSpec   *pspec,
+			       GiggleWindow *window)
 {
-	/* do something with .git/description */
-}
+	GiggleWindowPriv *priv;
+	GtkTextBuffer    *buffer;
 
-static void
-window_git_dir_changed_cb (GiggleGit    *git,
-			   GParamSpec   *arg,
-			   GiggleWindow *window)
-{
-	window_update_summary (window, git);
-	window_update_description (window, git);
+	priv = GET_PRIV (window);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description));
+	gtk_text_buffer_set_text (buffer, giggle_git_get_description (git), -1);
 }
 
 GtkWidget *
