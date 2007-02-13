@@ -42,6 +42,9 @@ typedef struct GiggleWindowPriv GiggleWindowPriv;
 struct GiggleWindowPriv {
 	GtkWidget           *content_vbox;
 	GtkWidget           *menubar_hbox;
+	/* Summary Tab */
+	GtkWidget           *label_summary;
+	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
 	GtkWidget           *diff_textview;
@@ -108,6 +111,9 @@ static void window_action_personal_details_cb     (GtkAction         *action,
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
+static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
@@ -249,6 +255,10 @@ giggle_window_init (GiggleWindow *window)
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
 			  window);
+	g_signal_connect (priv->git,
+			  "notify::git-dir",
+			  G_CALLBACK (window_git_dir_changed_cb),
+			  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -256,6 +266,10 @@ giggle_window_init (GiggleWindow *window)
 		g_error ("Couldn't find glade file, did you install?");
 	}
 
+	/* Summary Tab */
+	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
+
+	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
@@ -995,6 +1009,44 @@ window_directory_changed_cb (GiggleGit    *git,
 	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
 	window_recent_repositories_add (window, uri);
 	g_free (uri);
+}
+
+static void
+window_git_dir_changed_cb (GiggleGit    *git,
+			   GParamSpec   *arg,
+			   GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gchar const* path;
+	gchar      * path_copy;
+	gchar      * basedir;
+	gchar      * markup;
+
+	priv = GET_PRIV (window);
+
+	path = giggle_git_get_git_dir (git);
+	path_copy = g_strdup (path);
+	basedir = g_strrstr (path_copy, ".git");
+	if (basedir) {
+		/* .../giggle/.git => .../giggle/ or
+		 * .../giggle.git  => .../giggle */
+		*basedir = '\0';
+	}
+	if (g_str_has_suffix (path_copy, G_DIR_SEPARATOR_S)) {
+		/* .../giggle/ to .../giggle */
+		basedir = strrchr (path_copy, G_DIR_SEPARATOR);
+		if (G_LIKELY(basedir)) {
+			*basedir = '\0';
+		} // else: shouldn't happen
+	}
+	basedir = g_path_get_basename (path_copy);
+	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, path_copy);
+
+	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
+
+	g_free (markup);
+	g_free (basedir);
+	g_free (path_copy);
 }
 
 GtkWidget *
