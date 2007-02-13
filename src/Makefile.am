@@ -8,6 +8,8 @@ AM_CPPFLAGS =					\
 bin_PROGRAMS = giggle
 
 giggle_SOURCES =				\
+	eggfindbar.c				\
+	eggfindbar.h				\
 	giggle-branch.c				\
 	giggle-branch.h				\
 	giggle-configuration.c			\

@@ -36,6 +36,7 @@
 #include "giggle-graph-renderer.h"
 #include "giggle-personal-details-window.h"
 #include "giggle-file-list.h"
+#include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
@@ -53,6 +54,8 @@ struct GiggleWindowPriv {
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
 
+	GtkWidget           *find_bar;
+
 	GiggleGit           *git;
 
 	GtkWidget           *file_list;
@@ -64,6 +67,11 @@ struct GiggleWindowPriv {
 enum {
 	REVISION_COL_OBJECT,
 	REVISION_NUM_COLS
+};
+
+enum {
+	SEARCH_NEXT,
+	SEARCH_PREV
 };
 
 static void window_finalize                       (GObject           *object);
@@ -103,6 +111,8 @@ static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_save_patch_cb           (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_find_cb                 (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
@@ -111,6 +121,11 @@ static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
+
+static void window_find_next                      (GtkWidget         *widget,
+						   GiggleWindow      *window);
+static void window_find_previous                  (GtkWidget         *widget,
+						   GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
 	{ "FileMenu", NULL,
@@ -141,6 +156,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("Personal _Details"), NULL, N_("Personal details"),
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
+	{ "Find", GTK_STOCK_FIND,
+	  N_("Find..."), NULL, N_("Find..."),
+	  G_CALLBACK (window_action_find_cb)
+	},
 	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
@@ -160,6 +179,8 @@ static const gchar *ui_layout =
 	"    </menu>"
 	"    <menu action='EditMenu'>"
 	"      <menuitem action='PersonalDetails'/>"
+	"      <separator/>"
+	"      <menuitem action='Find'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -296,6 +317,17 @@ giggle_window_init (GiggleWindow *window)
 	}
 
 	g_free (dir);
+
+	/* setup find bar */
+	priv->find_bar = egg_find_bar_new ();
+	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
+
+	g_signal_connect (G_OBJECT (priv->find_bar), "close",
+			  G_CALLBACK (gtk_widget_hide), NULL);
+	g_signal_connect (G_OBJECT (priv->find_bar), "next",
+			  G_CALLBACK (window_find_next), window);
+	g_signal_connect (G_OBJECT (priv->find_bar), "previous",
+			  G_CALLBACK (window_find_previous), window);
 }
 
 static void
@@ -326,24 +358,25 @@ window_recent_repositories_add (GiggleWindow *window,
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData    *data;
-	gchar* display_name;
+	gchar            *display_name, *dirname;
+	const gchar      *separator;
 
 	g_return_if_fail (repository != NULL);
 
 	priv = GET_PRIV (window);
 
-	if(g_str_has_suffix(repository, "/.git")) {
+	if (g_str_has_suffix (repository, "/.git")) {
 		/* "file:///path/to/project/.git" */
-		gchar* dirname = g_path_get_dirname(repository);
-		display_name = g_path_get_basename(dirname);
-		g_free(dirname);
+		dirname = g_path_get_dirname (repository);
+		display_name = g_path_get_basename (dirname);
+		g_free (dirname);
 	} else {
 		/* "file:///path/to/project.git" */
-		gchar const      *separator;
-		separator = g_strrstr(repository, G_DIR_SEPARATOR_S);
-		g_return_if_fail(separator && *separator);
-		display_name = g_strdup(separator+1);
+		separator = g_strrstr (repository, G_DIR_SEPARATOR_S);
+		g_return_if_fail (separator && *separator);
+		display_name = g_strdup (separator + 1);
 	}
+
 	data = g_slice_new0 (GtkRecentData);
 	data->display_name = display_name;
 	data->groups = groups;
@@ -932,6 +965,121 @@ window_action_save_patch_cb (GtkAction    *action,
 	}
 
 	gtk_widget_destroy (file_chooser);
+}
+
+static void
+window_action_find_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	gtk_widget_show (priv->find_bar);
+	gtk_widget_grab_focus (priv->find_bar);
+}
+
+static gboolean
+revision_matches (GiggleRevision *revision,
+		  const gchar    *search_string)
+{
+	gchar    *author;
+	gboolean  match;
+
+	g_object_get (revision, "author", &author, NULL);
+	match = strstr (author, search_string) != NULL;
+	g_free (author);
+
+	return match;
+}
+
+static void
+window_find (GiggleWindow *window,
+	     const gchar  *search_string,
+	     gint          direction)
+{
+	GiggleWindowPriv *priv;
+	GtkTreeModel     *model;
+	GtkTreeSelection *selection;
+	GList            *list;
+	GtkTreeIter       iter;
+	gboolean          valid, found;
+	GiggleRevision   *revision;
+	GtkTreePath      *path;
+	
+	priv = GET_PRIV (window);
+	found = FALSE;
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_treeview));
+	list = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	/* Find the first/current element */
+	if (list) {
+		if (direction == SEARCH_NEXT) {
+			path = gtk_tree_path_copy (list->data);
+			gtk_tree_path_next (path);
+			valid = TRUE;
+		} else {
+			path = gtk_tree_path_copy ((g_list_last (list))->data);
+			valid = gtk_tree_path_prev (path);
+		}
+	} else {
+		path = gtk_tree_path_new_first ();
+		valid = TRUE;
+	}
+
+	while (valid && !found) {
+		valid = gtk_tree_model_get_iter (model, &iter, path);
+
+		if (!valid) {
+			break;
+		}
+
+		gtk_tree_model_get (model, &iter, 0, &revision, -1);
+		found = revision_matches (revision, search_string);
+		g_object_unref (revision);
+
+		if (!found) {
+			if (direction == SEARCH_NEXT) {
+				gtk_tree_path_next (path);
+			} else {
+				valid = gtk_tree_path_prev (path);
+			}
+		}
+	}
+
+	if (found) {
+		gtk_tree_selection_unselect_all (selection);
+		gtk_tree_selection_select_iter (selection, &iter);
+
+		/* scroll to row */
+		gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (priv->revision_treeview),
+					      path, NULL, FALSE, 0., 0.);
+	}
+
+	gtk_tree_path_free (path);
+	g_list_foreach (list, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (list);
+}
+
+static void
+window_find_next (GtkWidget    *widget,
+		  GiggleWindow *window)
+{
+	const gchar *search_string;
+
+	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
+	window_find (window, search_string, SEARCH_NEXT);
+}
+
+static void
+window_find_previous (GtkWidget    *widget,
+		      GiggleWindow *window)
+{
+	const gchar *search_string;
+
+	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
+	window_find (window, search_string, SEARCH_PREV);
 }
 
 static void
