@@ -44,6 +44,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *menubar_hbox;
 	/* Summary Tab */
 	GtkWidget           *label_summary;
+	GtkWidget           *textview_description;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -268,6 +269,8 @@ giggle_window_init (GiggleWindow *window)
 
 	/* Summary Tab */
 	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
+
+	priv->textview_description = glade_xml_get_widget (xml, "textview_project_description");
 
 	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
@@ -1012,9 +1015,8 @@ window_directory_changed_cb (GiggleGit    *git,
 }
 
 static void
-window_git_dir_changed_cb (GiggleGit    *git,
-			   GParamSpec   *arg,
-			   GiggleWindow *window)
+window_update_summary (GiggleWindow *window,
+		       GiggleGit    *git)
 {
 	GiggleWindowPriv *priv;
 	gchar const* path;
@@ -1047,6 +1049,22 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	g_free (markup);
 	g_free (basedir);
 	g_free (path_copy);
+}
+
+static void
+window_update_description (GiggleWindow *window,
+			   GiggleGit    *git)
+{
+	/* do something with .git/description */
+}
+
+static void
+window_git_dir_changed_cb (GiggleGit    *git,
+			   GParamSpec   *arg,
+			   GiggleWindow *window)
+{
+	window_update_summary (window, git);
+	window_update_description (window, git);
 }
 
 GtkWidget *
