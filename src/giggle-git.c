@@ -31,6 +31,7 @@ struct GiggleGitPriv {
 	GiggleDispatcher *dispatcher;
 	gchar            *directory;
 	gchar            *git_dir;
+	gchar            *description;
 
 	GHashTable       *jobs;
 };
@@ -68,6 +69,7 @@ G_DEFINE_TYPE (GiggleGit, giggle_git, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
+	PROP_DESCRIPTION,
 	PROP_DIRECTORY,
 	PROP_GIT_DIR
 };
@@ -83,6 +85,13 @@ giggle_git_class_init (GiggleGitClass *class)
 	object_class->get_property = git_get_property;
 	object_class->set_property = git_set_property;
 
+	g_object_class_install_property (object_class,
+					 PROP_DESCRIPTION,
+					 g_param_spec_string ("description",
+						 	      "Description",
+							      "The project's description",
+							      NULL,
+							      G_PARAM_READABLE));
 	g_object_class_install_property (object_class,
 					 PROP_DIRECTORY,
 					 g_param_spec_string ("directory",
@@ -156,6 +165,9 @@ git_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_DESCRIPTION:
+		g_value_set_string (value, priv->description);
+		break;
 	case PROP_DIRECTORY:
 		g_value_set_string (value, priv->directory);
 		break;
@@ -203,6 +215,7 @@ git_verify_directory (GiggleGit    *git,
 	gchar   *std_err = NULL;
 	gint     exit_code = 0;
 	gboolean verified = FALSE;
+	GError  *local_error = NULL;
 
 	if(git_dir) {
 		*git_dir = NULL;
@@ -211,17 +224,34 @@ git_verify_directory (GiggleGit    *git,
 	g_spawn_sync (directory, argv, NULL,
 		      0, NULL, NULL,
 		      &std_out, &std_err,
-		      &exit_code, error);
+		      &exit_code, &local_error);
 
-	if (exit_code != 0) {
-		g_set_error(error, giggle_git_error_quark(), 0 /* error code */, "%s", std_err);
+	if (local_error) {
+		if (error) {
+			*error = local_error;
+		} else {
+			g_warning ("Problem while checking folder \"%s\" for being related to git: %s",
+				   directory,
+				   local_error->message);
+			g_error_free (local_error);
+		}
+	} if (exit_code != 0) {
+		if (error) {
+			g_set_error (error, giggle_git_error_quark(), 0 /* error code */, "%s", std_err);
+		} else {
+			g_warning ("Problem while checking folder \"%s\": Unexpected exit code %d: %s",
+				   directory, exit_code, std_err);
+		}
 	} else {
 		verified = TRUE;
 
 		if (git_dir) {
 			/* split into {dir, NULL} */
 			gchar** split = g_strsplit (std_out, "\n", 2);
-			*git_dir = g_strdup(*split);
+			if(!split || !*split) {
+				g_warning("Didn't get a good git directory for %s: %s", directory, std_out);
+			}
+			*git_dir = g_strdup(split ? *split : "");
 			g_strfreev (split);
 
 			if(!g_path_is_absolute(*git_dir)) {
@@ -287,6 +317,45 @@ giggle_git_get (void)
 	return git;
 }
 
+static void
+giggle_git_update_description (GiggleGit *git)
+{
+	// FIXME: read .git/description into description; install a file watch
+	GiggleGitPriv *priv;
+	GError        *error;
+	gchar* description;
+
+	priv = GET_PRIV (git);
+	g_free (priv->description);
+	priv->description = NULL;
+
+	description = g_build_filename (priv->git_dir, "description", NULL);
+	error = NULL;
+	if (!g_file_get_contents (description, &(priv->description), NULL, &error)) {
+		if (error) {
+			g_warning ("Couldn't read description file %s: %s", description, error->message);
+			g_error_free (error);
+		} else {
+			g_warning ("Couldn't read description file %s", description);
+		}
+		if(!priv->description) {
+		       priv->description = g_strdup ("");
+		}
+	}
+
+	g_free (description);
+
+	g_object_notify (G_OBJECT(git), "description");
+}
+
+const gchar *
+giggle_git_get_description (GiggleGit *git)
+{
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	return GET_PRIV(git)->description;
+}
+
 const gchar *
 giggle_git_get_directory (GiggleGit *git)
 {
@@ -324,6 +393,8 @@ giggle_git_set_directory (GiggleGit    *git,
 	g_free (priv->git_dir);
 	priv->git_dir = git_dir;
 	g_object_notify (G_OBJECT (git), "git-dir");
+
+	giggle_git_update_description (git);
 
 	return TRUE;
 }

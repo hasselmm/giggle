@@ -43,6 +43,10 @@ typedef struct GiggleWindowPriv GiggleWindowPriv;
 struct GiggleWindowPriv {
 	GtkWidget           *content_vbox;
 	GtkWidget           *menubar_hbox;
+	/* Summary Tab */
+	GtkWidget           *label_summary;
+	GtkWidget           *textview_description;
+	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
 	GtkWidget           *diff_textview;
@@ -117,7 +121,13 @@ static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_description_changed_cb         (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
+						   GParamSpec        *arg,
+						   GiggleWindow      *window);
+static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
@@ -152,8 +162,8 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
 	},
-	{ "PersonalDetails", NULL,
-	  N_("Personal _Details"), NULL, N_("Personal details"),
+	{ "PersonalDetails", GTK_STOCK_PREFERENCES,
+	  N_("Edit Personal _Details"), NULL, N_("Edit Personal details"),
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
 	{ "Find", GTK_STOCK_FIND,
@@ -268,8 +278,16 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->git = giggle_git_get ();
 	g_signal_connect (priv->git,
+			  "notify::description",
+			  G_CALLBACK (window_description_changed_cb),
+			  window);
+	g_signal_connect (priv->git,
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
+			  window);
+	g_signal_connect (priv->git,
+			  "notify::git-dir",
+			  G_CALLBACK (window_git_dir_changed_cb),
 			  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
@@ -278,6 +296,12 @@ giggle_window_init (GiggleWindow *window)
 		g_error ("Couldn't find glade file, did you install?");
 	}
 
+	/* Summary Tab */
+	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
+
+	priv->textview_description = glade_xml_get_widget (xml, "textview_project_description");
+
+	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
@@ -299,7 +323,13 @@ giggle_window_init (GiggleWindow *window)
 
 	window_create_menu (window);
 
-	dir = g_get_current_dir ();
+	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
+	dir = g_strdup (g_getenv ("GIT_DIR"));
+	if (!dir || !*dir) {
+		g_free (dir);
+		dir = g_get_current_dir ();
+	}
+	g_unsetenv ("GIT_DIR");
 
 	if (!giggle_git_set_directory (priv->git, dir, &error)) {
 		GtkWidget *dialog;
@@ -1144,6 +1174,58 @@ window_directory_changed_cb (GiggleGit    *git,
 	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
 	window_recent_repositories_add (window, uri);
 	g_free (uri);
+}
+
+static void
+window_git_dir_changed_cb (GiggleGit    *git,
+			   GParamSpec   *arg,
+			   GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gchar const* path;
+	gchar      * path_copy;
+	gchar      * basedir;
+	gchar      * markup;
+
+	priv = GET_PRIV (window);
+
+	path = giggle_git_get_git_dir (git);
+	path_copy = g_strdup (path);
+	basedir = g_strrstr (path_copy, ".git");
+	if (basedir) {
+		/* .../giggle/.git => .../giggle/ or
+		 * .../giggle.git  => .../giggle */
+		*basedir = '\0';
+	}
+	if (g_str_has_suffix (path_copy, G_DIR_SEPARATOR_S)) {
+		/* .../giggle/ to .../giggle */
+		basedir = strrchr (path_copy, G_DIR_SEPARATOR);
+		if (G_LIKELY(basedir)) {
+			*basedir = '\0';
+		} // else: shouldn't happen
+	}
+	basedir = g_path_get_basename (path_copy);
+	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, path_copy);
+
+	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
+
+	g_free (markup);
+	g_free (basedir);
+	g_free (path_copy);
+}
+
+static void
+window_description_changed_cb (GiggleGit    *git,
+			       GParamSpec   *pspec,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkTextBuffer    *buffer;
+
+	priv = GET_PRIV (window);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description));
+	gtk_text_buffer_set_text (buffer, giggle_git_get_description (git), -1);
 }
 
 GtkWidget *
