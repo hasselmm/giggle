@@ -270,10 +270,7 @@ giggle_window_init (GiggleWindow *window)
 
 	window_create_menu (window);
 
-	/* parse GIT_DIR into dir and unset it; if empty use the current_wd
-	 * TODO: we could try to use GIT_DIR and on error open the working dir
-	 * and if both fail, display an error dialog
-	 */
+	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
 	if (!dir || !*dir) {
 		g_free (dir);

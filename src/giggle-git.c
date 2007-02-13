@@ -234,7 +234,7 @@ git_verify_directory (GiggleGit    *git,
 			g_warning ("Problem while checking folder \"%s\": Unexpected exit code %d: %s",
 				   directory, exit_code, std_err);
 		}
-	} else if (!error && !*error) {
+	} else {
 		verified = TRUE;
 
 		if (git_dir) {
