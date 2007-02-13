@@ -137,8 +137,8 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
 	},
-	{ "PersonalDetails", NULL,
-	  N_("Personal _Details"), NULL, N_("Personal details"),
+	{ "PersonalDetails", GTK_STOCK_PREFERENCES,
+	  N_("Edit Personal _Details"), NULL, N_("Edit Personal details"),
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
 	{ "About", GTK_STOCK_ABOUT,
@@ -154,12 +154,11 @@ static const gchar *ui_layout =
 	"      <menuitem action='Open'/>"
 	"      <menuitem action='SavePatch'/>"
 	"      <separator/>"
+	"      <menuitem action='PersonalDetails'/>"
+	"      <separator/>"
 	"      <placeholder name='RecentRepositories'/>"
 	"      <separator/>"
 	"      <menuitem action='Quit'/>"
-	"    </menu>"
-	"    <menu action='EditMenu'>"
-	"      <menuitem action='PersonalDetails'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
