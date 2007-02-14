@@ -80,6 +80,12 @@ static void       file_list_remove_file         (GtkWidget        *widget,
 static void       file_list_toggle_show_all     (GtkWidget        *widget,
 						 GiggleFileList   *list);
 
+static void       file_list_cell_data_sensitive_func (GtkCellLayout   *cell_layout,
+						      GtkCellRenderer *renderer,
+						      GtkTreeModel    *tree_model,
+						      GtkTreeIter     *iter,
+						      gpointer         data);
+
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW);
 
@@ -161,6 +167,9 @@ giggle_file_list_init (GiggleFileList *list)
 	gtk_tree_model_filter_set_visible_func (GTK_TREE_MODEL_FILTER (priv->filter_model),
 						file_list_filter_func, list, NULL);
 
+	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (priv->store),
+					      COL_NAME, GTK_SORT_ASCENDING);
+
 	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
 
 	gtk_tree_view_set_search_equal_func (GTK_TREE_VIEW (list),
@@ -175,12 +184,18 @@ giggle_file_list_init (GiggleFileList *list)
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (column), renderer,
 					"pixbuf", COL_PIXBUF,
 					NULL);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), renderer,
+					    file_list_cell_data_sensitive_func,
+					    list, NULL);
 
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, FALSE);
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (column), renderer,
 					"text", COL_NAME,
 					NULL);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), renderer,
+					    file_list_cell_data_sensitive_func,
+					    list, NULL);
 
 	gtk_tree_view_append_column (GTK_TREE_VIEW (list), column);
 	file_list_populate (list);
@@ -449,29 +464,50 @@ file_list_filter_func (GtkTreeModel   *model,
 }
 
 static gboolean
+file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
+					GtkTreeIter      *iter,
+					gchar           **name,
+					GiggleGitIgnore **git_ignore)
+{
+	GiggleFileListPriv *priv;
+	GtkTreeIter         parent;
+
+	priv = GET_PRIV (list);
+
+	if (!gtk_tree_model_iter_parent (priv->filter_model, &parent, iter)) {
+		*name = NULL;
+		*git_ignore = NULL;
+
+		return FALSE;
+	}
+
+	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
+			    COL_NAME, name,
+			    -1);
+	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
+			    COL_GIT_IGNORE, git_ignore,
+			    -1);
+	return TRUE;
+}
+
+static gboolean
 file_list_get_name_and_ignore (GiggleFileList   *list,
 			       gchar           **name,
 			       GiggleGitIgnore **git_ignore)
 {
 	GiggleFileListPriv *priv;
 	GtkTreeSelection   *selection;
-	GtkTreeIter         iter, parent;
+	GtkTreeIter         iter;
 
 	priv = GET_PRIV (list);
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
 
-	if (gtk_tree_selection_get_selected (selection, NULL, &iter) &&
-	    gtk_tree_model_iter_parent (priv->filter_model, &parent, &iter)) {
-		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &iter,
-				    COL_NAME, name,
-				    -1);
-
-		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
-				    COL_GIT_IGNORE, git_ignore,
-				    -1);
-
-		return TRUE;
+	if (gtk_tree_selection_get_selected (selection, NULL, &iter)) {
+		return file_list_get_name_and_ignore_for_iter (list, &iter, name, git_ignore);
 	}
+
+	*name = NULL;
+	*git_ignore = NULL;
 
 	return FALSE;
 }
@@ -601,6 +637,49 @@ file_list_toggle_show_all (GtkWidget      *widget,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (widget));
 	giggle_file_list_set_show_all (list, active);
 }
+
+static void
+file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
+				    GtkCellRenderer *renderer,
+				    GtkTreeModel    *tree_model,
+				    GtkTreeIter     *iter,
+				    gpointer         data)
+{
+	GiggleFileList     *list;
+	GiggleFileListPriv *priv;
+	GiggleGitIgnore    *git_ignore = NULL;
+	gchar              *name = NULL;
+	gboolean            value = TRUE;
+	GtkTreeIter         parent;
+	GtkStateType        state;
+	GdkColor            color;
+
+	list = GIGGLE_FILE_LIST (data);
+	priv = GET_PRIV (list);
+
+	if (priv->show_all) {
+		if (file_list_get_name_and_ignore_for_iter (list, iter, &name, &git_ignore)) {
+			value = ! giggle_git_ignore_name_matches (git_ignore, name);
+		} else {
+			/* we don't want the project root being set insensitive */
+			value = ! gtk_tree_model_iter_parent (tree_model, &parent, iter);
+		}
+	}
+
+	if (GTK_IS_CELL_RENDERER_TEXT (renderer)) {
+		state = (value) ? GTK_STATE_NORMAL : GTK_STATE_INSENSITIVE;
+		color = GTK_WIDGET (list)->style->text [state];
+		g_object_set (G_OBJECT (renderer), "foreground-gdk", &color, NULL);
+	} else {
+		g_object_set (G_OBJECT (renderer), "sensitive", value, NULL);
+	}
+
+	if (git_ignore) {
+		g_object_unref (git_ignore);
+	}
+	g_free (name);
+}
+
 
 GtkWidget *
 giggle_file_list_new (void)
