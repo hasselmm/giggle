@@ -38,8 +38,9 @@ typedef struct GiggleConfiguration      GiggleConfiguration;
 typedef struct GiggleConfigurationClass GiggleConfigurationClass;
 typedef enum   GiggleConfigurationField GiggleConfigurationField;
 
-typedef void (*GiggleConfigurationUpdateFunc) (GiggleConfiguration *configuration,
-					       gpointer             user_data);
+typedef void (*GiggleConfigurationFunc) (GiggleConfiguration *configuration,
+					 gboolean             sucess,
+					 gpointer             user_data);
 
 struct GiggleConfiguration {
 	GObject   parent_instance;
@@ -60,15 +61,17 @@ enum GiggleConfigurationField {
 GType	                giggle_configuration_get_type      (void);
 GiggleConfiguration *   giggle_configuration_new           (void);
 
-void                    giggle_configuration_update        (GiggleConfiguration           *configuration,
-							    GiggleConfigurationUpdateFunc  func,
-							    gpointer                       data);
+void                    giggle_configuration_update        (GiggleConfiguration      *configuration,
+							    GiggleConfigurationFunc   func,
+							    gpointer                  data);
 
 G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
-							    const gchar              *value);
+							    const gchar              *value,
+							    GiggleConfigurationFunc   func,
+							    gpointer                  data);
 
 G_END_DECLS
 

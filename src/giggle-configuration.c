@@ -35,14 +35,18 @@ static const gchar *fields[] = {
 
 
 typedef struct GiggleConfigurationPriv GiggleConfigurationPriv;
+typedef struct GiggleConfigurationTask GiggleConfigurationTask;
 
 struct GiggleConfigurationPriv {
-	GiggleGit                     *git;
-	GiggleJob                     *current_job;
-	GHashTable                    *config;
+	GiggleGit               *git;
+	GiggleJob               *current_job;
+	GHashTable              *config;
+};
 
-	GiggleConfigurationUpdateFunc  func;
-	gpointer                       data;
+struct GiggleConfigurationTask {
+	GiggleConfigurationFunc  func;
+	gpointer                 data;
+	GiggleConfiguration     *configuration;
 };
 
 static void     configuration_finalize         (GObject           *object);
@@ -112,17 +116,37 @@ configuration_read_callback (GiggleGit *git,
 			     GError    *error,
 			     gpointer   user_data)
 {
-	GiggleConfiguration     *configuration;
+	GiggleConfigurationTask *task;
 	GiggleConfigurationPriv *priv;
 	GHashTable              *config;
+	gboolean                 success;
 
-	configuration = GIGGLE_CONFIGURATION (user_data);
-	priv = GET_PRIV (configuration);
+	task = (GiggleConfigurationTask *) user_data;
+	priv = GET_PRIV (task->configuration);
 
 	config = giggle_git_read_config_get_config (GIGGLE_GIT_READ_CONFIG (job));
 	priv->config = g_hash_table_ref (config);
+	success = (error == NULL);
 
-	(priv->func) (configuration, priv->data);
+	(task->func) (task->configuration, success, task->data);
+}
+
+static void
+configuration_write_callback (GiggleGit *git,
+			      GiggleJob *job,
+			      GError    *error,
+			      gpointer   user_data)
+{
+	GiggleConfigurationTask *task;
+	gboolean                 success;
+
+	task = (GiggleConfigurationTask *) user_data;
+
+	success = (error == NULL);
+	(task->func) (task->configuration, success, task->data);
+
+	g_signal_emit (task->configuration, signals[CHANGED], 0);
+	g_object_unref (task->configuration);
 }
 
 GiggleConfiguration *
@@ -132,11 +156,12 @@ giggle_configuration_new (void)
 }
 
 void
-giggle_configuration_update (GiggleConfiguration           *configuration,
-			     GiggleConfigurationUpdateFunc  func,
-			     gpointer                       data)
+giggle_configuration_update (GiggleConfiguration     *configuration,
+			     GiggleConfigurationFunc  func,
+			     gpointer                 data)
 {
 	GiggleConfigurationPriv *priv;
+	GiggleConfigurationTask *task;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
 
@@ -150,14 +175,18 @@ giggle_configuration_update (GiggleConfiguration           *configuration,
 		g_hash_table_unref (priv->config);
 	}
 
-	priv->func = func;
-	priv->data = data;
+	task = g_new0 (GiggleConfigurationTask, 1);
+	task->func = func;
+	task->data = data;
+	task->configuration = configuration;
+
 	priv->current_job = giggle_git_read_config_new ();
 
-	giggle_git_run_job (priv->git,
-			    priv->current_job,
-			    configuration_read_callback,
-			    configuration);
+	giggle_git_run_job_full (priv->git,
+				 priv->current_job,
+				 configuration_read_callback,
+				 task,
+				 (GDestroyNotify) g_free);
 }
 
 G_CONST_RETURN gchar *
@@ -176,10 +205,13 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 void
 giggle_configuration_set_field (GiggleConfiguration      *configuration,
 				GiggleConfigurationField  field,
-				const gchar              *value)
+				const gchar              *value,
+				GiggleConfigurationFunc   func,
+				gpointer                  data)
 {
 	GiggleConfigurationPriv *priv;
 	GiggleJob               *job;
+	GiggleConfigurationTask *task;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
 
@@ -201,6 +233,13 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	 */
 	g_object_set (G_OBJECT (job), "global", TRUE, NULL);
 
-	giggle_git_run_job (priv->git, job, NULL, NULL);
-	g_signal_emit (configuration, signals[CHANGED], 0);
+	task = g_new0 (GiggleConfigurationTask, 1);
+	task->func = func;
+	task->data = data;
+	task->configuration = g_object_ref (configuration);
+
+	giggle_git_run_job_full (priv->git, job,
+				 configuration_write_callback,
+				 task,
+				 g_free);
 }

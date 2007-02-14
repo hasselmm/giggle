@@ -41,6 +41,7 @@ static void personal_details_window_finalize          (GObject             *obje
 static void personal_details_window_response          (GtkDialog           *dialog,
 						       gint                 response);
 static void personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
+						       gboolean             success,
 						       gpointer             user_data);
 					      
 
@@ -105,6 +106,34 @@ personal_details_window_finalize (GObject *object)
 }
 
 static void
+personal_details_configuration_changed_cb (GiggleConfiguration *configuration,
+					   gboolean             success,
+					   gpointer             user_data)
+{
+	GigglePersonalDetailsWindow *window;
+	GtkWidget                   *dialog, *parent;
+
+	g_print ("%x\n", (guint) user_data);
+	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
+
+	if (success) {
+		return;
+	}
+
+	g_object_get (G_OBJECT (window), "transient-for", &parent, NULL);
+	dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
+					 GTK_DIALOG_MODAL,
+					 GTK_MESSAGE_ERROR,
+					 GTK_BUTTONS_CLOSE,
+					 _("There was an error "
+					   "setting the configuration"));
+
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+	g_object_unref (parent);
+}
+
+static void
 personal_details_window_response (GtkDialog *dialog,
 				  gint       response)
 {
@@ -112,17 +141,24 @@ personal_details_window_response (GtkDialog *dialog,
 
 	priv = GET_PRIV (dialog);
 
+	g_print ("%x\n", (guint) dialog);
+
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_NAME,
-					gtk_entry_get_text (GTK_ENTRY (priv->name_entry)));
+					gtk_entry_get_text (GTK_ENTRY (priv->name_entry)),
+					personal_details_configuration_changed_cb,
+					dialog);
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_EMAIL,
-					gtk_entry_get_text (GTK_ENTRY (priv->email_entry)));
+					gtk_entry_get_text (GTK_ENTRY (priv->email_entry)),
+					personal_details_configuration_changed_cb,
+					dialog);
 }
 
 static void
 personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
+					   gboolean             success,
 					   gpointer             user_data)
 {
 	GigglePersonalDetailsWindow     *window;
@@ -131,6 +167,27 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 
 	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
 	priv = GET_PRIV (window);
+
+	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
+
+	if (!success) {
+		GtkWidget *dialog, *parent;
+
+		g_object_get (G_OBJECT (window), "transient-for", &parent, NULL);
+		gtk_widget_hide (GTK_WIDGET (window));
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
+						 GTK_DIALOG_MODAL,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_CLOSE,
+						 _("There was an error "
+						   "getting the configuration"));
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+		g_object_unref (parent);
+		return;
+	}
 
 	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME);
 	if (value) {
@@ -141,8 +198,6 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 	if (value) {
 		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
 	}
-
-	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
 }
 
 GtkWidget*
