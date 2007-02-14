@@ -113,7 +113,6 @@ personal_details_configuration_changed_cb (GiggleConfiguration *configuration,
 	GigglePersonalDetailsWindow *window;
 	GtkWidget                   *dialog, *parent;
 
-	g_print ("%x\n", (guint) user_data);
 	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
 
 	if (success) {
@@ -140,8 +139,6 @@ personal_details_window_response (GtkDialog *dialog,
 	GigglePersonalDetailsWindowPriv *priv;
 
 	priv = GET_PRIV (dialog);
-
-	g_print ("%x\n", (guint) dialog);
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_NAME,

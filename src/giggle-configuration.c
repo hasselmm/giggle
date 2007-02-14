@@ -146,7 +146,6 @@ configuration_write_callback (GiggleGit *git,
 	(task->func) (task->configuration, success, task->data);
 
 	g_signal_emit (task->configuration, signals[CHANGED], 0);
-	g_object_unref (task->configuration);
 }
 
 GiggleConfiguration *
@@ -236,7 +235,7 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	task = g_new0 (GiggleConfigurationTask, 1);
 	task->func = func;
 	task->data = data;
-	task->configuration = g_object_ref (configuration);
+	task->configuration = configuration;
 
 	giggle_git_run_job_full (priv->git, job,
 				 configuration_write_callback,
