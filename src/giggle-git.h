@@ -61,6 +61,12 @@ gboolean         giggle_git_set_directory    (GiggleGit    *git,
 					      GError      **error);
 const gchar *    giggle_git_get_git_dir      (GiggleGit    *git);
 
+void             giggle_git_run_job_full     (GiggleGit             *git,
+					      GiggleJob             *job,
+					      GiggleJobDoneCallback  callback,
+					      gpointer               user_data,
+					      GDestroyNotify         destroy_notify);
+
 void             giggle_git_run_job          (GiggleGit             *git,
 					      GiggleJob             *job,
 					      GiggleJobDoneCallback  callback,

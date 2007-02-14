@@ -65,6 +65,7 @@ struct GiggleWindowPriv {
 	GiggleGit           *git;
 
 	GtkWidget           *file_list;
+	GtkWidget           *personal_details_window;
 
 	/* Current job in progress. */
 	GiggleJob           *current_job;
@@ -378,6 +379,14 @@ giggle_window_init (GiggleWindow *window)
 			  G_CALLBACK (window_find_next), window);
 	g_signal_connect (G_OBJECT (priv->find_bar), "previous",
 			  G_CALLBACK (window_find_previous), window);
+
+	/* personal details window */
+	priv->personal_details_window = giggle_personal_details_window_new ();
+
+	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
+				      GTK_WINDOW (window));
+	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
+				G_CALLBACK (gtk_widget_hide), NULL);
 }
 
 static void
@@ -875,7 +884,7 @@ window_revision_cell_data_log_func (GtkTreeViewColumn *column,
 	g_object_set (cell,
 		      "text", giggle_revision_get_short_log (revision),
 		      NULL);
-	
+
 	g_object_unref (revision);
 }
 
@@ -1136,16 +1145,11 @@ static void
 window_action_personal_details_cb (GtkAction    *action,
 				   GiggleWindow *window)
 {
-	GtkWidget *personal_details;
+	GiggleWindowPriv *priv;
 
-	personal_details = giggle_personal_details_window_new ();
-	gtk_window_set_transient_for (GTK_WINDOW (personal_details),
-				      GTK_WINDOW (window));
-	gtk_widget_show (personal_details);
+	priv = GET_PRIV (window);
 
-	g_signal_connect_after (G_OBJECT (personal_details), "response",
-				G_CALLBACK (gtk_widget_destroy), NULL);
-
+	gtk_widget_show (priv->personal_details_window);
 }
 
 static void

@@ -41,6 +41,7 @@ typedef struct {
 	GiggleJob             *job;
 	GiggleJobDoneCallback  callback;
 	gpointer               user_data;
+	GDestroyNotify         destroy_notify;
 } GitJobData;
 
 static void     git_finalize            (GObject           *object);
@@ -300,6 +301,10 @@ git_execute_callback (GiggleDispatcher *dispatcher,
 		data->callback (git, data->job, error, data->user_data);
 	}
 
+	if (data->destroy_notify && data->user_data) {
+		(data->destroy_notify) (data->user_data);
+	}
+
 	g_hash_table_remove (priv->jobs, GINT_TO_POINTER (id));
 }
 
@@ -454,10 +459,11 @@ giggle_git_get_git_dir (GiggleGit *git)
 }
 
 void 
-giggle_git_run_job (GiggleGit             *git,
-		    GiggleJob             *job,
-		    GiggleJobDoneCallback  callback,
-		    gpointer               user_data)
+giggle_git_run_job_full (GiggleGit             *git,
+			 GiggleJob             *job,
+			 GiggleJobDoneCallback  callback,
+			 gpointer               user_data,
+			 GDestroyNotify         destroy_notify)
 {
 	GiggleGitPriv *priv;
 	gchar         *command;
@@ -480,6 +486,7 @@ giggle_git_run_job (GiggleGit             *git,
 		data->job = g_object_ref (job);
 		data->callback = callback;
 		data->user_data = user_data;
+		data->destroy_notify = destroy_notify;
 		
 		g_object_set (job, "id", data->id, NULL);
 
@@ -490,6 +497,15 @@ giggle_git_run_job (GiggleGit             *git,
 	}
 	
 	g_free (command);
+}
+
+void 
+giggle_git_run_job (GiggleGit             *git,
+		    GiggleJob             *job,
+		    GiggleJobDoneCallback  callback,
+		    gpointer               user_data)
+{
+	giggle_git_run_job_full (git, job, callback, user_data, NULL);
 }
 
 void
