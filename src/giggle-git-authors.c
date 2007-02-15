@@ -37,6 +37,8 @@ static void     git_authors_set_property        (GObject           *object,
 					   guint              param_id,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
+static gboolean authors_get_command_line  (GiggleJob         *job,
+					   gchar            **command_line);
 
 G_DEFINE_TYPE (GiggleGitAuthors, giggle_git_authors, GIGGLE_TYPE_JOB)
 
@@ -46,10 +48,13 @@ static void
 giggle_git_authors_class_init (GiggleGitAuthorsClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GiggleJobClass *job_class  = GIGGLE_JOB_CLASS (class);
 
 	object_class->finalize     = git_authors_finalize;
 	object_class->get_property = git_authors_get_property;
 	object_class->set_property = git_authors_set_property;
+
+	job_class->get_command_line = authors_get_command_line;
 
 #if 0
 	g_object_class_install_property (object_class,
@@ -116,6 +121,14 @@ git_authors_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+static gboolean
+authors_get_command_line (GiggleJob *job,
+			  gchar    **command_line)
+{
+	*command_line = g_strdup ("git log");
+	return TRUE;
 }
 
 GiggleJob *
