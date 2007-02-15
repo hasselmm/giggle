@@ -234,6 +234,7 @@
 
 		  <child>
 		    <widget class="GtkTable" id="table1">
+		      <property name="visible">True</property>
 		      <property name="n_rows">2</property>
 		      <property name="n_columns">2</property>
 		      <property name="homogeneous">True</property>
@@ -293,7 +294,7 @@
 				  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 				  <child>
-				    <widget class="GtkTreeView" id="treeview1">
+				    <widget class="GtkTreeView" id="treeview_branches">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="headers_visible">True</property>
@@ -325,14 +326,13 @@
 
 		      <child>
 			<widget class="GtkVBox" id="vbox4">
-			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
 			  <property name="spacing">6</property>
 
 			  <child>
 			    <widget class="GtkLabel" id="label7">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">&lt;b&gt;Changes&lt;/b&gt;</property>
+			      <property name="label" translatable="yes">&lt;b&gt;Authors&lt;/b&gt;</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">True</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -409,7 +409,6 @@
 
 		      <child>
 			<widget class="GtkVBox" id="vbox5">
-			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
 			  <property name="spacing">6</property>
 

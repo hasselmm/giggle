@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "giggle-window.h"
+#include "giggle-branch.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
 #include "giggle-git-branches.h"
@@ -48,6 +49,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *textview_description;
 	GtkWidget           *save_description;
 	GtkWidget           *restore_description;
+	GtkWidget           *treeview_branches;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -81,7 +83,13 @@ enum {
 	SEARCH_PREV
 };
 
+enum {
+	BRANCHES_COL_BRANCH,
+	BRANCHES_N_COLUMNS
+};
+
 static void window_finalize                       (GObject           *object);
+static void window_setup_branches_treeview        (GiggleWindow      *window);
 static void window_setup_revision_treeview        (GiggleWindow      *window);
 static void window_setup_diff_textview            (GiggleWindow      *window,
 						   GtkWidget         *scrolled);
@@ -321,6 +329,9 @@ giggle_window_init (GiggleWindow *window)
 				  "clicked",
 				  G_CALLBACK (window_restore_description_cb),
 				  window);
+
+	priv->treeview_branches = glade_xml_get_widget (xml, "treeview_branches");
+	window_setup_branches_treeview (window);
 
 	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
@@ -569,7 +580,7 @@ window_git_get_revisions_cb (GiggleGit    *git,
 	while (revisions) {
 		gtk_list_store_append (store, &iter);
 		gtk_list_store_set (store, &iter,
-				    REVISION_COL_OBJECT, g_object_ref ((GObject*) revisions->data),
+				    REVISION_COL_OBJECT, revisions->data,
 				    -1);
 		revisions = revisions->next;
 	}
@@ -586,8 +597,52 @@ window_git_get_branches_cb (GiggleGit    *git,
 			    GError       *error,
 			    gpointer      user_data)
 {
-	/* FIXME: do something with branches */
+	GiggleWindowPriv *priv;
+	GtkListStore     *store;
+	GtkTreeIter       iter;
+	GList            *branches;
+
+	priv = GET_PRIV (user_data);
+	store = gtk_list_store_new (BRANCHES_N_COLUMNS, GIGGLE_TYPE_BRANCH);
+	branches = giggle_git_branches_get_branches (GIGGLE_GIT_BRANCHES (job));
+
+	for(; branches; branches = g_list_next (branches)) {
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter,
+				    BRANCHES_COL_BRANCH, branches->data,
+				    -1);
+	}
+
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
+	g_object_unref (store);
 	g_object_unref (job);
+}
+
+static void
+window_branches_cell_data_func (GtkTreeViewColumn *column,
+				GtkCellRenderer   *cell,
+				GtkTreeModel      *model,
+				GtkTreeIter       *iter,
+				gpointer           data)
+{
+	GiggleBranch *branch = NULL;
+
+	// FIXME: check whether we're leaking references here
+	gtk_tree_model_get (model, iter,
+			    BRANCHES_COL_BRANCH, &branch,
+			    -1);
+	g_object_set (cell, "text", giggle_branch_get_name (branch), NULL);
+}
+
+static void
+window_setup_branches_treeview (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_branches), -1,
+						    _("Branch"), gtk_cell_renderer_text_new (),
+						    window_branches_cell_data_func, NULL, NULL);
 }
 
 static void
@@ -1189,11 +1244,6 @@ window_directory_changed_cb (GiggleGit    *git,
 			    window_git_get_revisions_cb,
 			    window);
 
-	job = giggle_git_branches_new ();
-	giggle_git_run_job (priv->git, job,
-			    window_git_get_branches_cb,
-			    window);
-
 	/* add repository uri to recents */
 	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
 	window_recent_repositories_add (window, uri);
@@ -1206,6 +1256,7 @@ window_git_dir_changed_cb (GiggleGit    *git,
 			   GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	GiggleJob        *job;
 	gchar const* path;
 	gchar      * path_copy;
 	gchar      * basedir;
@@ -1236,6 +1287,13 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	g_free (markup);
 	g_free (basedir);
 	g_free (path_copy);
+
+	/* Update Branches */
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), NULL);
+	job = giggle_git_branches_new ();
+	giggle_git_run_job (priv->git, job,
+			    window_git_get_branches_cb,
+			    window);
 }
 
 static void
