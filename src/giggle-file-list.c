@@ -156,7 +156,7 @@ giggle_file_list_init (GiggleFileList *list)
 	priv = GET_PRIV (list);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect (G_OBJECT (priv->git), "notify::directory",
+	g_signal_connect (G_OBJECT (priv->git), "notify::project-dir",
 			  G_CALLBACK (file_list_directory_changed), list);
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
@@ -402,7 +402,7 @@ file_list_populate (GiggleFileList *list)
 	GtkTreePath        *path;
 
 	priv = GET_PRIV (list);
-	directory = giggle_git_get_directory (priv->git);
+	directory = giggle_git_get_project_dir (priv->git);
 
 	file_list_add_element (list, directory, NULL, NULL);
 

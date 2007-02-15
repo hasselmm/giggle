@@ -60,6 +60,8 @@ gboolean         giggle_git_set_directory    (GiggleGit    *git,
 					      const gchar  *directory,
 					      GError      **error);
 const gchar *    giggle_git_get_git_dir      (GiggleGit    *git);
+const gchar *    giggle_git_get_project_dir  (GiggleGit    *git);
+const gchar *    giggle_git_get_project_name (GiggleGit    *git);
 
 void             giggle_git_run_job_full     (GiggleGit             *git,
 					      GiggleJob             *job,
