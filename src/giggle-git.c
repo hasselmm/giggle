@@ -32,6 +32,7 @@ struct GiggleGitPriv {
 	gchar            *directory;
 	gchar            *git_dir;
 	gchar            *project_dir;
+	gchar            *project_name;
 	gchar            *description;
 
 	GHashTable       *jobs;
@@ -73,7 +74,8 @@ enum {
 	PROP_DESCRIPTION,
 	PROP_DIRECTORY,
 	PROP_GIT_DIR,
-	PROP_PROJECT_DIR
+	PROP_PROJECT_DIR,
+	PROP_PROJECT_NAME
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
@@ -113,6 +115,13 @@ giggle_git_class_init (GiggleGitClass *class)
 					 g_param_spec_string ("project-dir",
 						 	      "Project Directory",
 							      "The location of the checkout currently being worked on",
+							      NULL,
+							      G_PARAM_READABLE));
+	g_object_class_install_property (object_class,
+					 PROP_PROJECT_NAME,
+					 g_param_spec_string ("project-name",
+						 	      "Project Name",
+							      "The name of the project (guessed)",
 							      NULL,
 							      G_PARAM_READABLE));
 
@@ -159,6 +168,7 @@ git_finalize (GObject *object)
 	g_free (priv->directory);
 	g_free (priv->git_dir);
 	g_free (priv->project_dir);
+	g_free (priv->project_name);
 
 	g_object_unref (priv->dispatcher);
 
@@ -187,6 +197,9 @@ git_get_property (GObject    *object,
 		break;
 	case PROP_PROJECT_DIR:
 		g_value_set_string (value, priv->project_dir);
+		break;
+	case PROP_PROJECT_NAME:
+		g_value_set_string (value, priv->project_name);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -475,6 +488,23 @@ giggle_git_set_directory (GiggleGit    *git,
 	g_free (tmp_dir);
 	g_object_notify (G_OBJECT (git), "project-dir");
 
+	/* update project name */
+	if (priv->project_dir) {
+		tmp_dir = g_path_get_basename (priv->project_dir);
+	} else {
+		suffix = g_strrstr (priv->git_dir, ".git");
+		if (suffix) {
+			*suffix = '\0';
+			tmp_dir = g_path_get_basename (priv->git_dir);
+			*suffix = '.'; // restore
+		} else {
+			tmp_dir = NULL;
+		}
+	}
+	g_free (priv->project_name);
+	priv->project_name = tmp_dir;
+	g_object_notify (G_OBJECT (git), "project-name");
+
 	giggle_git_update_description (git);
 
 	return TRUE;
@@ -495,13 +525,25 @@ giggle_git_get_git_dir (GiggleGit *git)
 const gchar *
 giggle_git_get_project_dir (GiggleGit *git)
 {
-	GiggleGitPriv* priv;
+	GiggleGitPriv *priv;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
 
 	priv = GET_PRIV (git);
 
 	return priv->project_dir;
+}
+
+const gchar *
+giggle_git_get_project_name (GiggleGit* git)
+{
+	GiggleGitPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	priv = GET_PRIV (git);
+
+	return priv->project_name;
 }
 
 void 
