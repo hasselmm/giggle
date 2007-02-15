@@ -30,6 +30,7 @@
 #include "giggle-branch.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
+#include "giggle-git-authors.h"
 #include "giggle-git-branches.h"
 #include "giggle-git-diff.h"
 #include "giggle-git-revisions.h"
@@ -692,6 +693,29 @@ window_setup_branches_treeview (GiggleWindow *window)
 }
 
 static void
+window_git_get_authors_cb (GiggleGit    *git,
+			   GiggleJob    *job,
+			   GError       *error,
+			   gpointer      user_data)
+{
+	g_print ("authors done\n");
+}
+#if 0
+static void
+window_authors_cell_data_func (GtkTreeViewColumn *column,
+			       GtkCellRenderer   *cell,
+			       GtkTreeModel      *model,
+			       GtkTreeIter       *iter,
+			       gpointer           data)
+{
+}
+
+static void
+window_setup_authors_treeview (GiggleWindow *window)
+{
+}
+#endif
+static void
 window_setup_revision_treeview (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
@@ -1288,6 +1312,11 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	job = giggle_git_branches_new ();
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_branches_cb,
+			    window);
+
+	job = giggle_git_authors_new ();
+	giggle_git_run_job (priv->git, job,
+			    window_git_get_authors_cb,
 			    window);
 }
 

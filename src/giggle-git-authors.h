@@ -21,7 +21,7 @@
 #ifndef __GIGGLE_GIT_AUTHORS_H__
 #define __GIGGLE_GIT_AUTHORS_H__
 
-#include <glib-object.h>
+#include "giggle-job.h"
 
 G_BEGIN_DECLS
 
@@ -36,15 +36,15 @@ typedef struct GiggleGitAuthors      GiggleGitAuthors;
 typedef struct GiggleGitAuthorsClass GiggleGitAuthorsClass;
 
 struct GiggleGitAuthors {
-	GObject parent;
+	GiggleJob parent;
 };
 
 struct GiggleGitAuthorsClass {
-	GObjectClass parent_class;
+	GiggleJobClass parent_class;
 };
 
 GType		      giggle_git_authors_get_type (void);
-GiggleGitAuthors *         giggle_git_authors_new      (void);
+GiggleJob *           giggle_git_authors_new      (void);
 
 G_END_DECLS
 

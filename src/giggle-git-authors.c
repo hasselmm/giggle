@@ -38,7 +38,7 @@ static void     git_authors_set_property        (GObject           *object,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
 
-G_DEFINE_TYPE (GiggleGitAuthors, giggle_git_authors, G_TYPE_OBJECT)
+G_DEFINE_TYPE (GiggleGitAuthors, giggle_git_authors, GIGGLE_TYPE_JOB)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_AUTHORS, GiggleGitAuthorsPriv))
 
@@ -116,5 +116,11 @@ git_authors_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+GiggleJob *
+giggle_git_authors_new (void)
+{
+	return g_object_new (GIGGLE_TYPE_GIT_AUTHORS, NULL);
 }
 
