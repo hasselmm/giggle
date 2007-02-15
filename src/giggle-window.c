@@ -46,6 +46,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *menubar_hbox;
 	/* Summary Tab */
 	GtkWidget           *label_summary;
+	GtkWidget           *label_project_path;
 	GtkWidget           *textview_description;
 	GtkWidget           *save_description;
 	GtkWidget           *restore_description;
@@ -144,6 +145,8 @@ static void window_directory_changed_cb           (GiggleGit         *git,
 static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
+static void window_notify_project_dir_cb          (GiggleWindow      *window);
+static void window_notify_project_name_cb         (GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static void window_find_next                      (GtkWidget         *widget,
@@ -303,6 +306,14 @@ giggle_window_init (GiggleWindow *window)
 			  "notify::git-dir",
 			  G_CALLBACK (window_git_dir_changed_cb),
 			  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::project-dir",
+				  G_CALLBACK (window_notify_project_dir_cb),
+				  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::project-name",
+				  G_CALLBACK (window_notify_project_name_cb),
+				  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -312,6 +323,7 @@ giggle_window_init (GiggleWindow *window)
 
 	/* Summary Tab */
 	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
+	priv->label_project_path = glade_xml_get_widget (xml, "label_project_path");
 
 	priv->textview_description = glade_xml_get_widget (xml, "textview_project_description");
 	g_signal_connect_swapped (gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description)),
@@ -422,40 +434,34 @@ window_finalize (GObject *object)
 }
 
 static void
-window_recent_repositories_add (GiggleWindow *window,
-				const gchar  *repository)
+window_recent_repositories_add (GiggleWindow *window)
 {
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData    *data;
-	gchar            *display_name, *dirname;
-	const gchar      *separator;
-
-	g_return_if_fail (repository != NULL);
+	const gchar      *repository;
+	gchar            *tmp_string;
 
 	priv = GET_PRIV (window);
 
-	if (g_str_has_suffix (repository, "/.git")) {
-		/* "file:///path/to/project/.git" */
-		dirname = g_path_get_dirname (repository);
-		display_name = g_path_get_basename (dirname);
-		g_free (dirname);
-	} else {
-		/* "file:///path/to/project.git" */
-		separator = g_strrstr (repository, G_DIR_SEPARATOR_S);
-		g_return_if_fail (separator && *separator);
-		display_name = g_strdup (separator + 1);
+	repository = giggle_git_get_project_dir (priv->git);
+	if(!repository) {
+		repository = giggle_git_get_git_dir (priv->git);
 	}
 
+	g_return_if_fail (repository != NULL);
+
 	data = g_slice_new0 (GtkRecentData);
-	data->display_name = display_name;
+	data->display_name = g_strdup (giggle_git_get_project_name (priv->git));
 	data->groups = groups;
 	data->mime_type = g_strdup ("x-directory/normal");
 	data->app_name = (gchar *) g_get_application_name ();
 	data->app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
 
+	tmp_string = g_filename_to_uri (repository, NULL, NULL);
 	gtk_recent_manager_add_full (priv->recent_manager,
-                                     repository, data);
+                                     tmp_string, data);
+	g_free (tmp_string);
 }
 
 static void
@@ -1226,7 +1232,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
 	gchar            *title;
-	gchar            *uri;
 	const gchar      *directory;
 
 	priv = GET_PRIV (window);
@@ -1243,11 +1248,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_revisions_cb,
 			    window);
-
-	/* add repository uri to recents */
-	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
-	window_recent_repositories_add (window, uri);
-	g_free (uri);
 }
 
 static void
@@ -1257,36 +1257,8 @@ window_git_dir_changed_cb (GiggleGit    *git,
 {
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
-	gchar const* path;
-	gchar      * path_copy;
-	gchar      * basedir;
-	gchar      * markup;
 
 	priv = GET_PRIV (window);
-
-	path = giggle_git_get_git_dir (git);
-	path_copy = g_strdup (path);
-	basedir = g_strrstr (path_copy, ".git");
-	if (basedir) {
-		/* .../giggle/.git => .../giggle/ or
-		 * .../giggle.git  => .../giggle */
-		*basedir = '\0';
-	}
-	if (g_str_has_suffix (path_copy, G_DIR_SEPARATOR_S)) {
-		/* .../giggle/ to .../giggle */
-		basedir = strrchr (path_copy, G_DIR_SEPARATOR);
-		if (G_LIKELY(basedir)) {
-			*basedir = '\0';
-		} // else: shouldn't happen
-	}
-	basedir = g_path_get_basename (path_copy);
-	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, path_copy);
-
-	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
-
-	g_free (markup);
-	g_free (basedir);
-	g_free (path_copy);
 
 	/* Update Branches */
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), NULL);
@@ -1294,6 +1266,34 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_branches_cb,
 			    window);
+}
+
+static void
+window_notify_project_dir_cb (GiggleWindow* window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	gtk_label_set_text (GTK_LABEL (priv->label_project_path),
+			    giggle_git_get_project_dir (priv->git));
+
+	/* add repository uri to recents */
+	window_recent_repositories_add (window);
+}
+
+static void
+window_notify_project_name_cb (GiggleWindow* window)
+{
+	GiggleWindowPriv *priv;
+	gchar            *markup;
+
+	priv = GET_PRIV (window);
+	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>",
+				  giggle_git_get_project_name (priv->git));
+
+	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
+
+	g_free (markup);
 }
 
 static void
