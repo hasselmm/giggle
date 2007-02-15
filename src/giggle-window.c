@@ -133,6 +133,7 @@ static void window_directory_changed_cb           (GiggleGit         *git,
 static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
+static void window_notify_project_dir_cb          (GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
@@ -280,6 +281,10 @@ giggle_window_init (GiggleWindow *window)
 			  "notify::git-dir",
 			  G_CALLBACK (window_git_dir_changed_cb),
 			  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::project-dir",
+				  G_CALLBACK (window_notify_project_dir_cb),
+				  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -1104,36 +1109,8 @@ window_git_dir_changed_cb (GiggleGit    *git,
 {
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
-	gchar const* path;
-	gchar      * path_copy;
-	gchar      * basedir;
-	gchar      * markup;
 
 	priv = GET_PRIV (window);
-
-	path = giggle_git_get_git_dir (git);
-	path_copy = g_strdup (path);
-	basedir = g_strrstr (path_copy, ".git");
-	if (basedir) {
-		/* .../giggle/.git => .../giggle/ or
-		 * .../giggle.git  => .../giggle */
-		*basedir = '\0';
-	}
-	if (g_str_has_suffix (path_copy, G_DIR_SEPARATOR_S)) {
-		/* .../giggle/ to .../giggle */
-		basedir = strrchr (path_copy, G_DIR_SEPARATOR);
-		if (G_LIKELY(basedir)) {
-			*basedir = '\0';
-		} // else: shouldn't happen
-	}
-	basedir = g_path_get_basename (path_copy);
-	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, path_copy);
-
-	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
-
-	g_free (markup);
-	g_free (basedir);
-	g_free (path_copy);
 
 	/* Update Branches */
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), NULL);
@@ -1141,6 +1118,26 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_branches_cb,
 			    window);
+}
+
+static void
+window_notify_project_dir_cb (GiggleWindow* window)
+{
+	GiggleWindowPriv *priv;
+	gchar const      *project_dir;
+	gchar            *basedir;
+	gchar            *markup;
+
+	priv = GET_PRIV (window);
+	// FIXME: read the project name from the object as well
+	project_dir = giggle_git_get_project_dir (priv->git);
+	basedir = g_path_get_basename (project_dir);
+	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, project_dir);
+
+	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
+
+	g_free (markup);
+	g_free (basedir);
 }
 
 static void

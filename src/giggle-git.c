@@ -31,6 +31,7 @@ struct GiggleGitPriv {
 	GiggleDispatcher *dispatcher;
 	gchar            *directory;
 	gchar            *git_dir;
+	gchar            *project_dir;
 	gchar            *description;
 
 	GHashTable       *jobs;
@@ -71,7 +72,8 @@ enum {
 	PROP_0,
 	PROP_DESCRIPTION,
 	PROP_DIRECTORY,
-	PROP_GIT_DIR
+	PROP_GIT_DIR,
+	PROP_PROJECT_DIR
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
@@ -104,6 +106,13 @@ giggle_git_class_init (GiggleGitClass *class)
 					 g_param_spec_string ("git-dir",
 						 	      "Git-Directory",
 							      "The equivalent of $GIT_DIR",
+							      NULL,
+							      G_PARAM_READABLE));
+	g_object_class_install_property (object_class,
+					 PROP_PROJECT_DIR,
+					 g_param_spec_string ("project-dir",
+						 	      "Project Directory",
+							      "The location of the checkout currently being worked on",
 							      NULL,
 							      G_PARAM_READABLE));
 
@@ -148,6 +157,8 @@ git_finalize (GObject *object)
 
 	g_hash_table_destroy (priv->jobs);
 	g_free (priv->directory);
+	g_free (priv->git_dir);
+	g_free (priv->project_dir);
 
 	g_object_unref (priv->dispatcher);
 
@@ -173,6 +184,9 @@ git_get_property (GObject    *object,
 		break;
 	case PROP_GIT_DIR:
 		g_value_set_string (value, priv->git_dir);
+		break;
+	case PROP_PROJECT_DIR:
+		g_value_set_string (value, priv->project_dir);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -416,25 +430,50 @@ giggle_git_set_directory (GiggleGit    *git,
 			  GError      **error)
 {
 	GiggleGitPriv *priv;
-	gchar* git_dir;
+	gchar         *tmp_dir;
+	gchar         *suffix;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), FALSE);
 	g_return_val_if_fail (directory != NULL, FALSE);
 
 	priv = GET_PRIV (git);
 
-	if (!git_verify_directory (git, directory, &git_dir, error)) {
+	if (!git_verify_directory (git, directory, &tmp_dir, error)) {
 		return FALSE;
 	}
 
+	/* update working directory */
 	g_free (priv->directory);
 	priv->directory = g_strdup (directory);
-
 	g_object_notify (G_OBJECT (git), "directory");
 
+	/* update git dir */
 	g_free (priv->git_dir);
-	priv->git_dir = git_dir;
+	priv->git_dir = tmp_dir;
 	g_object_notify (G_OBJECT (git), "git-dir");
+
+	/* update project dir */
+	g_free (priv->project_dir);
+
+	tmp_dir = g_strdup (priv->git_dir);
+	suffix = g_strrstr (tmp_dir, ".git");
+	if(G_UNLIKELY(!suffix)) {
+		/* Tele-Tubby: Uuh Ooooh */
+		priv->project_dir = NULL;
+	} else {
+		/* .../giggle/.git
+		 *            ^    */
+		if(*(--suffix) == G_DIR_SEPARATOR) {
+			*suffix = '\0';
+			priv->project_dir = g_strdup (tmp_dir);
+			/* strdup again to skip truncated chars */
+		} else {
+			/* /home/herzi/Hacking/giggle.git - no project folder */
+			priv->project_dir = NULL;
+		}
+	}
+	g_free (tmp_dir);
+	g_object_notify (G_OBJECT (git), "project-dir");
 
 	giggle_git_update_description (git);
 
@@ -451,6 +490,18 @@ giggle_git_get_git_dir (GiggleGit *git)
 	priv = GET_PRIV (git);
 
 	return priv->git_dir;
+}
+
+const gchar *
+giggle_git_get_project_dir (GiggleGit *git)
+{
+	GiggleGitPriv* priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	priv = GET_PRIV (git);
+
+	return priv->project_dir;
 }
 
 void 
