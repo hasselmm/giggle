@@ -45,6 +45,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *menubar_hbox;
 	/* Summary Tab */
 	GtkWidget           *label_summary;
+	GtkWidget           *label_project_path;
 	GtkWidget           *textview_description;
 	GtkWidget           *save_description;
 	GtkWidget           *restore_description;
@@ -134,6 +135,7 @@ static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
 static void window_notify_project_dir_cb          (GiggleWindow      *window);
+static void window_notify_project_name_cb         (GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
@@ -285,6 +287,10 @@ giggle_window_init (GiggleWindow *window)
 				  "notify::project-dir",
 				  G_CALLBACK (window_notify_project_dir_cb),
 				  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::project-name",
+				  G_CALLBACK (window_notify_project_name_cb),
+				  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -294,6 +300,7 @@ giggle_window_init (GiggleWindow *window)
 
 	/* Summary Tab */
 	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
+	priv->label_project_path = glade_xml_get_widget (xml, "label_project_path");
 
 	priv->textview_description = glade_xml_get_widget (xml, "textview_project_description");
 	g_signal_connect_swapped (gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview_description)),
@@ -1124,20 +1131,25 @@ static void
 window_notify_project_dir_cb (GiggleWindow* window)
 {
 	GiggleWindowPriv *priv;
-	gchar const      *project_dir;
-	gchar            *basedir;
+
+	priv = GET_PRIV (window);
+	gtk_label_set_text (GTK_LABEL (priv->label_project_path),
+			    giggle_git_get_project_dir (priv->git));
+}
+
+static void
+window_notify_project_name_cb (GiggleWindow* window)
+{
+	GiggleWindowPriv *priv;
 	gchar            *markup;
 
 	priv = GET_PRIV (window);
-	// FIXME: read the project name from the object as well
-	project_dir = giggle_git_get_project_dir (priv->git);
-	basedir = g_path_get_basename (project_dir);
-	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>\n%s", basedir, project_dir);
+	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>",
+				  giggle_git_get_project_name (priv->git));
 
 	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
 
 	g_free (markup);
-	g_free (basedir);
 }
 
 static void
