@@ -24,6 +24,8 @@ giggle_SOURCES =				\
 	giggle-file-list.h			\
 	giggle-git.c                            \
 	giggle-git.h                            \
+	giggle-git-authors.c			\
+	giggle-git-authors.h			\
 	giggle-git-branches.c			\
 	giggle-git-branches.h			\
 	giggle-git-diff.c                       \

@@ -27,8 +27,8 @@ G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_DUMMY            (giggle_dummy_get_type ())
 #define GIGGLE_DUMMY(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_DUMMY, GiggleDummy))
-#define GIGGLE_DUMMY_CLASS(klass)	  (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_DUMMY, GiggleDummyClass))
-#define GIGGLE_IS_DUMMY(obj)	  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_DUMMY))
+#define GIGGLE_DUMMY_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_DUMMY, GiggleDummyClass))
+#define GIGGLE_IS_DUMMY(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_DUMMY))
 #define GIGGLE_IS_DUMMY_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_DUMMY))
 #define GIGGLE_DUMMY_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_DUMMY, GiggleDummyClass))
 
