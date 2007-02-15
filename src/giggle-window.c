@@ -89,6 +89,11 @@ enum {
 	BRANCHES_N_COLUMNS
 };
 
+enum {
+	SEARCH_NEXT,
+	SEARCH_PREV
+};
+
 static void window_finalize                       (GObject           *object);
 static void window_setup_branches_treeview        (GiggleWindow      *window);
 static void window_setup_revision_treeview        (GiggleWindow      *window);
