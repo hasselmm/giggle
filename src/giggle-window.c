@@ -80,11 +80,6 @@ enum {
 };
 
 enum {
-	SEARCH_NEXT,
-	SEARCH_PREV
-};
-
-enum {
 	BRANCHES_COL_BRANCH,
 	BRANCHES_N_COLUMNS
 };
@@ -93,6 +88,7 @@ enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
+
 
 static void window_finalize                       (GObject           *object);
 static void window_setup_branches_treeview        (GiggleWindow      *window);
@@ -572,6 +568,25 @@ window_recent_repositories_update (GiggleWindow *window)
 }
 
 static void
+window_show_error (GiggleWindow *window,
+		   const gchar  *message,
+		   GError       *error)
+{
+	GtkWidget *dialog;
+
+	g_return_if_fail (error != NULL);
+
+	dialog = gtk_message_dialog_new (GTK_WINDOW (window),
+					 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+					 GTK_MESSAGE_ERROR,
+					 GTK_BUTTONS_OK,
+					 _(message), error->message);
+
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+}
+
+static void
 window_git_get_revisions_cb (GiggleGit    *git,
 			     GiggleJob    *job,
 			     GError       *error,
@@ -585,20 +600,29 @@ window_git_get_revisions_cb (GiggleGit    *git,
 
 	window = GIGGLE_WINDOW (user_data);
 	priv = GET_PRIV (window);
-	store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
-	revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
 
-	while (revisions) {
-		gtk_list_store_append (store, &iter);
-		gtk_list_store_set (store, &iter,
-				    REVISION_COL_OBJECT, revisions->data,
-				    -1);
-		revisions = revisions->next;
+	if (error) {
+		window_show_error (window,
+				   N_("An error ocurred when getting the revisions list:\n%s"),
+				   error);
+		g_error_free (error);
+	} else {
+		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
+		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
+
+		while (revisions) {
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+					    REVISION_COL_OBJECT, revisions->data,
+					    -1);
+			revisions = revisions->next;
+		}
+
+		giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), GTK_TREE_MODEL (store), 0);
+		gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), GTK_TREE_MODEL (store));
+		g_object_unref (store);
 	}
 
-	giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), GTK_TREE_MODEL (store), 0);
-	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->revision_treeview), GTK_TREE_MODEL (store));
-	g_object_unref (store);
 	g_object_unref (job);
 }
 
@@ -608,24 +632,35 @@ window_git_get_branches_cb (GiggleGit    *git,
 			    GError       *error,
 			    gpointer      user_data)
 {
+	GiggleWindow     *window;
 	GiggleWindowPriv *priv;
 	GtkListStore     *store;
 	GtkTreeIter       iter;
 	GList            *branches;
 
-	priv = GET_PRIV (user_data);
-	store = gtk_list_store_new (BRANCHES_N_COLUMNS, GIGGLE_TYPE_BRANCH);
-	branches = giggle_git_branches_get_branches (GIGGLE_GIT_BRANCHES (job));
+	window = GIGGLE_WINDOW (user_data);
+	priv = GET_PRIV (window);
 
-	for(; branches; branches = g_list_next (branches)) {
-		gtk_list_store_append (store, &iter);
-		gtk_list_store_set (store, &iter,
-				    BRANCHES_COL_BRANCH, branches->data,
-				    -1);
+	if (error) {
+		window_show_error (window,
+				   N_("An error ocurred when retrieving branches list:%s"),
+				   error);
+		g_error_free (error);
+	} else {
+		store = gtk_list_store_new (BRANCHES_N_COLUMNS, GIGGLE_TYPE_BRANCH);
+		branches = giggle_git_branches_get_branches (GIGGLE_GIT_BRANCHES (job));
+
+		for(; branches; branches = g_list_next (branches)) {
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+					    BRANCHES_COL_BRANCH, branches->data,
+					    -1);
+		}
+
+		gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
+		g_object_unref (store);
 	}
 
-	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
-	g_object_unref (store);
 	g_object_unref (job);
 }
 
@@ -904,17 +939,10 @@ window_git_diff_result_callback (GiggleGit *git,
 	priv = GET_PRIV (window);
 
 	if (error) {
-		GtkWidget *dialog;
-		
-		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
-						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-						 GTK_MESSAGE_ERROR,
-						 GTK_BUTTONS_OK,
-						 _("An error ocurred when retrieving a diff:\n"
-						   "%s"), error->message);
-		
-		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
+		window_show_error (window,
+				   N_("An error ocurred when retrieving a diff:\n%s"),
+				   error);
+		g_error_free (error);
 	} else {
 		gtk_text_buffer_set_text (
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
@@ -1072,19 +1100,9 @@ window_action_save_patch_cb (GtkAction    *action,
 		path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file_chooser));
 
 		if (!g_file_set_contents (path, text, strlen (text), &error)) {
-			GtkWidget *dialog;
-
-			dialog = gtk_message_dialog_new (
-				GTK_WINDOW (window),
-				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_ERROR,
-				GTK_BUTTONS_CLOSE,
-				_("There was an error saving to file: \n%s"),
-				error->message);
-
-			gtk_dialog_run (GTK_DIALOG (dialog));
-
-			gtk_widget_destroy (dialog);
+			window_show_error (window,
+					   N_("An error ocurred when saving to file:\n%s"),
+					   error);
 			g_error_free (error);
 		}
 	}
