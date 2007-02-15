@@ -392,39 +392,34 @@ window_finalize (GObject *object)
 }
 
 static void
-window_recent_repositories_add (GiggleWindow *window,
-				const gchar  *repository)
+window_recent_repositories_add (GiggleWindow *window)
 {
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData    *data;
-	gchar* display_name;
-
-	g_return_if_fail (repository != NULL);
+	const gchar      *repository;
+	gchar            *tmp_string;
 
 	priv = GET_PRIV (window);
 
-	if(g_str_has_suffix(repository, "/.git")) {
-		/* "file:///path/to/project/.git" */
-		gchar* dirname = g_path_get_dirname(repository);
-		display_name = g_path_get_basename(dirname);
-		g_free(dirname);
-	} else {
-		/* "file:///path/to/project.git" */
-		gchar const      *separator;
-		separator = g_strrstr(repository, G_DIR_SEPARATOR_S);
-		g_return_if_fail(separator && *separator);
-		display_name = g_strdup(separator+1);
+	repository = giggle_git_get_project_dir (priv->git);
+	if(!repository) {
+		repository = giggle_git_get_git_dir (priv->git);
 	}
+
+	g_return_if_fail (repository != NULL);
+
 	data = g_slice_new0 (GtkRecentData);
-	data->display_name = display_name;
+	data->display_name = g_strdup (giggle_git_get_project_name (priv->git));
 	data->groups = groups;
 	data->mime_type = g_strdup ("x-directory/normal");
 	data->app_name = (gchar *) g_get_application_name ();
 	data->app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
 
+	tmp_string = g_filename_to_uri (repository, NULL, NULL);
 	gtk_recent_manager_add_full (priv->recent_manager,
-                                     repository, data);
+                                     tmp_string, data);
+	g_free (tmp_string);
 }
 
 static void
@@ -1085,7 +1080,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	GiggleWindowPriv *priv;
 	GiggleJob        *job;
 	gchar            *title;
-	gchar            *uri;
 	const gchar      *directory;
 
 	priv = GET_PRIV (window);
@@ -1102,11 +1096,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_revisions_cb,
 			    window);
-
-	/* add repository uri to recents */
-	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
-	window_recent_repositories_add (window, uri);
-	g_free (uri);
 }
 
 static void
@@ -1135,6 +1124,9 @@ window_notify_project_dir_cb (GiggleWindow* window)
 	priv = GET_PRIV (window);
 	gtk_label_set_text (GTK_LABEL (priv->label_project_path),
 			    giggle_git_get_project_dir (priv->git));
+
+	/* add repository uri to recents */
+	window_recent_repositories_add (window);
 }
 
 static void
