@@ -200,8 +200,6 @@ static const gchar *ui_layout =
 	"      <menuitem action='Open'/>"
 	"      <menuitem action='SavePatch'/>"
 	"      <separator/>"
-	"      <menuitem action='PersonalDetails'/>"
-	"      <separator/>"
 	"      <placeholder name='RecentRepositories'/>"
 	"      <separator/>"
 	"      <menuitem action='Quit'/>"
