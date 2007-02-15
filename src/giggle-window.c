@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "giggle-window.h"
+#include "giggle-branch.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
 #include "giggle-git-branches.h"
@@ -47,6 +48,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *textview_description;
 	GtkWidget           *save_description;
 	GtkWidget           *restore_description;
+	GtkWidget           *treeview_branches;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -543,7 +545,10 @@ window_git_get_branches_cb (GiggleGit    *git,
 			    GError       *error,
 			    gpointer      user_data)
 {
-	/* FIXME: do something with branches */
+	GList *branches = giggle_git_branches_get_branches (GIGGLE_GIT_BRANCHES (job));
+	for(; branches; branches = g_list_next (branches)) {
+		g_print ("%s\n", giggle_branch_get_name (branches->data));
+	}
 	g_object_unref (job);
 }
 
@@ -1036,11 +1041,6 @@ window_directory_changed_cb (GiggleGit    *git,
 			    window_git_get_revisions_cb,
 			    window);
 
-	job = giggle_git_branches_new ();
-	giggle_git_run_job (priv->git, job,
-			    window_git_get_branches_cb,
-			    window);
-
 	/* add repository uri to recents */
 	uri = g_filename_to_uri (giggle_git_get_directory (git), NULL, NULL);
 	window_recent_repositories_add (window, uri);
@@ -1053,6 +1053,7 @@ window_git_dir_changed_cb (GiggleGit    *git,
 			   GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	GiggleJob        *job;
 	gchar const* path;
 	gchar      * path_copy;
 	gchar      * basedir;
@@ -1083,6 +1084,13 @@ window_git_dir_changed_cb (GiggleGit    *git,
 	g_free (markup);
 	g_free (basedir);
 	g_free (path_copy);
+
+	/* Update Branches */
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), NULL);
+	job = giggle_git_branches_new ();
+	giggle_git_run_job (priv->git, job,
+			    window_git_get_branches_cb,
+			    window);
 }
 
 static void

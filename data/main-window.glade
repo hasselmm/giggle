@@ -234,6 +234,7 @@
 
 		  <child>
 		    <widget class="GtkTable" id="table1">
+		      <property name="visible">True</property>
 		      <property name="n_rows">2</property>
 		      <property name="n_columns">2</property>
 		      <property name="homogeneous">True</property>
@@ -325,7 +326,6 @@
 
 		      <child>
 			<widget class="GtkVBox" id="vbox4">
-			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
 			  <property name="spacing">6</property>
 
@@ -409,7 +409,6 @@
 
 		      <child>
 			<widget class="GtkVBox" id="vbox5">
-			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
 			  <property name="spacing">6</property>
 
