@@ -458,12 +458,10 @@ giggle_git_set_directory (GiggleGit    *git,
 	/* update working directory */
 	g_free (priv->directory);
 	priv->directory = g_strdup (directory);
-	g_object_notify (G_OBJECT (git), "directory");
 
 	/* update git dir */
 	g_free (priv->git_dir);
 	priv->git_dir = tmp_dir;
-	g_object_notify (G_OBJECT (git), "git-dir");
 
 	/* update project dir */
 	g_free (priv->project_dir);
@@ -486,7 +484,6 @@ giggle_git_set_directory (GiggleGit    *git,
 		}
 	}
 	g_free (tmp_dir);
-	g_object_notify (G_OBJECT (git), "project-dir");
 
 	/* update project name */
 	if (priv->project_dir) {
@@ -503,6 +500,11 @@ giggle_git_set_directory (GiggleGit    *git,
 	}
 	g_free (priv->project_name);
 	priv->project_name = tmp_dir;
+
+	/* notify */
+	g_object_notify (G_OBJECT (git), "directory");
+	g_object_notify (G_OBJECT (git), "git-dir");
+	g_object_notify (G_OBJECT (git), "project-dir");
 	g_object_notify (G_OBJECT (git), "project-name");
 
 	giggle_git_update_description (git);
