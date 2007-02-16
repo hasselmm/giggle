@@ -135,3 +135,11 @@ giggle_author_new (const gchar *string)
 	return g_object_new (GIGGLE_TYPE_AUTHOR, "string", string, NULL);
 }
 
+const gchar *
+giggle_author_get_string (GiggleAuthor* self)
+{
+	g_return_val_if_fail (GIGGLE_IS_AUTHOR (self), NULL);
+
+	return GET_PRIV(self)->string;
+}
+
