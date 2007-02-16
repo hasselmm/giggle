@@ -74,8 +74,9 @@ struct GiggleWindowPriv {
 	GtkWidget           *file_list;
 	GtkWidget           *personal_details_window;
 
-	/* Current job in progress. */
-	GiggleJob           *current_job;
+	/* Current jobs in progress. */
+	GiggleJob           *current_diff_job;
+	GiggleJob           *current_diff_tree_job;
 };
 
 enum {
@@ -439,9 +440,14 @@ window_finalize (GObject *object)
 	
 	g_object_unref (priv->ui_manager);
 
-	if (priv->current_job) {
-		giggle_git_cancel_job (priv->git, priv->current_job);
-		g_object_unref (priv->current_job);
+	if (priv->current_diff_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_job);
+		g_object_unref (priv->current_diff_job);
+	}
+
+	if (priv->current_diff_tree_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
+		g_object_unref (priv->current_diff_tree_job);
 	}
 
 	g_object_unref (priv->git);
@@ -906,25 +912,31 @@ window_update_revision_info (GiggleWindow   *window,
 		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
 		"", 0);
 
-	if (priv->current_job) {
-		giggle_git_cancel_job (priv->git, priv->current_job);
-		g_object_unref (priv->current_job);
-		priv->current_job = NULL;
+	if (priv->current_diff_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_job);
+		g_object_unref (priv->current_diff_job);
+		priv->current_diff_job = NULL;
+	}
+
+	if (priv->current_diff_tree_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
+		g_object_unref (priv->current_diff_tree_job);
+		priv->current_diff_tree_job = NULL;
 	}
 	
 	if (current_revision && previous_revision) {
 		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, FALSE);
 
-		priv->current_job = giggle_git_diff_tree_new (previous_revision, current_revision);
+		priv->current_diff_job = giggle_git_diff_tree_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
-				    priv->current_job,
+				    priv->current_diff_job,
 				    window_git_diff_tree_result_callback,
 				    window);
 
-		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
+		priv->current_diff_tree_job = giggle_git_diff_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
-				    priv->current_job,
+				    priv->current_diff_tree_job,
 				    window_git_diff_result_callback,
 				    window);
 	}
@@ -1036,8 +1048,8 @@ window_git_diff_result_callback (GiggleGit *git,
 		gtk_action_set_sensitive (action, TRUE);
 	}
 
-	g_object_unref (priv->current_job);
-	priv->current_job = NULL;
+	g_object_unref (priv->current_diff_job);
+	priv->current_diff_job = NULL;
 }
 
 static void
@@ -1063,7 +1075,8 @@ window_git_diff_tree_result_callback (GiggleGit *git,
 		giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), list);
 	}
 
-	g_object_unref (priv->current_job);
+	g_object_unref (priv->current_diff_tree_job);
+	priv->current_diff_tree_job = NULL;
 }
 
 static void
