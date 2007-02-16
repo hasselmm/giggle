@@ -25,7 +25,12 @@
 typedef struct GiggleAuthorPriv GiggleAuthorPriv;
 
 struct GiggleAuthorPriv {
-	guint i;
+	gchar* string;
+};
+
+enum {
+	PROP_0,
+	PROP_STRING
 };
 
 static void     author_finalize            (GObject           *object);
@@ -51,15 +56,13 @@ giggle_author_class_init (GiggleAuthorClass *class)
 	object_class->get_property = author_get_property;
 	object_class->set_property = author_set_property;
 
-#if 0
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
+					 PROP_STRING,
+					 g_param_spec_string ("string",
+							      "Author String",
+							      "The string describing the author",
 							      NULL,
-							      G_PARAM_READABLE));
-#endif
+							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleAuthorPriv));
 }
@@ -95,6 +98,9 @@ author_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_STRING:
+		g_value_set_string (value, priv->string);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -112,6 +118,11 @@ author_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_STRING:
+		g_free (priv->string);
+		priv->string = g_value_dup_string (value);
+		g_object_notify (object, "string");
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
