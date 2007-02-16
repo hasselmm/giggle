@@ -76,7 +76,8 @@ enum {
 	PROP_DIRECTORY,
 	PROP_GIT_DIR,
 	PROP_PROJECT_DIR,
-	PROP_PROJECT_NAME
+	PROP_PROJECT_NAME,
+	PROP_REMOTES
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
@@ -125,6 +126,12 @@ giggle_git_class_init (GiggleGitClass *class)
 							      "The name of the project (guessed)",
 							      NULL,
 							      G_PARAM_READABLE));
+	g_object_class_install_property (object_class,
+					 PROP_REMOTES,
+					 g_param_spec_string ("remotes",
+						 	      "Remotes",
+							      "The remote sources",
+							      NULL, 0));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitPriv));
 }
