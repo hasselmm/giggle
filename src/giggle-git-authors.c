@@ -173,3 +173,15 @@ giggle_git_authors_new (void)
 	return g_object_new (GIGGLE_TYPE_GIT_AUTHORS, NULL);
 }
 
+GList *
+giggle_git_authors_get_list (GiggleGitAuthors *authors)
+{
+	GiggleGitAuthorsPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_AUTHORS (authors), NULL);
+
+	priv = GET_PRIV (authors);
+
+	return priv->authors;
+}
+
