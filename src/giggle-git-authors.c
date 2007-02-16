@@ -140,11 +140,20 @@ authors_get_command_line (GiggleJob *job,
 }
 
 static void
+add_author (gchar const          *key,
+	    gchar const          *value,
+	    GiggleGitAuthorsPriv *priv)
+{
+	priv->authors = g_list_prepend (priv->authors, giggle_author_new (key));
+}
+
+static void
 authors_handle_output (GiggleJob   *job,
 		       const gchar *output,
 		       gsize        length)
 {
 	GiggleGitAuthorsPriv *priv;
+	GHashTable           *map;
 	GList                *authors;
 	gchar               **lines;
 	gchar               **line;
@@ -153,17 +162,25 @@ authors_handle_output (GiggleJob   *job,
 
 	lines = g_strsplit (output, "\n", -1);
 
+	map = g_hash_table_new (g_str_hash, g_str_equal);
+
 	authors = NULL;
 	for (line = lines; line && *line; line++) {
-		if (g_str_has_prefix (*line, "Author: ")) {
-			authors = g_list_prepend (authors, giggle_author_new (*line + strlen ("Author: ")));
+		if (g_str_has_prefix (*line, "Author: ") &&
+		    g_hash_table_lookup (map, *line + strlen ("Author: ")) == NULL)
+		{
+			g_hash_table_insert (map,
+					     *line + strlen ("Author: "),
+					     *line + strlen ("Author: "));
 		}
 	}
 
 	g_list_foreach (priv->authors, (GFunc)g_object_unref, NULL);
 	g_list_free (priv->authors);
 
-	priv->authors = g_list_reverse (authors);
+	priv->authors = NULL;
+	g_hash_table_foreach (map, (GHFunc)add_author, priv);
+
 	g_strfreev (lines);
 }
 
