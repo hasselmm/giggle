@@ -1243,17 +1243,27 @@ window_action_find_cb (GtkAction    *action,
 }
 
 static gboolean
+revision_property_matches (GiggleRevision *revision,
+			   const gchar    *property,
+			   const gchar    *search_string)
+{
+	gboolean  match;
+	gchar    *str;
+
+	g_object_get (revision, property, &str, NULL);
+	match = strstr (str, search_string) != NULL;
+	g_free (str);
+
+	return match;
+}
+
+static gboolean
 revision_matches (GiggleRevision *revision,
 		  const gchar    *search_string)
 {
-	gchar    *author;
-	gboolean  match;
-
-	g_object_get (revision, "author", &author, NULL);
-	match = strstr (author, search_string) != NULL;
-	g_free (author);
-
-	return match;
+	return (revision_property_matches (revision, "author", search_string) ||
+		revision_property_matches (revision, "long-log", search_string) ||
+		revision_property_matches (revision, "sha", search_string));
 }
 
 static void
