@@ -90,7 +90,9 @@ git_authors_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 	
-	/* FIXME: Free object data */
+	g_list_foreach (priv->authors, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->authors);
+	priv->authors = NULL;
 
 	G_OBJECT_CLASS (giggle_git_authors_parent_class)->finalize (object);
 }
