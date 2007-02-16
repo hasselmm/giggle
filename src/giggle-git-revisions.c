@@ -232,8 +232,8 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 	GString *long_log = NULL;
 
 	while (lines[i]) {
-		if (g_str_has_prefix (lines[i], "committer ")) {
-			git_revisions_set_committer_info (revision, lines[i] + strlen ("committer "));
+		if (g_str_has_prefix (lines[i], "author ")) {
+			git_revisions_set_committer_info (revision, lines[i] + strlen ("author "));
 		} else if (g_str_has_prefix (lines[i], " ")) {
 			g_strstrip (lines[i]);
 
