@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "giggle-window.h"
+#include "giggle-author.h"
 #include "giggle-branch.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
@@ -52,6 +53,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *save_description;
 	GtkWidget           *restore_description;
 	GtkWidget           *treeview_branches;
+	GtkWidget           *treeview_authors;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -81,6 +83,11 @@ enum {
 };
 
 enum {
+	AUTHORS_COL_AUTHOR,
+	AUTHORS_N_COLUMNS
+};
+
+enum {
 	BRANCHES_COL_BRANCH,
 	BRANCHES_N_COLUMNS
 };
@@ -93,6 +100,7 @@ enum {
 
 static void window_finalize                       (GObject           *object);
 static void window_setup_branches_treeview        (GiggleWindow      *window);
+static void window_setup_authors_treeview         (GiggleWindow      *window);
 static void window_setup_revision_treeview        (GiggleWindow      *window);
 static void window_setup_diff_textview            (GiggleWindow      *window,
 						   GtkWidget         *scrolled);
@@ -346,6 +354,9 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->treeview_branches = glade_xml_get_widget (xml, "treeview_branches");
 	window_setup_branches_treeview (window);
+
+	priv->treeview_authors = glade_xml_get_widget (xml, "treeview_authors");
+	window_setup_authors_treeview (window);
 
 	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
@@ -698,9 +709,28 @@ window_git_get_authors_cb (GiggleGit    *git,
 			   GError       *error,
 			   gpointer      user_data)
 {
-	g_print ("authors done\n");
+	GiggleWindowPriv *priv;
+	GtkListStore     *store;
+	GtkTreeIter       iter;
+	GList            *authors;
+
+	priv = GET_PRIV (user_data);
+
+	store = gtk_list_store_new (AUTHORS_N_COLUMNS, GIGGLE_TYPE_AUTHOR);
+	authors = giggle_git_authors_get_list (GIGGLE_GIT_AUTHORS (job));
+
+	for (; authors; authors = g_list_next (authors)) {
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter,
+				    AUTHORS_COL_AUTHOR, authors->data,
+				    -1);
+	}
+
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_authors), GTK_TREE_MODEL (store));
+	g_object_unref (store);
+	g_object_unref (job);
 }
-#if 0
+
 static void
 window_authors_cell_data_func (GtkTreeViewColumn *column,
 			       GtkCellRenderer   *cell,
@@ -708,13 +738,26 @@ window_authors_cell_data_func (GtkTreeViewColumn *column,
 			       GtkTreeIter       *iter,
 			       gpointer           data)
 {
+	GiggleAuthor *author = NULL;
+
+	// FIXME: check whether we're leaking references here
+	gtk_tree_model_get (model, iter,
+			    AUTHORS_COL_AUTHOR, &author,
+			    -1);
+	g_object_set (cell, "text", giggle_author_get_string (author), NULL);
 }
 
 static void
 window_setup_authors_treeview (GiggleWindow *window)
 {
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_authors), -1,
+						    _("Author"), gtk_cell_renderer_text_new (),
+						    window_authors_cell_data_func, NULL, NULL);
 }
-#endif
+
 static void
 window_setup_revision_treeview (GiggleWindow *window)
 {
