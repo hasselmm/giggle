@@ -32,6 +32,8 @@ giggle_SOURCES =				\
 	giggle-git-branches.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
+	giggle-git-diff-tree.c			\
+	giggle-git-diff-tree.h			\
 	giggle-git-ignore.c			\
 	giggle-git-ignore.h			\
 	giggle-git-read-config.c		\

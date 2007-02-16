@@ -34,6 +34,7 @@
 #include "giggle-git-authors.h"
 #include "giggle-git-branches.h"
 #include "giggle-git-diff.h"
+#include "giggle-git-diff-tree.h"
 #include "giggle-git-revisions.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
@@ -113,6 +114,10 @@ static void window_add_widget_cb                  (GtkUIManager      *merge,
 static void window_revision_selection_changed_cb  (GtkTreeSelection  *selection,
 						   GiggleWindow      *window);
 static void window_git_diff_result_callback       (GiggleGit         *git,
+						   GiggleJob         *job,
+						   GError            *error,
+						   gpointer           user_data);
+static void window_git_diff_tree_result_callback  (GiggleGit         *git,
 						   GiggleJob         *job,
 						   GError            *error,
 						   gpointer           user_data);
@@ -911,6 +916,12 @@ window_update_revision_info (GiggleWindow   *window,
 		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, FALSE);
 
+		priv->current_job = giggle_git_diff_tree_new (previous_revision, current_revision);
+		giggle_git_run_job (priv->git,
+				    priv->current_job,
+				    window_git_diff_tree_result_callback,
+				    window);
+
 		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
 				    priv->current_job,
@@ -949,6 +960,9 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
 	first_revision = last_revision = NULL;
 	valid = FALSE;
+
+	/* clear file list highlights */
+	giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), NULL);
 
 	if (!rows) {
 		return;
@@ -1024,6 +1038,32 @@ window_git_diff_result_callback (GiggleGit *git,
 
 	g_object_unref (priv->current_job);
 	priv->current_job = NULL;
+}
+
+static void
+window_git_diff_tree_result_callback (GiggleGit *git,
+				      GiggleJob *job,
+				      GError    *error,
+				      gpointer   user_data)
+{
+	GiggleWindow     *window;
+	GiggleWindowPriv *priv;
+	GList            *list;
+
+	window = GIGGLE_WINDOW (user_data);
+	priv = GET_PRIV (window);
+
+	if (error) {
+		window_show_error (window,
+				   N_("An error ocurred when retrieving different files list:\n%s"),
+				   error);
+		g_error_free (error);
+	} else {
+		list = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (job));
+		giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), list);
+	}
+
+	g_object_unref (priv->current_job);
 }
 
 static void
