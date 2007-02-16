@@ -39,6 +39,9 @@ static void     git_authors_set_property        (GObject           *object,
 					   GParamSpec        *pspec);
 static gboolean authors_get_command_line  (GiggleJob         *job,
 					   gchar            **command_line);
+static void     authors_handle_output     (GiggleJob         *job,
+					   const gchar       *output,
+					   gsize              length);
 
 G_DEFINE_TYPE (GiggleGitAuthors, giggle_git_authors, GIGGLE_TYPE_JOB)
 
@@ -55,6 +58,7 @@ giggle_git_authors_class_init (GiggleGitAuthorsClass *class)
 	object_class->set_property = git_authors_set_property;
 
 	job_class->get_command_line = authors_get_command_line;
+	job_class->handle_output    = authors_handle_output;
 
 #if 0
 	g_object_class_install_property (object_class,
@@ -129,6 +133,25 @@ authors_get_command_line (GiggleJob *job,
 {
 	*command_line = g_strdup ("git log");
 	return TRUE;
+}
+
+static void
+authors_handle_output (GiggleJob   *job,
+		       const gchar *output,
+		       gsize        length)
+{
+	gchar**lines;
+	gchar**line;
+
+	lines = g_strsplit (output, "\n", -1);
+
+	for (line = lines; line && *line; line++) {
+		if (g_str_has_prefix (*line, "Author: ")) {
+			g_print ("%s\n", *line);
+		}
+	}
+
+	g_strfreev (lines);
 }
 
 GiggleJob *
