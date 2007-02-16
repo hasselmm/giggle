@@ -19,13 +19,15 @@
  */
 
 #include <config.h>
+#include <string.h>
 
 #include "giggle-git-authors.h"
+#include "giggle-author.h"
 
 typedef struct GiggleGitAuthorsPriv GiggleGitAuthorsPriv;
 
 struct GiggleGitAuthorsPriv {
-	guint i;
+	GList *authors;
 };
 
 static void     git_authors_finalize            (GObject           *object);
@@ -140,17 +142,26 @@ authors_handle_output (GiggleJob   *job,
 		       const gchar *output,
 		       gsize        length)
 {
-	gchar**lines;
-	gchar**line;
+	GiggleGitAuthorsPriv *priv;
+	GList                *authors;
+	gchar               **lines;
+	gchar               **line;
+
+	priv = GET_PRIV (job);
 
 	lines = g_strsplit (output, "\n", -1);
 
+	authors = NULL;
 	for (line = lines; line && *line; line++) {
 		if (g_str_has_prefix (*line, "Author: ")) {
-			g_print ("%s\n", *line);
+			authors = g_list_prepend (authors, giggle_author_new (*line + strlen ("Author: ")));
 		}
 	}
 
+	g_list_foreach (priv->authors, (GFunc)g_object_unref, NULL);
+	g_list_free (priv->authors);
+
+	priv->authors = g_list_reverse (authors);
 	g_strfreev (lines);
 }
 

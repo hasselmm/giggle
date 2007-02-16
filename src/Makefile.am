@@ -10,6 +10,8 @@ bin_PROGRAMS = giggle
 giggle_SOURCES =				\
 	eggfindbar.c				\
 	eggfindbar.h				\
+	giggle-author.c				\
+	giggle-author.h				\
 	giggle-branch.c				\
 	giggle-branch.h				\
 	giggle-configuration.c			\
