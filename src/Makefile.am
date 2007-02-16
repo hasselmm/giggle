@@ -46,6 +46,8 @@ giggle_SOURCES =				\
 	giggle-job.h                            \
 	giggle-personal-details-window.c	\
 	giggle-personal-details-window.h	\
+	giggle-remote.c				\
+	giggle-remote.h				\
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
 	giggle-revision.c			\
