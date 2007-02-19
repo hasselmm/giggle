@@ -34,6 +34,7 @@
 #include "giggle-git-authors.h"
 #include "giggle-git-branches.h"
 #include "giggle-git-diff.h"
+#include "giggle-git-diff-tree.h"
 #include "giggle-git-revisions.h"
 #include "giggle-remote.h"
 #include "giggle-revision.h"
@@ -75,8 +76,9 @@ struct GiggleWindowPriv {
 	GtkWidget           *file_list;
 	GtkWidget           *personal_details_window;
 
-	/* Current job in progress. */
-	GiggleJob           *current_job;
+	/* Current jobs in progress. */
+	GiggleJob           *current_diff_job;
+	GiggleJob           *current_diff_tree_job;
 };
 
 enum {
@@ -121,6 +123,10 @@ static void window_add_widget_cb                  (GtkUIManager      *merge,
 static void window_revision_selection_changed_cb  (GtkTreeSelection  *selection,
 						   GiggleWindow      *window);
 static void window_git_diff_result_callback       (GiggleGit         *git,
+						   GiggleJob         *job,
+						   GError            *error,
+						   gpointer           user_data);
+static void window_git_diff_tree_result_callback  (GiggleGit         *git,
 						   GiggleJob         *job,
 						   GError            *error,
 						   gpointer           user_data);
@@ -174,8 +180,8 @@ static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
-	{ "FileMenu", NULL,
-	  N_("_File"), NULL, NULL,
+	{ "ProjectMenu", NULL,
+	  N_("_Project"), NULL, NULL,
 	  NULL
 	},
 	{ "EditMenu", NULL,
@@ -215,7 +221,7 @@ static const GtkActionEntry action_entries[] = {
 static const gchar *ui_layout =
 	"<ui>"
 	"  <menubar name='MainMenubar'>"
-	"    <menu action='FileMenu'>"
+	"    <menu action='ProjectMenu'>"
 	"      <menuitem action='Open'/>"
 	"      <menuitem action='SavePatch'/>"
 	"      <separator/>"
@@ -240,8 +246,8 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
 #define RECENT_FILES_GROUP "giggle"
-#define SAVE_PATCH_UI_PATH "/ui/MainMenubar/FileMenu/SavePatch"
-#define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/FileMenu/RecentRepositories"
+#define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
+#define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
@@ -450,9 +456,14 @@ window_finalize (GObject *object)
 	
 	g_object_unref (priv->ui_manager);
 
-	if (priv->current_job) {
-		giggle_git_cancel_job (priv->git, priv->current_job);
-		g_object_unref (priv->current_job);
+	if (priv->current_diff_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_job);
+		g_object_unref (priv->current_diff_job);
+	}
+
+	if (priv->current_diff_tree_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
+		g_object_unref (priv->current_diff_tree_job);
 	}
 
 	g_object_unref (priv->git);
@@ -944,19 +955,31 @@ window_update_revision_info (GiggleWindow   *window,
 		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
 		"", 0);
 
-	if (priv->current_job) {
-		giggle_git_cancel_job (priv->git, priv->current_job);
-		g_object_unref (priv->current_job);
-		priv->current_job = NULL;
+	if (priv->current_diff_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_job);
+		g_object_unref (priv->current_diff_job);
+		priv->current_diff_job = NULL;
+	}
+
+	if (priv->current_diff_tree_job) {
+		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
+		g_object_unref (priv->current_diff_tree_job);
+		priv->current_diff_tree_job = NULL;
 	}
 	
 	if (current_revision && previous_revision) {
 		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, FALSE);
 
-		priv->current_job = giggle_git_diff_new (previous_revision, current_revision);
+		priv->current_diff_job = giggle_git_diff_tree_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
-				    priv->current_job,
+				    priv->current_diff_job,
+				    window_git_diff_tree_result_callback,
+				    window);
+
+		priv->current_diff_tree_job = giggle_git_diff_new (previous_revision, current_revision);
+		giggle_git_run_job (priv->git,
+				    priv->current_diff_tree_job,
 				    window_git_diff_result_callback,
 				    window);
 	}
@@ -992,6 +1015,9 @@ window_revision_selection_changed_cb (GtkTreeSelection *selection,
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
 	first_revision = last_revision = NULL;
 	valid = FALSE;
+
+	/* clear file list highlights */
+	giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), NULL);
 
 	if (!rows) {
 		return;
@@ -1065,8 +1091,35 @@ window_git_diff_result_callback (GiggleGit *git,
 		gtk_action_set_sensitive (action, TRUE);
 	}
 
-	g_object_unref (priv->current_job);
-	priv->current_job = NULL;
+	g_object_unref (priv->current_diff_job);
+	priv->current_diff_job = NULL;
+}
+
+static void
+window_git_diff_tree_result_callback (GiggleGit *git,
+				      GiggleJob *job,
+				      GError    *error,
+				      gpointer   user_data)
+{
+	GiggleWindow     *window;
+	GiggleWindowPriv *priv;
+	GList            *list;
+
+	window = GIGGLE_WINDOW (user_data);
+	priv = GET_PRIV (window);
+
+	if (error) {
+		window_show_error (window,
+				   N_("An error ocurred when retrieving different files list:\n%s"),
+				   error);
+		g_error_free (error);
+	} else {
+		list = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (job));
+		giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), list);
+	}
+
+	g_object_unref (priv->current_diff_tree_job);
+	priv->current_diff_tree_job = NULL;
 }
 
 static void
@@ -1233,17 +1286,27 @@ window_action_find_cb (GtkAction    *action,
 }
 
 static gboolean
+revision_property_matches (GiggleRevision *revision,
+			   const gchar    *property,
+			   const gchar    *search_string)
+{
+	gboolean  match;
+	gchar    *str;
+
+	g_object_get (revision, property, &str, NULL);
+	match = strstr (str, search_string) != NULL;
+	g_free (str);
+
+	return match;
+}
+
+static gboolean
 revision_matches (GiggleRevision *revision,
 		  const gchar    *search_string)
 {
-	gchar    *author;
-	gboolean  match;
-
-	g_object_get (revision, "author", &author, NULL);
-	match = strstr (author, search_string) != NULL;
-	g_free (author);
-
-	return match;
+	return (revision_property_matches (revision, "author", search_string) ||
+		revision_property_matches (revision, "long-log", search_string) ||
+		revision_property_matches (revision, "sha", search_string));
 }
 
 static void

@@ -31,7 +31,7 @@
 #define PATH_SPACE(font_size) (font_size * 2)
 #define DOT_RADIUS(font_size) (font_size / 2)
 #define LINE_WIDTH(font_size) ((font_size / 6) << 1) /* we want the closest even number <= size/3 */
-#define INITIAL_PATH 1
+#define NEXT_COLOR(n_color)   ((n_color + 1) % G_N_ELEMENTS (colors))
 
 typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
 
@@ -410,7 +410,7 @@ giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
 			path_state->lower_color = g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path));
 
 			if (update_color) {
-				*n_color = (*n_color + 1) % G_N_ELEMENTS (colors);
+				*n_color = NEXT_COLOR (*n_color);
 				path_state->upper_color = &colors[*n_color];
 			} else {
 				path_state->upper_color = path_state->lower_color;
@@ -449,8 +449,8 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 	gint                        n_color = 0;
 	GiggleRevision             *revision;
 	GHashTable                 *visible_paths;
-	gboolean                    initialized = FALSE;
 	GType                       contained_type;
+	gint                        n_path;
 
 	g_return_if_fail (GIGGLE_IS_GRAPH_RENDERER (renderer));
 	g_return_if_fail (GTK_IS_TREE_MODEL (model));
@@ -464,6 +464,7 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 		g_hash_table_destroy (priv->paths_info);
 	}
 
+	priv->n_paths = 0;
 	priv->paths_info = g_hash_table_new (g_direct_hash, g_direct_equal);
 	visible_paths = g_hash_table_new (g_direct_hash, g_direct_equal);
 	n_children = gtk_tree_model_iter_n_children (model, NULL);
@@ -474,10 +475,11 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 		gtk_tree_model_iter_nth_child (model, &iter, NULL, n_children);
 		gtk_tree_model_get (model, &iter, column, &revision, -1);
 
-		if (!initialized) {
-			g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (INITIAL_PATH));
-			g_hash_table_insert (visible_paths, GINT_TO_POINTER (INITIAL_PATH), &colors[n_color]);
-			initialized = TRUE;
+		if (!giggle_revision_get_parents (revision)) {
+			n_color = NEXT_COLOR (n_color);
+			find_free_path (visible_paths, &priv->n_paths, &n_path);
+			g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (n_path));
+			g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), &colors[n_color]);
 		}
 
 		g_object_unref (revision);
