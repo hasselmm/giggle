@@ -171,8 +171,8 @@ static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
 
 static const GtkActionEntry action_entries[] = {
-	{ "FileMenu", NULL,
-	  N_("_File"), NULL, NULL,
+	{ "ProjectMenu", NULL,
+	  N_("_Project"), NULL, NULL,
 	  NULL
 	},
 	{ "EditMenu", NULL,
@@ -212,7 +212,7 @@ static const GtkActionEntry action_entries[] = {
 static const gchar *ui_layout =
 	"<ui>"
 	"  <menubar name='MainMenubar'>"
-	"    <menu action='FileMenu'>"
+	"    <menu action='ProjectMenu'>"
 	"      <menuitem action='Open'/>"
 	"      <menuitem action='SavePatch'/>"
 	"      <separator/>"
@@ -237,8 +237,8 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
 #define RECENT_FILES_GROUP "giggle"
-#define SAVE_PATCH_UI_PATH "/ui/MainMenubar/FileMenu/SavePatch"
-#define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/FileMenu/RecentRepositories"
+#define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
+#define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
