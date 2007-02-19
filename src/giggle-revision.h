@@ -55,7 +55,7 @@ const gchar      * giggle_revision_get_date          (GiggleRevision   *revision
 const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_long_log      (GiggleRevision   *revision);
 
-GList            *giggle_revision_get_children       (GiggleRevision   *revision);
+GList            * giggle_revision_get_children      (GiggleRevision   *revision);
 GList            * giggle_revision_get_parents       (GiggleRevision   *revision);
 void               giggle_revision_add_parent        (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
