@@ -25,7 +25,12 @@
 typedef struct GiggleRemotePriv GiggleRemotePriv;
 
 struct GiggleRemotePriv {
-	guint i;
+	gchar *name;
+};
+
+enum {
+	PROP_0,
+	PROP_NAME
 };
 
 static void     remote_finalize            (GObject           *object);
@@ -51,15 +56,12 @@ giggle_remote_class_init (GiggleRemoteClass *class)
 	object_class->get_property = remote_get_property;
 	object_class->set_property = remote_set_property;
 
-#if 0
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
-							      NULL,
-							      G_PARAM_READABLE));
-#endif
+					 PROP_NAME,
+					 g_param_spec_string ("name",
+							      "Name",
+							      "This remote's name",
+							      NULL, G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemotePriv));
 }
@@ -79,7 +81,7 @@ remote_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 	
-	/* FIXME: Free object data */
+	g_free (priv->name);
 
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
@@ -95,6 +97,9 @@ remote_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_NAME:
+		g_value_set_string (value, priv->name);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -112,6 +117,9 @@ remote_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_NAME:
+		priv->name = g_value_dup_string (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -127,9 +135,8 @@ giggle_remote_new (gchar const *name)
 const gchar *
 giggle_remote_get_name (GiggleRemote *remote)
 {
-	// FIXME: implement
 	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
 
-	return "origin";
+	return GET_PRIV (remote)->name;
 }
 
