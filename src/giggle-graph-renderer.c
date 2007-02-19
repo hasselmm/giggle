@@ -482,8 +482,8 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 			g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), &colors[n_color]);
 		}
 
-		g_object_unref (revision);
 		giggle_graph_renderer_calculate_revision_state (renderer, revision, visible_paths, &n_color);
+		g_object_unref (revision);
 	}
 
 	g_hash_table_destroy (visible_paths);

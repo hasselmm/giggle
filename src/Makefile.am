@@ -52,13 +52,16 @@ giggle_SOURCES =				\
 	giggle-remote.h				\
 	giggle-remote-editor.c			\
 	giggle-remote-editor.h			\
-	giggle-sysdeps.c                        \
-	giggle-sysdeps.h                        \
 	giggle-revision.c			\
 	giggle-revision.h			\
+	giggle-revision-list.c			\
+	giggle-revision-list.h			\
+	giggle-sysdeps.c                        \
+	giggle-sysdeps.h                        \
 	giggle-window.c				\
 	giggle-window.h				\
-	giggle-main.c
+	giggle-main.c				\
+	$(BUILT_SOURCES)
 
 giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
@@ -126,7 +129,8 @@ giggle-marshal.h: giggle-marshal.list
 
 giggle-marshal.c: giggle-marshal.list
 	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --body) > xgen-gmc \
+	echo "#include \"giggle-marshal.h\"" > xgen-gmc \
+	&& $(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --body) >> xgen-gmc \
 	&& cp xgen-gmc giggle-marshal.c \
 	&& rm -f xgen-gmc xgen-gmc~
 
