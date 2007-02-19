@@ -35,6 +35,7 @@
 #include "giggle-git-branches.h"
 #include "giggle-git-diff.h"
 #include "giggle-git-revisions.h"
+#include "giggle-remote.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-personal-details-window.h"
@@ -54,6 +55,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *restore_description;
 	GtkWidget           *treeview_branches;
 	GtkWidget           *treeview_authors;
+	GtkWidget           *treeview_remotes;
 	/* History Tab */
 	GtkWidget           *revision_treeview;
 	GtkWidget           *log_textview;
@@ -93,6 +95,11 @@ enum {
 };
 
 enum {
+	REMOTES_COL_REMOTE,
+	REMOTES_N_COLUMNS
+};
+
+enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
@@ -101,6 +108,7 @@ enum {
 static void window_finalize                       (GObject           *object);
 static void window_setup_branches_treeview        (GiggleWindow      *window);
 static void window_setup_authors_treeview         (GiggleWindow      *window);
+static void window_setup_remotes_treeview         (GiggleWindow      *window);
 static void window_setup_revision_treeview        (GiggleWindow      *window);
 static void window_setup_diff_textview            (GiggleWindow      *window,
 						   GtkWidget         *scrolled);
@@ -157,6 +165,7 @@ static void window_git_dir_changed_cb             (GiggleGit         *git,
 						   GiggleWindow      *window);
 static void window_notify_project_dir_cb          (GiggleWindow      *window);
 static void window_notify_project_name_cb         (GiggleWindow      *window);
+static void window_notify_remotes_cb              (GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
 static void window_find_next                      (GtkWidget         *widget,
@@ -324,6 +333,10 @@ giggle_window_init (GiggleWindow *window)
 				  "notify::project-name",
 				  G_CALLBACK (window_notify_project_name_cb),
 				  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::remotes",
+				  G_CALLBACK (window_notify_remotes_cb),
+				  window);
 
 	xml = glade_xml_new (GLADEDIR "/main-window.glade",
 			     "content_vbox", NULL);
@@ -357,6 +370,9 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->treeview_authors = glade_xml_get_widget (xml, "treeview_authors");
 	window_setup_authors_treeview (window);
+
+	priv->treeview_remotes = glade_xml_get_widget (xml, "treeview_remotes");
+	window_setup_remotes_treeview (window);
 
 	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
@@ -756,6 +772,33 @@ window_setup_authors_treeview (GiggleWindow *window)
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_authors), -1,
 						    _("Author"), gtk_cell_renderer_text_new (),
 						    window_authors_cell_data_func, NULL, NULL);
+}
+
+static void
+window_remotes_cell_data_func (GtkTreeViewColumn *column,
+			       GtkCellRenderer   *cell,
+			       GtkTreeModel      *model,
+			       GtkTreeIter       *iter,
+			       gpointer           data)
+{
+	GiggleRemote *remote = NULL;
+
+	// FIXME: check whether we're leaking references here
+	gtk_tree_model_get (model, iter,
+			    REMOTES_COL_REMOTE, &remote,
+			    -1);
+	g_object_set (cell, "text", giggle_remote_get_name (remote), NULL);
+}
+
+static void
+window_setup_remotes_treeview (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_remotes), -1,
+						    _("Remotes"), gtk_cell_renderer_text_new (),
+						    window_remotes_cell_data_func, NULL, NULL);
 }
 
 static void
@@ -1383,12 +1426,43 @@ window_notify_project_name_cb (GiggleWindow* window)
 	gchar            *markup;
 
 	priv = GET_PRIV (window);
+	// we could skip the markup by using PangoAttrList
 	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>",
 				  giggle_git_get_project_name (priv->git));
 
 	gtk_label_set_markup (GTK_LABEL (priv->label_summary), markup);
 
 	g_free (markup);
+}
+
+static void
+window_notify_remotes_cb (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkTreeModel     *model;
+	GtkListStore     *store;
+	GtkTreeIter       iter;
+	GList            *remotes;
+
+	priv = GET_PRIV (window);
+
+	model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->treeview_remotes));
+
+	if(G_UNLIKELY(!GTK_IS_TREE_MODEL(model))) {
+		store = gtk_list_store_new (REMOTES_N_COLUMNS, GIGGLE_TYPE_REMOTE);
+		gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_remotes), GTK_TREE_MODEL (store));
+	} else {
+		store = GTK_LIST_STORE (model);
+	}
+
+	gtk_list_store_clear (store);
+
+	for(remotes = giggle_git_get_remotes (priv->git); remotes; remotes = g_list_next (remotes)) {
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter,
+				    REMOTES_COL_REMOTE, remotes->data,
+				    -1);
+	}
 }
 
 static void

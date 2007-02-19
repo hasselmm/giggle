@@ -118,12 +118,18 @@ remote_set_property (GObject      *object,
 	}
 }
 
+GiggleRemote *
+giggle_remote_new (gchar const *name)
+{
+	return g_object_new (GIGGLE_TYPE_REMOTE, "name", name, NULL);
+}
+
 const gchar *
 giggle_remote_get_name (GiggleRemote *remote)
 {
 	// FIXME: implement
 	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
 
-	return NULL;
+	return "origin";
 }
 

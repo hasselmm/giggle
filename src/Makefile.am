@@ -92,6 +92,8 @@ test_file_list_SOURCES =			\
 	giggle-job.c				\
 	giggle-file-list.c			\
 	giggle-git-ignore.c			\
+	giggle-remote.c				\
+	giggle-remote.h				\
 	test-file-list.c
 
 test_file_list_LDADD =				\
@@ -105,6 +107,8 @@ test_giggle_git_SOURCES =                       \
 	giggle-git.c                            \
 	giggle-git-diff.c                       \
 	giggle-job.c                            \
+	giggle-remote.c				\
+	giggle-remote.h				\
 	test-giggle-git.c
 
 test_giggle_git_LDADD =                         \

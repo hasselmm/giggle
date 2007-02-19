@@ -22,6 +22,7 @@
 
 #include "giggle-dispatcher.h"
 #include "giggle-git.h"
+#include "giggle-remote.h"
 
 #define d(x) x
 
@@ -34,6 +35,8 @@ struct GiggleGitPriv {
 	gchar            *project_dir;
 	gchar            *project_name;
 	gchar            *description;
+
+	GList            *remotes;
 
 	GHashTable       *jobs;
 };
@@ -131,7 +134,7 @@ giggle_git_class_init (GiggleGitClass *class)
 					 g_param_spec_string ("remotes",
 						 	      "Remotes",
 							      "The remote sources",
-							      NULL, 0));
+							      NULL, G_PARAM_READABLE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitPriv));
 }
@@ -208,6 +211,9 @@ git_get_property (GObject    *object,
 		break;
 	case PROP_PROJECT_NAME:
 		g_value_set_string (value, priv->project_name);
+		break;
+	case PROP_REMOTES:
+		g_value_set_pointer (value, priv->remotes);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -392,7 +398,42 @@ giggle_git_update_description (GiggleGit *git)
 
 	g_free (description);
 
-	g_object_notify (G_OBJECT(git), "description");
+	g_object_notify (G_OBJECT (git), "description");
+}
+
+static void
+giggle_git_update_remotes (GiggleGit* git)
+{
+	GiggleGitPriv *priv;
+	GError        *error;
+	gchar         *path;
+	GDir          *dir;
+
+	priv = GET_PRIV (git);
+
+	/* cleanup */
+	g_list_foreach (priv->remotes, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->remotes);
+	priv->remotes = NULL;
+
+	/* list files and add them */
+	error = NULL;
+	path = g_build_filename (priv->git_dir, "remotes", NULL);
+	dir = g_dir_open (path, 0, &error);
+	if(error) {
+		g_warning ("Error loading remotes: %s", error->message);
+	} else {
+		const gchar* file;
+		for(file = g_dir_read_name(dir); file; file = g_dir_read_name(dir)) {
+			priv->remotes = g_list_prepend (priv->remotes, giggle_remote_new (file));
+		}
+		g_dir_close (dir);
+	}
+	priv->remotes = g_list_reverse (priv->remotes);
+	g_free (path);
+
+	/* update */
+	g_object_notify (G_OBJECT (git), "remotes");
 }
 
 const gchar *
@@ -520,6 +561,7 @@ giggle_git_set_directory (GiggleGit    *git,
 	g_object_notify (G_OBJECT (git), "project-name");
 
 	giggle_git_update_description (git);
+	giggle_git_update_remotes (git);
 
 	return TRUE;
 }
@@ -558,6 +600,14 @@ giggle_git_get_project_name (GiggleGit* git)
 	priv = GET_PRIV (git);
 
 	return priv->project_name;
+}
+
+GList *
+giggle_git_get_remotes (GiggleGit *git)
+{
+	g_return_val_if_fail (GIGGLE_IS_GIT (git), NULL);
+
+	return GET_PRIV (git)->remotes;
 }
 
 void 
