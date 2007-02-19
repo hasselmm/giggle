@@ -149,13 +149,13 @@ git_diff_tree_set_property (GObject      *object,
 		if (priv->rev1) {
 			g_object_unref (priv->rev1);
 		}
-		priv->rev1 = g_value_dup_object (value);
+		priv->rev1 = GIGGLE_REVISION (g_value_dup_object (value));
 		break;
 	case PROP_REV_2:
 		if (priv->rev2) {
 			g_object_unref (priv->rev2);
 		}
-		priv->rev2 = g_value_dup_object (value);
+		priv->rev2 = GIGGLE_REVISION (g_value_dup_object (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
