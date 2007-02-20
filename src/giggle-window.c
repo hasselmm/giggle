@@ -36,7 +36,7 @@
 #include "giggle-git-diff.h"
 #include "giggle-git-diff-tree.h"
 #include "giggle-git-revisions.h"
-#include "giggle-remote.h"
+#include "giggle-remote-editor.h"
 #include "giggle-revision.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-personal-details-window.h"
@@ -812,9 +812,42 @@ window_remotes_cell_data_func (GtkTreeViewColumn *column,
 }
 
 static void
-window_remotes_row_activated_cb (GiggleWindow *window)
+window_remotes_row_activated_cb (GiggleWindow      *window,
+				 GtkTreePath       *path,
+				 GtkTreeViewColumn *column,
+				 GtkTreeView       *treeview)
 {
-	g_print ("blubb\n");
+	GiggleRemote*remote;
+	GtkTreeModel*model;
+	GtkTreeIter  iter;
+	GtkWidget   *editor;
+	gint         response;
+
+	model = gtk_tree_view_get_model (treeview);
+	g_return_if_fail (gtk_tree_model_get_iter (model, &iter, path));
+
+	gtk_tree_model_get (model, &iter,
+			    REMOTES_COL_REMOTE, &remote,
+			    -1);
+
+	editor = giggle_remote_editor_new (remote);
+	gtk_window_set_transient_for (GTK_WINDOW (editor),
+				      GTK_WINDOW (window));
+	response = gtk_dialog_run (GTK_DIALOG (editor));
+
+	if(!remote && response == GTK_RESPONSE_ACCEPT) {
+		GtkListStore* store = GTK_LIST_STORE (model);
+		GtkTreeIter   new;
+
+		gtk_list_store_insert_before (store, &new, &iter);
+		gtk_list_store_set (store, &new,
+				    REMOTES_COL_REMOTE, remote,
+				    -1);
+	} else if (remote) {
+		g_object_unref (remote);
+	}
+
+	gtk_widget_destroy (editor);
 }
 
 static void

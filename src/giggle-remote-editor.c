@@ -118,3 +118,9 @@ remote_editor_set_property (GObject      *object,
 	}
 }
 
+GtkWidget *
+giggle_remote_editor_new (GiggleRemote *remote)
+{
+	return g_object_new (GIGGLE_TYPE_REMOTE_EDITOR, "remote", remote, NULL);
+}
+

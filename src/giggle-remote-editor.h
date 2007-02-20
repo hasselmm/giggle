@@ -21,7 +21,8 @@
 #ifndef __GIGGLE_REMOTE_EDITOR_H__
 #define __GIGGLE_REMOTE_EDITOR_H__
 
-#include <glib-object.h>
+#include "giggle-remote.h"
+#include <gtk/gtkdialog.h>
 
 G_BEGIN_DECLS
 
@@ -44,7 +45,7 @@ struct GiggleRemoteEditorClass {
 };
 
 GType		      giggle_remote_editor_get_type (void);
-GiggleRemoteEditor *         giggle_remote_editor_new      (void);
+GtkWidget *           giggle_remote_editor_new      (GiggleRemote *remote);
 
 G_END_DECLS
 
