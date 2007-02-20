@@ -42,6 +42,7 @@
 #include "giggle-personal-details-window.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
+#include "giggle-diff-view.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -76,7 +77,6 @@ struct GiggleWindowPriv {
 	GtkWidget           *personal_details_window;
 
 	/* Current jobs in progress. */
-	GiggleJob           *current_diff_job;
 	GiggleJob           *current_diff_tree_job;
 };
 
@@ -110,8 +110,6 @@ static void window_finalize                       (GObject           *object);
 static void window_setup_branches_treeview        (GiggleWindow      *window);
 static void window_setup_authors_treeview         (GiggleWindow      *window);
 static void window_setup_remotes_treeview         (GiggleWindow      *window);
-static void window_setup_diff_textview            (GiggleWindow      *window,
-						   GtkWidget         *scrolled);
 
 static void window_update_revision_info           (GiggleWindow      *window,
 						   GiggleRevision    *current_revision,
@@ -124,10 +122,6 @@ static void window_revision_list_selection_changed_cb (GiggleRevisionList *list,
 						       GiggleRevision     *revision1,
 						       GiggleRevision     *revision2,
 						       GiggleWindow       *window);
-static void window_git_diff_result_callback       (GiggleGit         *git,
-						   GiggleJob         *job,
-						   GError            *error,
-						   gpointer           user_data);
 static void window_git_diff_tree_result_callback  (GiggleGit         *git,
 						   GiggleJob         *job,
 						   GError            *error,
@@ -384,9 +378,11 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->log_textview = glade_xml_get_widget (xml, "log_textview");
 
-	window_setup_diff_textview (
-		window,
-		glade_xml_get_widget (xml, "diff_scrolledwindow"));
+	priv->diff_textview = giggle_diff_view_new ();
+	gtk_widget_show (priv->diff_textview);
+
+	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "diff_scrolledwindow")),
+			   priv->diff_textview);
 
 	priv->file_list = giggle_file_list_new ();
 	gtk_widget_show (priv->file_list);
@@ -449,11 +445,6 @@ window_finalize (GObject *object)
 	priv = GET_PRIV (object);
 	
 	g_object_unref (priv->ui_manager);
-
-	if (priv->current_diff_job) {
-		giggle_git_cancel_job (priv->git, priv->current_diff_job);
-		g_object_unref (priv->current_diff_job);
-	}
 
 	if (priv->current_diff_tree_job) {
 		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
@@ -893,41 +884,6 @@ window_setup_remotes_treeview (GiggleWindow *window)
 				  G_CALLBACK (window_remotes_row_activated_cb), window);
 }
 
-static void
-window_setup_diff_textview (GiggleWindow *window,
-			    GtkWidget    *scrolled)
-{
-	GiggleWindowPriv          *priv;
-	PangoFontDescription      *font_desc;
-	GtkTextBuffer             *buffer;
-	GtkSourceLanguage         *language;
-	GtkSourceLanguagesManager *manager;
-
-	priv = GET_PRIV (window);
-	
-	priv->diff_textview = gtk_source_view_new ();
-	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->diff_textview), FALSE);
-
-	font_desc = pango_font_description_from_string ("monospace");
-	gtk_widget_modify_font (priv->diff_textview, font_desc);
-	pango_font_description_free (font_desc);
-	
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview));
-
-	manager = gtk_source_languages_manager_new ();
-	language = gtk_source_languages_manager_get_language_from_mime_type (
-		manager, "text/x-patch");
-
-	gtk_source_buffer_set_language (GTK_SOURCE_BUFFER (buffer), language);
-	gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
-	
-	g_object_unref (manager);
-
-	gtk_widget_show (priv->diff_textview);
-	
-	gtk_container_add (GTK_CONTAINER (scrolled), priv->diff_textview);
-}
-
 /* Update revision info. If previous_revision is not NULL, a diff between it and
  * the current revision will be shown.
  */
@@ -966,17 +922,6 @@ window_update_revision_info (GiggleWindow   *window,
 
 	g_free (str);
 
-	/* Clear the diff view until we get new content. */
-	gtk_text_buffer_set_text (
-		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
-		"", 0);
-
-	if (priv->current_diff_job) {
-		giggle_git_cancel_job (priv->git, priv->current_diff_job);
-		g_object_unref (priv->current_diff_job);
-		priv->current_diff_job = NULL;
-	}
-
 	if (priv->current_diff_tree_job) {
 		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
 		g_object_unref (priv->current_diff_tree_job);
@@ -987,16 +932,13 @@ window_update_revision_info (GiggleWindow   *window,
 		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
 		gtk_action_set_sensitive (action, FALSE);
 
-		priv->current_diff_job = giggle_git_diff_tree_new (previous_revision, current_revision);
-		giggle_git_run_job (priv->git,
-				    priv->current_diff_job,
-				    window_git_diff_tree_result_callback,
-				    window);
+		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_textview),
+						current_revision, previous_revision);
 
-		priv->current_diff_tree_job = giggle_git_diff_new (previous_revision, current_revision);
+		priv->current_diff_tree_job = giggle_git_diff_tree_new (previous_revision, current_revision);
 		giggle_git_run_job (priv->git,
 				    priv->current_diff_tree_job,
-				    window_git_diff_result_callback,
+				    window_git_diff_tree_result_callback,
 				    window);
 	}
 }
@@ -1022,40 +964,6 @@ window_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	window_update_revision_info (window, revision1, revision2);
 	g_object_unref (revision1);
 	g_object_unref (revision2);
-}
-
-static void
-window_git_diff_result_callback (GiggleGit *git,
-				 GiggleJob *job,
-				 GError    *error,
-				 gpointer   user_data)
-{
-	GiggleWindow     *window;
-	GiggleWindowPriv *priv;
-	GtkAction        *action;
-
-	window = GIGGLE_WINDOW (user_data);
-	priv = GET_PRIV (window);
-
-	if (error) {
-		window_show_error (window,
-				   N_("An error ocurred when retrieving a diff:\n%s"),
-				   error);
-		g_error_free (error);
-	} else {
-		gtk_text_buffer_set_text (
-			gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_textview)),
-			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
-			-1);
-
-		action = gtk_ui_manager_get_action (
-			priv->ui_manager,
-			SAVE_PATCH_UI_PATH);
-		gtk_action_set_sensitive (action, TRUE);
-	}
-
-	g_object_unref (priv->current_diff_job);
-	priv->current_diff_job = NULL;
 }
 
 static void

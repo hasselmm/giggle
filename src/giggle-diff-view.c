@@ -107,15 +107,16 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	gtk_widget_modify_font (GTK_WIDGET (diff_view), font_desc);
 	pango_font_description_free (font_desc);
 
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (diff_view));
-
 	manager = gtk_source_languages_manager_new ();
 	language = gtk_source_languages_manager_get_language_from_mime_type (
 		manager, "text/x-patch");
 
-	gtk_source_buffer_set_language (GTK_SOURCE_BUFFER (buffer), language);
-	gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
-	
+	if (language) {
+		buffer = GTK_TEXT_BUFFER (gtk_source_buffer_new_with_language (language));
+		gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
+		gtk_text_view_set_buffer (GTK_TEXT_VIEW (diff_view), buffer);
+	}
+
 	g_object_unref (manager);
 }
 
@@ -127,7 +128,9 @@ diff_view_finalize (GObject *object)
 	priv = GET_PRIV (object);
 
 	if (priv->job) {
-		/* FIXME cancel */
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
 	}
 
 	g_object_unref (priv->git);
@@ -224,6 +227,7 @@ diff_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
+		g_print ("pues si pues si\n");
 		gtk_text_buffer_set_text (
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
 			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
@@ -257,6 +261,17 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 		      "revision-1", revision1,
 		      "revision-2", revision2,
 		      NULL);
+
+	/* Clear the view until we get new content. */
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (diff_view)),
+		"", 0);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
 
 	priv->job = giggle_git_diff_new (revision2, revision1);
 
