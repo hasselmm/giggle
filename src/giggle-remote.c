@@ -20,6 +20,7 @@
 
 #include <config.h>
 
+#include <string.h>
 #include "giggle-remote.h"
 
 typedef struct GiggleRemotePriv GiggleRemotePriv;
@@ -143,6 +144,43 @@ GiggleRemote *
 giggle_remote_new (gchar const *name)
 {
 	return g_object_new (GIGGLE_TYPE_REMOTE, "name", name, NULL);
+}
+
+GiggleRemote *
+giggle_remote_new_from_file (gchar const *filename)
+{
+	GiggleRemote *remote;
+	gchar        *content;
+
+	content = g_path_get_basename (filename);
+	remote = giggle_remote_new (content);
+	g_free (content);
+	content = NULL;
+
+	if(g_file_get_contents (filename, &content, NULL, NULL)) {
+		gchar**lines;
+		gchar**step;
+		lines = g_strsplit (content, "\n", -1);
+		for (step = lines; step && *step; step++) {
+			if(!**step) {
+				/* empty string */
+				continue;
+			} else if(g_str_has_prefix(*step, "URL: ")) {
+				giggle_remote_set_url (remote, *step + strlen("URL: "));
+			} else if(g_str_has_prefix(*step, "Push: ")) {
+			} else if(g_str_has_prefix(*step, "Pull: ")) {
+			} else {
+				gchar* escaped = g_strescape (*step, NULL);
+				g_warning ("Read unexpected line at %s:%d\n\"%s\"",
+					   filename, step - lines, escaped);
+				g_free (escaped);
+			}
+		}
+		g_strfreev (lines);
+	}
+	g_free (content);
+
+	return remote;
 }
 
 const gchar *

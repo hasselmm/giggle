@@ -20,7 +20,6 @@
 
 #include <config.h>
 
-#include <string.h>
 #include "giggle-dispatcher.h"
 #include "giggle-git.h"
 #include "giggle-remote.h"
@@ -426,34 +425,9 @@ giggle_git_update_remotes (GiggleGit* git)
 	} else {
 		const gchar* file;
 		for(file = g_dir_read_name(dir); file; file = g_dir_read_name(dir)) {
-			gchar*content;
-			gchar*filename;
-			priv->remotes = g_list_prepend (priv->remotes, giggle_remote_new (file));
-			filename = g_build_filename (path, file, NULL);
-			if(g_file_get_contents (filename, &content, NULL, NULL)) {
-				gchar**lines;
-				gchar**step;
-				lines = g_strsplit (content, "\n", -1);
-				for (step = lines; step && *step; step++) {
-					if(!**step) {
-						/* empty string */
-						continue;
-					} else if(g_str_has_prefix(*step, "URL: ")) {
-						giggle_remote_set_url (priv->remotes->data, *step + strlen("URL: "));
-					} else if(g_str_has_prefix(*step, "Push: ")) {
-					} else if(g_str_has_prefix(*step, "Pull: ")) {
-					} else {
-						gchar* escaped = g_strescape (*step, NULL);
-						g_warning ("Read unexpected line at %s:%d\n\"%s\"",
-							   filename, step - lines, escaped);
-						g_free (escaped);
-					}
-				}
-				g_strfreev (lines);
-			}
-
+			gchar*filename = g_build_filename (path, file, NULL);
+			priv->remotes = g_list_prepend (priv->remotes, giggle_remote_new_from_file (filename));
 			g_free (filename);
-			g_free (content);
 		}
 		g_dir_close (dir);
 	}

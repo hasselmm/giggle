@@ -43,12 +43,13 @@ struct GiggleRemoteClass {
 	GObjectClass parent_class;
 };
 
-GType		      giggle_remote_get_type (void);
-GiggleRemote *        giggle_remote_new      (gchar const  *name);
-const gchar *         giggle_remote_get_name (GiggleRemote *remote);
-const gchar *         giggle_remote_get_url  (GiggleRemote *remote);
-void                  giggle_remote_set_url  (GiggleRemote *remote,
-					      gchar const  *url);
+GType		      giggle_remote_get_type     (void);
+GiggleRemote *        giggle_remote_new          (gchar const  *name);
+GiggleRemote *        giggle_remote_new_from_file(gchar const *filename);
+const gchar *         giggle_remote_get_name     (GiggleRemote *remote);
+const gchar *         giggle_remote_get_url      (GiggleRemote *remote);
+void                  giggle_remote_set_url      (GiggleRemote *remote,
+					          gchar const  *url);
 
 G_END_DECLS
 
