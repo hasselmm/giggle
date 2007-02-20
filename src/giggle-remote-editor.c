@@ -22,10 +22,17 @@
 
 #include "giggle-remote-editor.h"
 
+#include <glib/gi18n.h>
+
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 
 struct GiggleRemoteEditorPriv {
-	guint i;
+	GiggleRemote *remote;
+};
+
+enum {
+	PROP_0,
+	PROP_REMOTE
 };
 
 static void     remote_editor_finalize            (GObject           *object);
@@ -51,15 +58,13 @@ giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 	object_class->get_property = remote_editor_get_property;
 	object_class->set_property = remote_editor_set_property;
 
-#if 0
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
-							      NULL,
-							      G_PARAM_READABLE));
-#endif
+					 PROP_REMOTE,
+					 g_param_spec_object ("remote",
+							      "Remote",
+							      "The remote being edited",
+							      GIGGLE_TYPE_REMOTE,
+							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemoteEditorPriv));
 }
@@ -95,6 +100,9 @@ remote_editor_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_REMOTE:
+		g_value_set_object (value, priv->remote);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -112,6 +120,17 @@ remote_editor_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_REMOTE:
+#if GLIB_MAJOR_VERSION <= 2 && GLIB_MINOR_VERSION <= 12
+		priv->remote = (gpointer)g_value_dup_object (value);
+#else
+		priv->remote = g_value_dup_object (value);
+#endif
+		if(!priv->remote) {
+			priv->remote = giggle_remote_new (_("Unnamed"));
+		}
+		g_object_notify (object, "remote");
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
