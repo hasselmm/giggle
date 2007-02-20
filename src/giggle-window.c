@@ -798,7 +798,6 @@ window_remotes_cell_data_func (GtkTreeViewColumn *column,
 			    REMOTES_COL_REMOTE, &remote,
 			    -1);
 	if (GIGGLE_IS_REMOTE (remote)) {
-		g_print ("%d\n", ((GObject*)remote)->ref_count);
 		g_object_set (cell,
 			      "foreground", "black",
 			      "text", giggle_remote_get_name (remote),
@@ -813,6 +812,12 @@ window_remotes_cell_data_func (GtkTreeViewColumn *column,
 }
 
 static void
+window_remotes_row_activated_cb (GiggleWindow *window)
+{
+	g_print ("blubb\n");
+}
+
+static void
 window_setup_remotes_treeview (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
@@ -821,6 +826,9 @@ window_setup_remotes_treeview (GiggleWindow *window)
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_remotes), -1,
 						    _("Remotes"), gtk_cell_renderer_text_new (),
 						    window_remotes_cell_data_func, NULL, NULL);
+
+	g_signal_connect_swapped (priv->treeview_remotes, "row-activated",
+				  G_CALLBACK (window_remotes_row_activated_cb), window);
 }
 
 static void
