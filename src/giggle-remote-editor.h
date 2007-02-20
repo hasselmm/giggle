@@ -37,11 +37,11 @@ typedef struct GiggleRemoteEditor      GiggleRemoteEditor;
 typedef struct GiggleRemoteEditorClass GiggleRemoteEditorClass;
 
 struct GiggleRemoteEditor {
-	GObject parent;
+	GtkDialog parent;
 };
 
 struct GiggleRemoteEditorClass {
-	GObjectClass parent_class;
+	GtkDialogClass parent_class;
 };
 
 GType		      giggle_remote_editor_get_type (void);

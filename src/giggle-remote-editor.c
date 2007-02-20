@@ -45,7 +45,7 @@ static void     remote_editor_set_property        (GObject           *object,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
 
-G_DEFINE_TYPE (GiggleRemoteEditor, giggle_remote_editor, G_TYPE_OBJECT)
+G_DEFINE_TYPE (GiggleRemoteEditor, giggle_remote_editor, GTK_TYPE_DIALOG)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REMOTE_EDITOR, GiggleRemoteEditorPriv))
 
