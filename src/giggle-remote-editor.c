@@ -24,6 +24,7 @@
 
 #include <glib/gi18n.h>
 #include <gtk/gtkbox.h>
+#include <gtk/gtkentry.h>
 #include <gtk/gtkstock.h>
 #include <glade/glade.h>
 
@@ -32,6 +33,9 @@ typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 struct GiggleRemoteEditorPriv {
 	gboolean      new_remote;
 	GiggleRemote *remote;
+
+	GtkWidget    *entry_name;
+	GtkWidget    *entry_url;
 };
 
 enum {
@@ -90,12 +94,17 @@ giggle_remote_editor_init (GiggleRemoteEditor *remote_editor)
 
 	priv = GET_PRIV (remote_editor);
 
+	gtk_dialog_set_has_separator (GTK_DIALOG (remote_editor), FALSE);
+
 	xml = glade_xml_new (GLADEDIR "/main-window.glade", "remote_vbox", NULL);
 
 	gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (remote_editor)->vbox),
 				     glade_xml_get_widget (xml, "remote_vbox"));
 
-	gtk_dialog_set_has_separator (GTK_DIALOG (remote_editor), FALSE);
+	priv->entry_name = glade_xml_get_widget (xml, "entry_remote_name");;
+	priv->entry_url = glade_xml_get_widget (xml, "entry_remote_url");;
+
+	g_object_unref (xml);
 }
 
 static GObject *
@@ -121,13 +130,76 @@ remote_editor_constructor (GType                  type,
 }
 
 static void
+remote_editor_notify_name_cb (GiggleRemoteEditor *editor)
+{
+	GiggleRemoteEditorPriv *priv;
+	const gchar            *name;
+
+	priv = GET_PRIV (editor);
+	name = giggle_remote_get_name (priv->remote);
+
+	if(name) {
+		gtk_entry_set_text (GTK_ENTRY (priv->entry_name), name);
+	}
+}
+
+static void
+remote_editor_notify_url_cb (GiggleRemoteEditor *editor)
+{
+	GiggleRemoteEditorPriv *priv;
+	const gchar            *url;
+
+	priv = GET_PRIV (editor);
+	url = giggle_remote_get_url (priv->remote);
+
+	if(url) {
+		gtk_entry_set_text (GTK_ENTRY (priv->entry_url), url);
+	}
+}
+
+static void
+remote_editor_set_remote (GiggleRemoteEditor *editor,
+			  GiggleRemote       *remote)
+{
+	GiggleRemoteEditorPriv *priv;
+
+	priv = GET_PRIV (editor);
+
+	if(priv->remote == remote) {
+		return;
+	}
+
+	if(priv->remote) {
+		g_signal_handlers_disconnect_by_func (priv->remote,
+						      remote_editor_notify_name_cb,
+						      editor);
+		g_signal_handlers_disconnect_by_func (priv->remote,
+						      remote_editor_notify_url_cb,
+						      editor);
+		g_object_unref (priv->remote);
+		priv->remote = NULL;
+	}
+
+	if(remote) {
+		priv->remote = g_object_ref (remote);
+		g_signal_connect_swapped (remote, "notify::name",
+					  G_CALLBACK (remote_editor_notify_name_cb), editor);
+		remote_editor_notify_name_cb (editor);
+		g_signal_connect_swapped (remote, "notify::url",
+					  G_CALLBACK (remote_editor_notify_url_cb), editor);
+	}
+
+	g_object_notify (G_OBJECT (editor), "remote");
+}
+
+static void
 remote_editor_finalize (GObject *object)
 {
 	GiggleRemoteEditorPriv *priv;
 
 	priv = GET_PRIV (object);
 	
-	g_object_unref (priv->remote);
+	remote_editor_set_remote (GIGGLE_REMOTE_EDITOR (object), NULL);
 
 	G_OBJECT_CLASS (giggle_remote_editor_parent_class)->finalize (object);
 }
@@ -159,21 +231,18 @@ remote_editor_set_property (GObject      *object,
 		    GParamSpec   *pspec)
 {
 	GiggleRemoteEditorPriv *priv;
+	GiggleRemote           *remote;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_REMOTE:
-#if GLIB_MAJOR_VERSION <= 2 && GLIB_MINOR_VERSION <= 12
-		priv->remote = (gpointer)g_value_dup_object (value);
-#else
-		priv->remote = g_value_dup_object (value);
-#endif
-		if(!priv->remote) {
-			priv->remote = giggle_remote_new (_("Unnamed"));
+		remote = g_value_get_object (value);
+		if(!remote) {
+			remote = giggle_remote_new (_("Unnamed"));
 		}
-		// FIXME: connect to signals
-		g_object_notify (object, "remote");
+		remote_editor_set_remote (GIGGLE_REMOTE_EDITOR (object),
+					  remote);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);

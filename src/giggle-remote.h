@@ -46,6 +46,7 @@ struct GiggleRemoteClass {
 GType		      giggle_remote_get_type (void);
 GiggleRemote *        giggle_remote_new      (gchar const  *name);
 const gchar *         giggle_remote_get_name (GiggleRemote *remote);
+const gchar *         giggle_remote_get_url  (GiggleRemote *remote);
 
 G_END_DECLS
 

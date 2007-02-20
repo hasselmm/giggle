@@ -26,6 +26,7 @@ typedef struct GiggleRemotePriv GiggleRemotePriv;
 
 struct GiggleRemotePriv {
 	gchar *name;
+	gchar *url;
 };
 
 enum {
@@ -138,5 +139,13 @@ giggle_remote_get_name (GiggleRemote *remote)
 	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
 
 	return GET_PRIV (remote)->name;
+}
+
+const gchar *
+giggle_remote_get_url (GiggleRemote *remote)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
+
+	return GET_PRIV (remote)->url;
 }
 
