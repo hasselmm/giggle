@@ -712,11 +712,11 @@ window_branches_cell_data_func (GtkTreeViewColumn *column,
 {
 	GiggleBranch *branch = NULL;
 
-	// FIXME: check whether we're leaking references here
 	gtk_tree_model_get (model, iter,
 			    BRANCHES_COL_BRANCH, &branch,
 			    -1);
 	g_object_set (cell, "text", giggle_branch_get_name (branch), NULL);
+	g_object_unref (branch);
 }
 
 static void
@@ -767,11 +767,11 @@ window_authors_cell_data_func (GtkTreeViewColumn *column,
 {
 	GiggleAuthor *author = NULL;
 
-	// FIXME: check whether we're leaking references here
 	gtk_tree_model_get (model, iter,
 			    AUTHORS_COL_AUTHOR, &author,
 			    -1);
 	g_object_set (cell, "text", giggle_author_get_string (author), NULL);
+	g_object_unref (author);
 }
 
 static void
@@ -794,11 +794,22 @@ window_remotes_cell_data_func (GtkTreeViewColumn *column,
 {
 	GiggleRemote *remote = NULL;
 
-	// FIXME: check whether we're leaking references here
 	gtk_tree_model_get (model, iter,
 			    REMOTES_COL_REMOTE, &remote,
 			    -1);
-	g_object_set (cell, "text", giggle_remote_get_name (remote), NULL);
+	if (GIGGLE_IS_REMOTE (remote)) {
+		g_print ("%d\n", ((GObject*)remote)->ref_count);
+		g_object_set (cell,
+			      "foreground", "black",
+			      "text", giggle_remote_get_name (remote),
+			      NULL);
+		g_object_unref (remote);
+	} else {
+		g_object_set (cell,
+			      "foreground", "slategray",
+			      "text", _("Double-Click to add Remote..."),
+			      NULL);
+	}
 }
 
 static void
@@ -1526,6 +1537,12 @@ window_notify_remotes_cb (GiggleWindow *window)
 				    REMOTES_COL_REMOTE, remotes->data,
 				    -1);
 	}
+
+	/* Add the "double-click for new remote" item */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter,
+			    REMOTES_COL_REMOTE, NULL,
+			    -1);
 }
 
 static void
