@@ -786,7 +786,7 @@ window_setup_authors_treeview (GiggleWindow *window)
 }
 
 static void
-window_remotes_cell_data_func (GtkTreeViewColumn *column,
+window_remotes_index_data_func (GtkTreeViewColumn *column,
 			       GtkCellRenderer   *cell,
 			       GtkTreeModel      *model,
 			       GtkTreeIter       *iter,
@@ -808,6 +808,29 @@ window_remotes_cell_data_func (GtkTreeViewColumn *column,
 			      "foreground", "slategray",
 			      "text", _("Double-Click to add Remote..."),
 			      NULL);
+	}
+}
+
+static void
+window_remotes_url_data_func (GtkTreeViewColumn *column,
+			      GtkCellRenderer   *renderer,
+			      GtkTreeModel      *model,
+			      GtkTreeIter       *iter,
+			      gpointer           data)
+{
+	GiggleRemote *remote = NULL;
+
+	gtk_tree_model_get (model, iter,
+			    REMOTES_COL_REMOTE, &remote,
+			    -1);
+
+	if(GIGGLE_IS_REMOTE (remote)) {
+		g_object_set (renderer,
+			      "text", giggle_remote_get_url (remote),
+			      NULL);
+		g_object_unref (remote);
+	} else {
+		g_object_set (renderer, "text", NULL, NULL);
 	}
 }
 
@@ -857,11 +880,17 @@ static void
 window_setup_remotes_treeview (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	GtkCellRenderer  *renderer;
 
 	priv = GET_PRIV (window);
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_remotes), -1,
-						    _("Remotes"), gtk_cell_renderer_text_new (),
-						    window_remotes_cell_data_func, NULL, NULL);
+						    _("Name"), gtk_cell_renderer_text_new (),
+						    window_remotes_index_data_func, NULL, NULL);
+	renderer = gtk_cell_renderer_text_new ();
+	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_MIDDLE, NULL);
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_remotes), -1,
+						    _("URL"), renderer,
+						    window_remotes_url_data_func, NULL, NULL);
 
 	g_signal_connect_swapped (priv->treeview_remotes, "row-activated",
 				  G_CALLBACK (window_remotes_row_activated_cb), window);
