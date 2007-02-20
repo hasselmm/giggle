@@ -199,6 +199,7 @@ revision_list_finalize (GObject *object)
 	priv = GET_PRIV (object);
 
 	g_object_unref (priv->graph_renderer);
+	g_object_unref (priv->graph_column);
 
 	G_OBJECT_CLASS (giggle_revision_list_parent_class)->finalize (object);
 }

@@ -62,11 +62,10 @@ struct GiggleWindowPriv {
 	GtkWidget           *revision_list;
 	GtkWidget           *log_textview;
 	GtkWidget           *diff_textview;
+	GtkWidget           *file_list;
 
-	GtkCellRenderer     *graph_renderer;
-	
+	/* Menu */
 	GtkUIManager        *ui_manager;
-
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
 
@@ -74,7 +73,6 @@ struct GiggleWindowPriv {
 
 	GiggleGit           *git;
 
-	GtkWidget           *file_list;
 	GtkWidget           *personal_details_window;
 
 	/* Current jobs in progress. */
@@ -792,6 +790,7 @@ window_remotes_index_data_func (GtkTreeViewColumn *column,
 	gtk_tree_model_get (model, iter,
 			    REMOTES_COL_REMOTE, &remote,
 			    -1);
+
 	if (GIGGLE_IS_REMOTE (remote)) {
 		g_object_set (cell,
 			      "foreground", "black",
