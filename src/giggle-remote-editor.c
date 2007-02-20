@@ -23,11 +23,14 @@
 #include "giggle-remote-editor.h"
 
 #include <glib/gi18n.h>
+#include <gtk/gtkbox.h>
 #include <gtk/gtkstock.h>
+#include <glade/glade.h>
 
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 
 struct GiggleRemoteEditorPriv {
+	gboolean      new_remote;
 	GiggleRemote *remote;
 };
 
@@ -48,6 +51,8 @@ static void     remote_editor_set_property        (GObject           *object,
 					   guint              param_id,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
+static void     remote_editor_response    (GtkDialog         *dialog,
+					   gint               reponse);
 
 G_DEFINE_TYPE (GiggleRemoteEditor, giggle_remote_editor, GTK_TYPE_DIALOG)
 
@@ -56,7 +61,8 @@ G_DEFINE_TYPE (GiggleRemoteEditor, giggle_remote_editor, GTK_TYPE_DIALOG)
 static void
 giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkDialogClass *dialog_class = GTK_DIALOG_CLASS (class);
 
 	object_class->constructor  = remote_editor_constructor;
 	object_class->finalize     = remote_editor_finalize;
@@ -71,6 +77,8 @@ giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 							      GIGGLE_TYPE_REMOTE,
 							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+	dialog_class->response = remote_editor_response;
+
 	g_type_class_add_private (object_class, sizeof (GiggleRemoteEditorPriv));
 }
 
@@ -78,8 +86,16 @@ static void
 giggle_remote_editor_init (GiggleRemoteEditor *remote_editor)
 {
 	GiggleRemoteEditorPriv *priv;
+	GladeXML               *xml;
 
 	priv = GET_PRIV (remote_editor);
+
+	xml = glade_xml_new (GLADEDIR "/main-window.glade", "remote_vbox", NULL);
+
+	gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (remote_editor)->vbox),
+				     glade_xml_get_widget (xml, "remote_vbox"));
+
+	gtk_dialog_set_has_separator (GTK_DIALOG (remote_editor), FALSE);
 }
 
 static GObject *
@@ -88,18 +104,17 @@ remote_editor_constructor (GType                  type,
 			   GObjectConstructParam *params)
 {
 	GiggleRemoteEditorPriv *priv;
-	gboolean                new_remote;
 	GObject                *object;
 
 	object = G_OBJECT_CLASS(giggle_remote_editor_parent_class)->constructor (
 			type, n_params, params);
 
 	priv = GET_PRIV (object);
-	new_remote = G_OBJECT(priv->remote)->ref_count == 1;
+	priv->new_remote = G_OBJECT(priv->remote)->ref_count == 1;
 
 	gtk_dialog_add_buttons (GTK_DIALOG (object),
 				GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-				new_remote ? GTK_STOCK_ADD : GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+				priv->new_remote ? GTK_STOCK_ADD : GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 				NULL);
 
 	return object;
@@ -112,7 +127,7 @@ remote_editor_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 	
-	/* FIXME: Free object data */
+	g_object_unref (priv->remote);
 
 	G_OBJECT_CLASS (giggle_remote_editor_parent_class)->finalize (object);
 }
@@ -157,11 +172,23 @@ remote_editor_set_property (GObject      *object,
 		if(!priv->remote) {
 			priv->remote = giggle_remote_new (_("Unnamed"));
 		}
+		// FIXME: connect to signals
 		g_object_notify (object, "remote");
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
+	}
+}
+
+static void
+remote_editor_response (GtkDialog *dialog,
+			gint       response)
+{
+	/* FIXME: save the remote */
+
+	if(GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response) {
+		GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response (dialog, response);
 	}
 }
 
