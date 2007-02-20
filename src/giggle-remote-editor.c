@@ -23,6 +23,7 @@
 #include "giggle-remote-editor.h"
 
 #include <glib/gi18n.h>
+#include <gtk/gtkstock.h>
 
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 
@@ -35,6 +36,9 @@ enum {
 	PROP_REMOTE
 };
 
+static GObject *remote_editor_constructor         (GType                  type,
+						   guint                  n_param,
+						   GObjectConstructParam *params);
 static void     remote_editor_finalize            (GObject           *object);
 static void     remote_editor_get_property        (GObject           *object,
 					   guint              param_id,
@@ -54,6 +58,7 @@ giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
+	object_class->constructor  = remote_editor_constructor;
 	object_class->finalize     = remote_editor_finalize;
 	object_class->get_property = remote_editor_get_property;
 	object_class->set_property = remote_editor_set_property;
@@ -75,6 +80,29 @@ giggle_remote_editor_init (GiggleRemoteEditor *remote_editor)
 	GiggleRemoteEditorPriv *priv;
 
 	priv = GET_PRIV (remote_editor);
+}
+
+static GObject *
+remote_editor_constructor (GType                  type,
+			   guint                  n_params,
+			   GObjectConstructParam *params)
+{
+	GiggleRemoteEditorPriv *priv;
+	gboolean                new_remote;
+	GObject                *object;
+
+	object = G_OBJECT_CLASS(giggle_remote_editor_parent_class)->constructor (
+			type, n_params, params);
+
+	priv = GET_PRIV (object);
+	new_remote = G_OBJECT(priv->remote)->ref_count == 1;
+
+	gtk_dialog_add_buttons (GTK_DIALOG (object),
+				GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
+				new_remote ? GTK_STOCK_ADD : GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+				NULL);
+
+	return object;
 }
 
 static void
