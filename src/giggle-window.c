@@ -871,7 +871,10 @@ window_remotes_row_activated_cb (GiggleWindow      *window,
 				    REMOTES_COL_REMOTE, remote,
 				    -1);
 	}
-	g_object_unref (remote);
+	if(remote) {
+		/* doesn't happen in this case: !remote && response != ACCEPT */
+		g_object_unref (remote);
+	}
 
 	gtk_widget_destroy (editor);
 }
