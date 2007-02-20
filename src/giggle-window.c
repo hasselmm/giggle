@@ -839,13 +839,16 @@ window_remotes_row_activated_cb (GiggleWindow      *window,
 		GtkListStore* store = GTK_LIST_STORE (model);
 		GtkTreeIter   new;
 
+		g_object_get (editor,
+			      "remote", &remote,
+			      NULL);
+
 		gtk_list_store_insert_before (store, &new, &iter);
 		gtk_list_store_set (store, &new,
 				    REMOTES_COL_REMOTE, remote,
 				    -1);
-	} else if (remote) {
-		g_object_unref (remote);
 	}
+	g_object_unref (remote);
 
 	gtk_widget_destroy (editor);
 }
