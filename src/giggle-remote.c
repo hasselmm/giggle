@@ -31,7 +31,8 @@ struct GiggleRemotePriv {
 
 enum {
 	PROP_0,
-	PROP_NAME
+	PROP_NAME,
+	PROP_URL
 };
 
 static void     remote_finalize            (GObject           *object);
@@ -59,9 +60,13 @@ giggle_remote_class_init (GiggleRemoteClass *class)
 
 	g_object_class_install_property (object_class,
 					 PROP_NAME,
-					 g_param_spec_string ("name",
-							      "Name",
+					 g_param_spec_string ("name", "Name",
 							      "This remote's name",
+							      NULL, G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_URL,
+					 g_param_spec_string ("url", "URL",
+							      "This remote's URL",
 							      NULL, G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemotePriv));
@@ -83,6 +88,7 @@ remote_finalize (GObject *object)
 	priv = GET_PRIV (object);
 	
 	g_free (priv->name);
+	g_free (priv->url);
 
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
@@ -100,6 +106,9 @@ remote_get_property (GObject    *object,
 	switch (param_id) {
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
+		break;
+	case PROP_URL:
+		g_value_set_string (value, priv->url);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -120,6 +129,9 @@ remote_set_property (GObject      *object,
 	switch (param_id) {
 	case PROP_NAME:
 		priv->name = g_value_dup_string (value);
+		break;
+	case PROP_URL:
+		giggle_remote_set_url (GIGGLE_REMOTE (object), g_value_get_string (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -147,5 +159,24 @@ giggle_remote_get_url (GiggleRemote *remote)
 	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
 
 	return GET_PRIV (remote)->url;
+}
+
+void
+giggle_remote_set_url (GiggleRemote *remote,
+		       const gchar  *url)
+{
+	GiggleRemotePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (remote));
+	priv = GET_PRIV (remote);
+
+	if(priv->url == url) {
+		return;
+	}
+
+	g_free (priv->url);
+	priv->url = g_strdup (url);
+
+	g_object_notify (G_OBJECT (remote), "url");
 }
 

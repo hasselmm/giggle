@@ -187,6 +187,7 @@ remote_editor_set_remote (GiggleRemoteEditor *editor,
 		remote_editor_notify_name_cb (editor);
 		g_signal_connect_swapped (remote, "notify::url",
 					  G_CALLBACK (remote_editor_notify_url_cb), editor);
+		remote_editor_notify_url_cb (editor);
 	}
 
 	g_object_notify (G_OBJECT (editor), "remote");
