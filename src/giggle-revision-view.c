@@ -30,6 +30,7 @@ typedef struct GiggleRevisionViewPriv GiggleRevisionViewPriv;
 struct GiggleRevisionViewPriv {
 	GiggleRevision *revision;
 
+	GtkWidget      *sha;
 	GtkWidget      *log;
 };
 
@@ -82,12 +83,33 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 
 	priv = GET_PRIV (revision_view);
 
-	label = gtk_label_new ("Change Log:");
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
-	
+	g_object_set (G_OBJECT (revision_view),
+		      "column-spacing", 12,
+		      "row-spacing", 6,
+		      NULL);
+
+	label = gtk_label_new ("SHA:");
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_widget_show (label);
+
 	gtk_table_attach (GTK_TABLE (revision_view), label,
 			  0, 1, 0, 1,
+			  GTK_FILL, GTK_FILL, 0, 0);
+
+	priv->sha = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (priv->sha), 0.0, 0.5);
+	gtk_widget_show (priv->sha);
+
+	gtk_table_attach (GTK_TABLE (revision_view), priv->sha,
+			  1, 2, 0, 1,
+			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
+
+	label = gtk_label_new ("Change Log:");
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
+	gtk_widget_show (label);
+
+	gtk_table_attach (GTK_TABLE (revision_view), label,
+			  0, 1, 1, 2,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -104,7 +126,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->log);
 	gtk_table_attach (GTK_TABLE (revision_view), scrolled_window,
-			  1, 2, 0, 1,
+			  1, 2, 1, 2,
 			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 }
 
@@ -171,8 +193,21 @@ static void
 revision_view_update (GiggleRevisionView *view)
 {
 	GiggleRevisionViewPriv *priv;
+	GtkTextBuffer          *buffer;
+	gchar                  *sha, *log;
 
 	priv = GET_PRIV (view);
+	g_object_get (G_OBJECT (priv->revision),
+		      "sha", &sha, 
+		      "long-log", &log,
+		      NULL);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
+	gtk_text_buffer_set_text (buffer, log, -1);
+	g_free (log);
+
+	gtk_label_set_text (GTK_LABEL (priv->sha), sha);
+	g_free (sha);
 }
 
 GtkWidget *

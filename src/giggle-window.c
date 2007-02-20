@@ -62,7 +62,6 @@ struct GiggleWindowPriv {
 	GtkWidget           *treeview_remotes;
 	/* History Tab */
 	GtkWidget           *revision_list;
-	GtkWidget           *log_textview;
 	GtkWidget           *diff_textview;
 	GtkWidget           *file_list;
 
@@ -378,8 +377,6 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "revisions_scrolledwindow")),
 			   priv->revision_list);
-
-	priv->log_textview = glade_xml_get_widget (xml, "log_textview");
 
 	priv->diff_textview = giggle_diff_view_new ();
 	gtk_widget_show (priv->diff_textview);
@@ -900,35 +897,13 @@ window_update_revision_info (GiggleWindow   *window,
 			     GiggleRevision *previous_revision)
 {
 	GiggleWindowPriv *priv;
-	const gchar      *sha;
-	const gchar      *log;
-	gchar            *str;
 	GtkAction        *action;
-	
+
 	priv = GET_PRIV (window);
 
-	if (current_revision) {
-		sha = giggle_revision_get_sha (current_revision);
-		log = giggle_revision_get_long_log (current_revision);
-		if (!log) {
-			log = giggle_revision_get_short_log (current_revision);
-		}
-		if (!log) {
-			log = "";
-		}
-	} else {
-		sha = "";
-		log = "";
-	}
+	giggle_revision_view_set_revision (GIGGLE_REVISION_VIEW (priv->revision_view),
+					   current_revision);
 	
-	str = g_strdup_printf ("%s\n%s", sha, log);
-	
-	gtk_text_buffer_set_text (
-		gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log_textview)),
-		str, -1);
-
-	g_free (str);
-
 	if (priv->current_diff_tree_job) {
 		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
 		g_object_unref (priv->current_diff_tree_job);
