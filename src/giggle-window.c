@@ -42,6 +42,7 @@
 #include "giggle-personal-details-window.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
+#include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 #include "eggfindbar.h"
 
@@ -64,6 +65,8 @@ struct GiggleWindowPriv {
 	GtkWidget           *log_textview;
 	GtkWidget           *diff_textview;
 	GtkWidget           *file_list;
+
+	GtkWidget           *revision_view;
 
 	/* Menu */
 	GtkUIManager        *ui_manager;
@@ -387,6 +390,10 @@ giggle_window_init (GiggleWindow *window)
 	priv->file_list = giggle_file_list_new ();
 	gtk_widget_show (priv->file_list);
 	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "file_view_scrolledwindow")), priv->file_list);
+
+	priv->revision_view = giggle_revision_view_new ();
+	gtk_widget_show (priv->revision_view);
+	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "revision_expander")), priv->revision_view);
 
 	g_object_unref (xml);
 

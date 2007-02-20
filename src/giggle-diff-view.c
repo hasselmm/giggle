@@ -227,7 +227,6 @@ diff_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
-		g_print ("pues si pues si\n");
 		gtk_text_buffer_set_text (
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
 			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),

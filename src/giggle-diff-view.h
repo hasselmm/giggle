@@ -37,14 +37,14 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_DIFF_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_DIFF_VIEW))
 #define GIGGLE_DIFF_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_DIFF_VIEW, GiggleDiffViewClass))
 
-typedef struct _GiggleDiffView      GiggleDiffView;
-typedef struct _GiggleDiffViewClass GiggleDiffViewClass;
+typedef struct GiggleDiffView      GiggleDiffView;
+typedef struct GiggleDiffViewClass GiggleDiffViewClass;
 
-struct _GiggleDiffView {
+struct GiggleDiffView {
 	GtkSourceView parent_instance;
 };
 
-struct _GiggleDiffViewClass {
+struct GiggleDiffViewClass {
 	GtkSourceViewClass parent_class;
 };
 
