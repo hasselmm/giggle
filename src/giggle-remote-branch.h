@@ -35,6 +35,11 @@ G_BEGIN_DECLS
 typedef struct GiggleRemoteBranch      GiggleRemoteBranch;
 typedef struct GiggleRemoteBranchClass GiggleRemoteBranchClass;
 
+typedef enum {
+	GIGGLE_REMOTE_DIRECTION_PUSH,
+	GIGGLE_REMOTE_DIRECTION_PULL
+} GiggleRemoteDirection;
+
 struct GiggleRemoteBranch {
 	GObject parent;
 };
@@ -43,8 +48,11 @@ struct GiggleRemoteBranchClass {
 	GObjectClass parent_class;
 };
 
-GType		      giggle_remote_branch_get_type (void);
-GiggleRemoteBranch *         giggle_remote_branch_new      (void);
+GType		      giggle_remote_branch_get_type     (void);
+GiggleRemoteBranch *  giggle_remote_branch_new          (GiggleRemoteDirection dir,
+							 const gchar          *refspec);
+GiggleRemoteDirection giggle_remote_branch_get_direction(GiggleRemoteBranch   *branch);
+const gchar *         giggle_remote_branch_get_refspec  (GiggleRemoteBranch   *branch);
 
 G_END_DECLS
 

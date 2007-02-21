@@ -118,3 +118,13 @@ remote_branch_set_property (GObject      *object,
 	}
 }
 
+GiggleRemoteBranch *
+giggle_remote_branch_new (GiggleRemoteDirection direction,
+			  const gchar          *refspec)
+{
+	return g_object_new (GIGGLE_TYPE_REMOTE_BRANCH,
+			     "direction", direction,
+			     "refspec", refspec,
+			     NULL);
+}
+
