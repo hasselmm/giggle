@@ -100,6 +100,9 @@ remote_branch_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_DIRECTION:
+		g_value_set_enum (value, priv->direction);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -117,6 +120,10 @@ remote_branch_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_DIRECTION:
+		priv->direction = g_value_get_enum (value);
+		g_object_notify (object, "direction");
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
