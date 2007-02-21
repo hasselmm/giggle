@@ -130,6 +130,12 @@ remote_editor_constructor (GType                  type,
 }
 
 static void
+remote_editor_notify_branches_cb (GiggleRemoteEditor *editor)
+{
+	g_warning ("FIXME: implement %s", __PRETTY_FUNCTION__);
+}
+
+static void
 remote_editor_notify_name_cb (GiggleRemoteEditor *editor)
 {
 	GiggleRemoteEditorPriv *priv;
@@ -171,6 +177,9 @@ remote_editor_set_remote (GiggleRemoteEditor *editor,
 
 	if(priv->remote) {
 		g_signal_handlers_disconnect_by_func (priv->remote,
+						      remote_editor_notify_branches_cb,
+						      editor);
+		g_signal_handlers_disconnect_by_func (priv->remote,
 						      remote_editor_notify_name_cb,
 						      editor);
 		g_signal_handlers_disconnect_by_func (priv->remote,
@@ -182,6 +191,9 @@ remote_editor_set_remote (GiggleRemoteEditor *editor,
 
 	if(remote) {
 		priv->remote = g_object_ref (remote);
+		g_signal_connect_swapped (remote, "notify::branches",
+					  G_CALLBACK (remote_editor_notify_branches_cb), editor);
+		remote_editor_notify_branches_cb (editor);
 		g_signal_connect_swapped (remote, "notify::name",
 					  G_CALLBACK (remote_editor_notify_name_cb), editor);
 		remote_editor_notify_name_cb (editor);
