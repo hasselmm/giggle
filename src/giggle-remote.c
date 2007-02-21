@@ -28,10 +28,13 @@ typedef struct GiggleRemotePriv GiggleRemotePriv;
 struct GiggleRemotePriv {
 	gchar *name;
 	gchar *url;
+
+	GList *branches; // of GiggleRemoteBranch
 };
 
 enum {
 	PROP_0,
+	PROP_BRANCHES,
 	PROP_NAME,
 	PROP_URL
 };
@@ -59,6 +62,11 @@ giggle_remote_class_init (GiggleRemoteClass *class)
 	object_class->get_property = remote_get_property;
 	object_class->set_property = remote_set_property;
 
+	g_object_class_install_property (object_class,
+					 PROP_BRANCHES,
+					 g_param_spec_pointer ("branches", "Branches",
+						 	       "The list of remote branches",
+							       G_PARAM_READABLE));
 	g_object_class_install_property (object_class,
 					 PROP_NAME,
 					 g_param_spec_string ("name", "Name",
@@ -91,6 +99,10 @@ remote_finalize (GObject *object)
 	g_free (priv->name);
 	g_free (priv->url);
 
+	g_list_foreach (priv->branches, (GFunc)g_object_unref, NULL);
+	g_list_free (priv->branches);
+	priv->branches = NULL;
+
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
 
@@ -105,6 +117,9 @@ remote_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_BRANCHES:
+		g_value_set_pointer (value, priv->branches);
+		break;
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
 		break;
@@ -150,7 +165,12 @@ static void
 remote_add_branch (GiggleRemote       *remote,
 		   GiggleRemoteBranch *branch)
 {
-	g_warning ("FIXME: implement %s", __PRETTY_FUNCTION__);
+	GiggleRemotePriv *priv;
+
+	priv = GET_PRIV (remote);
+
+	priv->branches = g_list_append (priv->branches, g_object_ref (branch));
+	g_object_notify (G_OBJECT (remote), "branches");
 }
 
 GiggleRemote *
@@ -199,6 +219,14 @@ giggle_remote_new_from_file (gchar const *filename)
 	g_free (content);
 
 	return remote;
+}
+
+GList *
+giggle_remote_get_branches (GiggleRemote *remote)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
+
+	return GET_PRIV (remote)->branches;
 }
 
 const gchar *

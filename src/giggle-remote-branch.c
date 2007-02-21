@@ -27,11 +27,13 @@ typedef struct GiggleRemoteBranchPriv GiggleRemoteBranchPriv;
 
 struct GiggleRemoteBranchPriv {
 	GiggleRemoteDirection direction;
+	gchar                *refspec;
 };
 
 enum {
 	PROP_0,
-	PROP_DIRECTION
+	PROP_DIRECTION,
+	PROP_REFSPEC
 };
 
 static void     remote_branch_finalize            (GObject           *object);
@@ -65,6 +67,13 @@ giggle_remote_branch_class_init (GiggleRemoteBranchClass *class)
 							    GIGGLE_TYPE_REMOTE_DIRECTION,
 							    GIGGLE_REMOTE_DIRECTION_PULL,
 							    G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_REFSPEC,
+					 g_param_spec_string ("refspec",
+						 	      "RefSpec",
+							      "The specification for the head to be synchronized",
+							      NULL,
+							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemoteBranchPriv));
 }
@@ -84,7 +93,8 @@ remote_branch_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 	
-	/* FIXME: Free object data */
+	g_free (priv->refspec);
+	priv->refspec = NULL;
 
 	G_OBJECT_CLASS (giggle_remote_branch_parent_class)->finalize (object);
 }
@@ -102,6 +112,9 @@ remote_branch_get_property (GObject    *object,
 	switch (param_id) {
 	case PROP_DIRECTION:
 		g_value_set_enum (value, priv->direction);
+		break;
+	case PROP_REFSPEC:
+		g_value_set_string (value, priv->refspec);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -123,6 +136,11 @@ remote_branch_set_property (GObject      *object,
 	case PROP_DIRECTION:
 		priv->direction = g_value_get_enum (value);
 		g_object_notify (object, "direction");
+		break;
+	case PROP_REFSPEC:
+		g_free (priv->refspec);
+		priv->refspec = g_value_dup_string (value);
+		g_object_notify (object, "refspec");
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
