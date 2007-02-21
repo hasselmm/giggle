@@ -44,6 +44,7 @@
 #include "giggle-revision-list.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
+#include "giggle-view-history.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -51,6 +52,11 @@ typedef struct GiggleWindowPriv GiggleWindowPriv;
 struct GiggleWindowPriv {
 	GtkWidget           *content_vbox;
 	GtkWidget           *menubar_hbox;
+	GtkWidget           *main_notebook;
+
+	/* Pages */
+	GtkWidget           *history_page;
+
 	/* Summary Tab */
 	GtkWidget           *label_summary;
 	GtkWidget           *label_project_path;
@@ -334,6 +340,8 @@ giggle_window_init (GiggleWindow *window)
 		g_error ("Couldn't find glade file, did you install?");
 	}
 
+	priv->main_notebook = glade_xml_get_widget (xml, "main_notebook");
+
 	/* Summary Tab */
 	priv->label_summary = glade_xml_get_widget (xml, "label_project_summary");
 	priv->label_project_path = glade_xml_get_widget (xml, "label_project_path");
@@ -439,6 +447,14 @@ giggle_window_init (GiggleWindow *window)
 				      GTK_WINDOW (window));
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
+
+	/* append history page */
+	priv->history_page = giggle_view_history_new ();
+	gtk_widget_show (priv->history_page);
+
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->history_page,
+				  gtk_label_new ("History"));
 }
 
 static void
@@ -646,7 +662,7 @@ window_git_get_revisions_cb (GiggleGit    *git,
 			revisions = revisions->next;
 		}
 
-		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), GTK_TREE_MODEL (store));
+		giggle_view_history_set_model (GIGGLE_VIEW_HISTORY (priv->history_page), GTK_TREE_MODEL (store));
 		g_object_unref (store);
 	}
 
