@@ -21,11 +21,17 @@
 #include <config.h>
 
 #include "giggle-remote-branch.h"
+#include "giggle-enums.h"
 
 typedef struct GiggleRemoteBranchPriv GiggleRemoteBranchPriv;
 
 struct GiggleRemoteBranchPriv {
-	guint i;
+	GiggleRemoteDirection direction;
+};
+
+enum {
+	PROP_0,
+	PROP_DIRECTION
 };
 
 static void     remote_branch_finalize            (GObject           *object);
@@ -51,15 +57,14 @@ giggle_remote_branch_class_init (GiggleRemoteBranchClass *class)
 	object_class->get_property = remote_branch_get_property;
 	object_class->set_property = remote_branch_set_property;
 
-#if 0
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
-							      NULL,
-							      G_PARAM_READABLE));
-#endif
+					 PROP_DIRECTION,
+					 g_param_spec_enum ("direction",
+							    "Direction",
+							    "The direction of the remote branch (push or pull)",
+							    GIGGLE_TYPE_REMOTE_DIRECTION,
+							    GIGGLE_REMOTE_DIRECTION_PULL,
+							    G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemoteBranchPriv));
 }
