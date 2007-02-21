@@ -104,11 +104,15 @@ test_file_list_SOURCES =			\
 	giggle-error.c				\
 	giggle-sysdeps.c			\
 	giggle-git.c				\
+	giggle-git-diff-tree.c			\
+	giggle-git-diff-tree.h			\
 	giggle-job.c				\
 	giggle-file-list.c			\
 	giggle-git-ignore.c			\
 	giggle-remote.c				\
 	giggle-remote.h				\
+	giggle-revision.c			\
+	giggle-revision.h			\
 	test-file-list.c
 
 test_file_list_LDADD =				\

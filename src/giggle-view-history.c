@@ -164,14 +164,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	if (revision1 && revision2) {
 		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
 						revision1, revision2);
-
-		/* FIXME
-		priv->current_diff_tree_job = giggle_git_diff_tree_new (revision2, revision1);
-		giggle_git_run_job (priv->git,
-				    priv->current_diff_tree_job,
-				    window_git_diff_tree_result_callback,
-				    window);
-		*/
+		giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
+						      revision1, revision2);
 	}
 
 	g_object_unref (revision1);

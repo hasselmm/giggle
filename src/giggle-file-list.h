@@ -23,6 +23,8 @@
 
 #include <glib-object.h>
 
+#include "giggle-revision.h"
+
 G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_FILE_LIST            (giggle_file_list_get_type ())
@@ -49,6 +51,10 @@ GtkWidget *        giggle_file_list_new               (void);
 gboolean           giggle_file_list_get_show_all      (GiggleFileList *list);
 void               giggle_file_list_set_show_all      (GiggleFileList *list,
 						       gboolean        show_all);
+
+void               giggle_file_list_highlight_revisions (GiggleFileList *list,
+							 GiggleRevision *from,
+							 GiggleRevision *to);
 
 GList *            giggle_file_list_get_highlight_files (GiggleFileList *list);
 void               giggle_file_list_set_highlight_files (GiggleFileList *list,

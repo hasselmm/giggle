@@ -26,6 +26,8 @@
 #include "giggle-git.h"
 #include "giggle-file-list.h"
 #include "giggle-git-ignore.h"
+#include "giggle-git-diff-tree.h"
+#include "giggle-revision.h"
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 
@@ -38,6 +40,8 @@ struct GiggleFileListPriv {
 
 	GtkWidget    *popup;
 	GtkUIManager *ui_manager;
+
+	GiggleJob    *job;
 
 	gboolean      show_all : 1;
 };
@@ -809,6 +813,73 @@ file_list_update_highlight (GiggleFileList *file_list,
 		g_free (name);
 		valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (priv->store), &iter);
 	}
+}
+
+static void
+file_list_job_callback (GiggleGit *git,
+			GiggleJob *job,
+			GError    *error,
+			gpointer   user_data)
+{
+	GiggleFileList     *list;
+	GiggleFileListPriv *priv;
+	GList              *files;
+
+	list = GIGGLE_FILE_LIST (user_data);
+	priv = GET_PRIV (list);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when retrieving different files list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+		g_error_free (error);
+	} else {
+		files = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (priv->job));
+		file_list_update_highlight (list, NULL, NULL, files);
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+void
+giggle_file_list_highlight_revisions (GiggleFileList *list,
+				      GiggleRevision *from,
+				      GiggleRevision *to)
+{
+	GiggleFileListPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
+	g_return_if_fail (GIGGLE_IS_REVISION (from));
+	g_return_if_fail (GIGGLE_IS_REVISION (to));
+
+	priv = GET_PRIV (list);
+
+	/* FIXME: should set properties */
+
+	/* clear highlights */
+	file_list_update_highlight (list, NULL, NULL, NULL);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_diff_tree_new (from, to);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    file_list_job_callback,
+			    list);
 }
 
 void

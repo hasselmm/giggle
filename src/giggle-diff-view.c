@@ -226,6 +226,7 @@ diff_view_job_callback (GiggleGit *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
+		g_error_free (error);
 	} else {
 		gtk_text_buffer_set_text (
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
