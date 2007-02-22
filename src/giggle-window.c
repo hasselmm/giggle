@@ -66,12 +66,6 @@ struct GiggleWindowPriv {
 	GtkWidget           *treeview_branches;
 	GtkWidget           *treeview_authors;
 	GtkWidget           *treeview_remotes;
-	/* History Tab */
-	GtkWidget           *revision_list;
-	GtkWidget           *diff_textview;
-	GtkWidget           *file_list;
-
-	GtkWidget           *revision_view;
 
 	/* Menu */
 	GtkUIManager        *ui_manager;
@@ -119,21 +113,9 @@ static void window_setup_branches_treeview        (GiggleWindow      *window);
 static void window_setup_authors_treeview         (GiggleWindow      *window);
 static void window_setup_remotes_treeview         (GiggleWindow      *window);
 
-static void window_update_revision_info           (GiggleWindow      *window,
-						   GiggleRevision    *current_revision,
-						   GiggleRevision    *previous_revision);
 static void window_add_widget_cb                  (GtkUIManager      *merge,
 						   GtkWidget         *widget,
 						   GiggleWindow      *window);
-
-static void window_revision_list_selection_changed_cb (GiggleRevisionList *list,
-						       GiggleRevision     *revision1,
-						       GiggleRevision     *revision2,
-						       GiggleWindow       *window);
-static void window_git_diff_tree_result_callback  (GiggleGit         *git,
-						   GiggleJob         *job,
-						   GError            *error,
-						   gpointer           user_data);
 
 static void window_action_quit_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
@@ -372,33 +354,10 @@ giggle_window_init (GiggleWindow *window)
 	priv->treeview_remotes = glade_xml_get_widget (xml, "treeview_remotes");
 	window_setup_remotes_treeview (window);
 
-	/* History Tab */
 	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
 	priv->menubar_hbox = glade_xml_get_widget (xml, "menubar_hbox");
-
-	priv->revision_list = giggle_revision_list_new ();
-	gtk_widget_show (priv->revision_list);
-	g_signal_connect (G_OBJECT (priv->revision_list), "selection-changed",
-			  G_CALLBACK (window_revision_list_selection_changed_cb), window);
-
-	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "revisions_scrolledwindow")),
-			   priv->revision_list);
-
-	priv->diff_textview = giggle_diff_view_new ();
-	gtk_widget_show (priv->diff_textview);
-
-	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "diff_scrolledwindow")),
-			   priv->diff_textview);
-
-	priv->file_list = giggle_file_list_new ();
-	gtk_widget_show (priv->file_list);
-	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "file_view_scrolledwindow")), priv->file_list);
-
-	priv->revision_view = giggle_revision_view_new ();
-	gtk_widget_show (priv->revision_view);
-	gtk_container_add (GTK_CONTAINER (glade_xml_get_widget (xml, "revision_expander")), priv->revision_view);
 
 	g_object_unref (xml);
 
@@ -907,39 +866,6 @@ window_setup_remotes_treeview (GiggleWindow *window)
 /* Update revision info. If previous_revision is not NULL, a diff between it and
  * the current revision will be shown.
  */
-static void
-window_update_revision_info (GiggleWindow   *window,
-			     GiggleRevision *current_revision,
-			     GiggleRevision *previous_revision)
-{
-	GiggleWindowPriv *priv;
-	GtkAction        *action;
-
-	priv = GET_PRIV (window);
-
-	giggle_revision_view_set_revision (GIGGLE_REVISION_VIEW (priv->revision_view),
-					   current_revision);
-	
-	if (priv->current_diff_tree_job) {
-		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
-		g_object_unref (priv->current_diff_tree_job);
-		priv->current_diff_tree_job = NULL;
-	}
-	
-	if (current_revision && previous_revision) {
-		action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
-		gtk_action_set_sensitive (action, FALSE);
-
-		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_textview),
-						current_revision, previous_revision);
-
-		priv->current_diff_tree_job = giggle_git_diff_tree_new (previous_revision, current_revision);
-		giggle_git_run_job (priv->git,
-				    priv->current_diff_tree_job,
-				    window_git_diff_tree_result_callback,
-				    window);
-	}
-}
 
 static void
 window_add_widget_cb (GtkUIManager *merge, 
@@ -951,44 +877,6 @@ window_add_widget_cb (GtkUIManager *merge,
 	priv = GET_PRIV (window);
 
 	gtk_box_pack_start (GTK_BOX (priv->menubar_hbox), widget, TRUE, TRUE, 0);
-}
-
-static void
-window_revision_list_selection_changed_cb (GiggleRevisionList *list,
-					   GiggleRevision     *revision1,
-					   GiggleRevision     *revision2,
-					   GiggleWindow       *window)
-{
-	window_update_revision_info (window, revision1, revision2);
-	g_object_unref (revision1);
-	g_object_unref (revision2);
-}
-
-static void
-window_git_diff_tree_result_callback (GiggleGit *git,
-				      GiggleJob *job,
-				      GError    *error,
-				      gpointer   user_data)
-{
-	GiggleWindow     *window;
-	GiggleWindowPriv *priv;
-	GList            *list;
-
-	window = GIGGLE_WINDOW (user_data);
-	priv = GET_PRIV (window);
-
-	if (error) {
-		window_show_error (window,
-				   N_("An error ocurred when retrieving different files list:\n%s"),
-				   error);
-		g_error_free (error);
-	} else {
-		list = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (job));
-		giggle_file_list_set_highlight_files (GIGGLE_FILE_LIST (priv->file_list), list);
-	}
-
-	g_object_unref (priv->current_diff_tree_job);
-	priv->current_diff_tree_job = NULL;
 }
 
 static void
@@ -1028,12 +916,15 @@ window_action_open_cb (GtkAction    *action,
 	}
 
 	gtk_widget_destroy (file_chooser);
+#endif
 }
 
 static void
 window_action_save_patch_cb (GtkAction    *action,
 			     GiggleWindow *window)
 {
+/* FIXME: implement this again with GiggleView */
+#if 0
 	GiggleWindowPriv *priv;
 	GtkWidget        *file_chooser;
 	GtkTextBuffer    *text_buffer;
@@ -1085,6 +976,8 @@ window_action_find_cb (GtkAction    *action,
 	gtk_widget_grab_focus (priv->find_bar);
 }
 
+/* FIXME: implement these again with GiggleView */
+#if 0
 static gboolean
 revision_property_matches (GiggleRevision *revision,
 			   const gchar    *property,
@@ -1108,12 +1001,15 @@ revision_matches (GiggleRevision *revision,
 		revision_property_matches (revision, "long-log", search_string) ||
 		revision_property_matches (revision, "sha", search_string));
 }
+#endif
 
 static void
 window_find (GiggleWindow *window,
 	     const gchar  *search_string,
 	     gint          direction)
 {
+/* FIXME: implement this again with GiggleView */
+#if 0
 	GiggleWindowPriv *priv;
 	GtkTreeModel     *model;
 	GtkTreeSelection *selection;
@@ -1176,6 +1072,7 @@ window_find (GiggleWindow *window,
 	gtk_tree_path_free (path);
 	g_list_foreach (list, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (list);
+#endif
 }
 
 static void
@@ -1237,9 +1134,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
 
-	/* empty the treeview */
-	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), NULL);
-
 	job = giggle_git_revisions_new ();
 	giggle_git_run_job (priv->git, job,
 			    window_git_get_revisions_cb,
@@ -1289,7 +1183,7 @@ window_notify_project_name_cb (GiggleWindow* window)
 	gchar            *markup;
 
 	priv = GET_PRIV (window);
-	// we could skip the markup by using PangoAttrList
+	/* we could skip the markup by using PangoAttrList */
 	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>",
 				  giggle_git_get_project_name (priv->git));
 
