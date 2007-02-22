@@ -130,7 +130,10 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	priv = GET_PRIV (revision_list);
 
 	priv->graph_renderer = giggle_graph_renderer_new ();
+	g_object_ref_sink (priv->graph_renderer);
+
 	priv->graph_column = gtk_tree_view_column_new ();
+	g_object_ref_sink (priv->graph_column);
 
 	gtk_tree_view_column_set_title (priv->graph_column, _("Graph"));
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->graph_column),
