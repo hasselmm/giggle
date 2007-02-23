@@ -24,8 +24,10 @@
 
 #include <glib/gi18n.h>
 #include <gtk/gtkbox.h>
+#include <gtk/gtkcellrenderertext.h>
 #include <gtk/gtkentry.h>
 #include <gtk/gtkstock.h>
+#include <gtk/gtktreeview.h>
 #include <glade/glade.h>
 
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
@@ -36,6 +38,12 @@ struct GiggleRemoteEditorPriv {
 
 	GtkWidget    *entry_name;
 	GtkWidget    *entry_url;
+	GtkWidget    *treeview_branches;
+};
+
+enum {
+	COL_BRANCH,
+	N_COLUMNS
 };
 
 enum {
@@ -87,6 +95,40 @@ giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 }
 
 static void
+remote_editor_tree_cell_data_func (GtkTreeViewColumn *tree_column,
+		                   GtkCellRenderer   *cell,
+				   GtkTreeModel      *model,
+				   GtkTreeIter       *iter,
+				   gpointer           data)
+{
+	GiggleRemoteBranch *branch = NULL;
+
+	gtk_tree_model_get (model, iter,
+			    COL_BRANCH, &branch,
+			    -1);
+	g_object_set (cell, "text", giggle_remote_branch_get_refspec (branch), NULL);
+	g_object_unref (branch);
+}
+	
+static void
+remote_editor_setup_treeview (GiggleRemoteEditor *self)
+{
+	GiggleRemoteEditorPriv *priv;
+	GtkListStore           *store;
+
+	priv = GET_PRIV (self);
+
+	store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
+	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
+	g_object_unref (store);
+
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_branches), -1,
+						    _("Branches"), gtk_cell_renderer_text_new (),
+						    remote_editor_tree_cell_data_func,
+						    NULL, NULL);
+}
+
+static void
 giggle_remote_editor_init (GiggleRemoteEditor *remote_editor)
 {
 	GiggleRemoteEditorPriv *priv;
@@ -103,8 +145,12 @@ giggle_remote_editor_init (GiggleRemoteEditor *remote_editor)
 
 	priv->entry_name = glade_xml_get_widget (xml, "entry_remote_name");;
 	priv->entry_url = glade_xml_get_widget (xml, "entry_remote_url");;
+	priv->treeview_branches = glade_xml_get_widget (xml, "treeview_remote_branches");
+	remote_editor_setup_treeview (remote_editor);
 
 	g_object_unref (xml);
+
+	gtk_window_set_default_size (GTK_WINDOW (remote_editor), 350, 200);
 }
 
 static GObject *
@@ -132,7 +178,21 @@ remote_editor_constructor (GType                  type,
 static void
 remote_editor_notify_branches_cb (GiggleRemoteEditor *editor)
 {
-	g_warning ("FIXME: implement %s", __PRETTY_FUNCTION__);
+	GiggleRemoteEditorPriv *priv;
+	GtkListStore           *store;
+	GtkTreeIter             iter;
+	GList                  *branch;
+
+	priv = GET_PRIV (editor);
+	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (priv->treeview_branches)));
+
+	gtk_list_store_clear (store);
+	for(branch = giggle_remote_get_branches (priv->remote); branch; branch = g_list_next (branch)) {
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter,
+				    COL_BRANCH, branch->data,
+				    -1);
+	}
 }
 
 static void
