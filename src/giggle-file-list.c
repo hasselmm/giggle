@@ -881,12 +881,3 @@ giggle_file_list_highlight_revisions (GiggleFileList *list,
 			    file_list_job_callback,
 			    list);
 }
-
-void
-giggle_file_list_set_highlight_files (GiggleFileList *list,
-				      GList          *files)
-{
-	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
-
-	file_list_update_highlight (list, NULL, NULL, files);
-}

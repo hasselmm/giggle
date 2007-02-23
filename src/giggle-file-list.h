@@ -56,11 +56,6 @@ void               giggle_file_list_highlight_revisions (GiggleFileList *list,
 							 GiggleRevision *from,
 							 GiggleRevision *to);
 
-GList *            giggle_file_list_get_highlight_files (GiggleFileList *list);
-void               giggle_file_list_set_highlight_files (GiggleFileList *list,
-							 GList          *names);
-
-
 G_END_DECLS
 
 #endif /* __GIGGLE_FILE_LIST_H__ */
