@@ -366,8 +366,7 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 	}
 
 	g_signal_emit (list, signals [SELECTION_CHANGED], 0,
-		       g_object_ref (first_revision),
-		       g_object_ref (last_revision));
+		       first_revision, last_revision);
 
 	g_object_unref (first_revision);
 	if (last_revision) {

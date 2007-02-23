@@ -167,9 +167,6 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 		giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
 						      revision1, revision2);
 	}
-
-	g_object_unref (revision1);
-	g_object_unref (revision2);
 }
 
 
