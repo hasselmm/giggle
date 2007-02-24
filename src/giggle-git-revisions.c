@@ -28,6 +28,7 @@ typedef struct GiggleGitRevisionsPriv GiggleGitRevisionsPriv;
 
 struct GiggleGitRevisionsPriv {
 	GList *revisions;
+	GList *files;
 };
 
 static void     git_revisions_finalize            (GObject           *object);
@@ -50,6 +51,10 @@ static GiggleRevision* git_revisions_get_revision (const gchar *str,
 static void     git_revisions_set_committer_info  (GiggleRevision *revision,
 						   const gchar    *line);
 
+enum {
+	PROP_0,
+	PROP_FILES,
+};
 
 G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB)
 
@@ -67,15 +72,13 @@ giggle_git_revisions_class_init (GiggleGitRevisionsClass *class)
 
 	job_class->get_command_line = git_revisions_get_command_line;
 	job_class->handle_output    = git_revisions_handle_output;
-#if 0
+
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
-							      NULL,
-							      G_PARAM_READABLE));
-#endif
+					 PROP_FILES,
+					 g_param_spec_pointer ("files",
+							       "files",
+							       "files to filter the revisions",
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitRevisionsPriv));
 }
@@ -100,6 +103,9 @@ git_revisions_finalize (GObject *object)
 	g_list_foreach (priv->revisions, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->revisions);
 
+	g_list_foreach (priv->files, (GFunc) g_free, NULL);
+	g_list_free (priv->files);
+
 	G_OBJECT_CLASS (giggle_git_revisions_parent_class)->finalize (object);
 }
 
@@ -114,6 +120,9 @@ git_revisions_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 	
 	switch (param_id) {
+	case PROP_FILES:
+		g_value_set_pointer (value, priv->files);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -131,6 +140,13 @@ git_revisions_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_FILES:
+		/* FIXME: we know it'll be a list of strings and
+		 * this object will manage its memory, maybe it's
+		 * not the best thing design-wise
+		 */
+		priv->files = g_value_get_pointer (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -140,8 +156,20 @@ git_revisions_set_property (GObject      *object,
 static gboolean
 git_revisions_get_command_line (GiggleJob *job, gchar **command_line)
 {
-	*command_line = g_strdup_printf ("git rev-list --all --header --topo-order --parents");
+	GiggleGitRevisionsPriv *priv;
+	GString                *str;
+	GList                  *files;
 
+	priv = GET_PRIV (job);
+	files = priv->files;
+	str = g_string_new ("git rev-list --all --header --topo-order --parents");
+
+	while (files) {
+		g_string_append_printf (str, " %s", (gchar *) files->data);
+		files = files->next;
+	}
+
+	*command_line = g_string_free (str, FALSE);
 	return TRUE;
 }
 
@@ -292,13 +320,15 @@ git_revisions_get_revision (const gchar *str,
 GiggleJob *
 giggle_git_revisions_new (void)
 {
-	GiggleGitRevisions     *revisions;
-	GiggleGitRevisionsPriv *priv;
+	return g_object_new (GIGGLE_TYPE_GIT_REVISIONS, NULL);
+}
 
-	revisions = g_object_new (GIGGLE_TYPE_GIT_REVISIONS, NULL);
-	priv = GET_PRIV (revisions);
-
-	return GIGGLE_JOB (revisions);
+GiggleJob *
+giggle_git_revisions_new_for_files (GList *files)
+{
+	return g_object_new (GIGGLE_TYPE_GIT_REVISIONS,
+			     "files", files,
+			     NULL);
 }
 
 GList *
