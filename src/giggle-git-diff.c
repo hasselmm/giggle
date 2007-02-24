@@ -28,6 +28,7 @@ struct GiggleGitDiffPriv {
 	GiggleRevision *rev1;
 	GiggleRevision *rev2;
 
+	GList          *files;
 	gchar          *result;
 };
 
@@ -51,6 +52,11 @@ G_DEFINE_TYPE (GiggleGitDiff, giggle_git_diff, GIGGLE_TYPE_JOB)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_DIFF, GiggleGitDiffPriv))
 
+enum {
+	PROP_0,
+	PROP_FILES,
+};
+
 static void
 giggle_git_diff_class_init (GiggleGitDiffClass *class)
 {
@@ -63,15 +69,13 @@ giggle_git_diff_class_init (GiggleGitDiffClass *class)
 
 	job_class->get_command_line = git_diff_get_command_line;
 	job_class->handle_output    = git_diff_handle_output;
-#if 0
+
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
-							      NULL,
-							      G_PARAM_READABLE));
-#endif
+					 PROP_FILES,
+					 g_param_spec_pointer ("files",
+							       "Files",
+							       "Files list to make diff on",
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitDiffPriv));
 }
@@ -105,22 +109,26 @@ git_diff_finalize (GObject *object)
 
 	g_free (priv->result);
 
-	/* FIXME: Free object data */
+	g_list_foreach (priv->files, (GFunc) g_free, NULL);
+	g_list_free (priv->files);
 
 	G_OBJECT_CLASS (giggle_git_diff_parent_class)->finalize (object);
 }
 
 static void
 git_diff_get_property (GObject    *object,
-		    guint       param_id,
-		    GValue     *value,
-		    GParamSpec *pspec)
+		       guint       param_id,
+		       GValue     *value,
+		       GParamSpec *pspec)
 {
 	GiggleGitDiffPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_FILES:
+		g_value_set_pointer (value, priv->files);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -129,15 +137,18 @@ git_diff_get_property (GObject    *object,
 
 static void
 git_diff_set_property (GObject      *object,
-		    guint         param_id,
-		    const GValue *value,
-		    GParamSpec   *pspec)
+		       guint         param_id,
+		       const GValue *value,
+		       GParamSpec   *pspec)
 {
 	GiggleGitDiffPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_FILES:
+		priv->files = g_value_get_pointer (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -148,13 +159,23 @@ static gboolean
 git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 {
 	GiggleGitDiffPriv *priv;
+	GString           *str;
+	GList             *files;
 
 	priv = GET_PRIV (job);
+	files = priv->files;
 
-	*command_line = g_strdup_printf ("git diff %s %s",
-					 giggle_revision_get_sha (priv->rev1),
-					 giggle_revision_get_sha (priv->rev2));
+	str = g_string_new ("");
+	g_string_append_printf (str, "git diff %s %s",
+				giggle_revision_get_sha (priv->rev1),
+				giggle_revision_get_sha (priv->rev2));
 
+	while (files) {
+		g_string_append_printf (str, " %s", (gchar *) files->data);
+		files = files->next;
+	}
+
+	*command_line = g_string_free (str, FALSE);
 	return TRUE;
 }
 
@@ -186,6 +207,28 @@ giggle_git_diff_new (GiggleRevision *rev1, GiggleRevision *rev2)
 	priv->rev2 = g_object_ref (rev2);
 
 	return GIGGLE_JOB (diff);
+}
+
+GiggleJob *
+giggle_git_diff_new_for_files (GiggleRevision *rev1,
+			       GiggleRevision *rev2,
+			       GList          *files)
+{
+	GiggleJob         *job;
+	GiggleGitDiffPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1), NULL);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2), NULL);
+
+	job = g_object_new (GIGGLE_TYPE_GIT_DIFF,
+			    "files", files,
+			    NULL);
+	priv = GET_PRIV (job);
+
+	priv->rev1 = g_object_ref (rev1);
+	priv->rev2 = g_object_ref (rev2);
+
+	return job;
 }
 
 const gchar *
