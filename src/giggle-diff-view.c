@@ -247,7 +247,8 @@ giggle_diff_view_new (void)
 void
 giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 				GiggleRevision *revision1,
-				GiggleRevision *revision2)
+				GiggleRevision *revision2,
+				GList          *files)
 {
 	GiggleDiffViewPriv *priv;
 
@@ -273,7 +274,7 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 		priv->job = NULL;
 	}
 
-	priv->job = giggle_git_diff_new (revision2, revision1);
+	priv->job = giggle_git_diff_new_for_files (revision2, revision1, files);
 
 	giggle_git_run_job (priv->git,
 			    priv->job,

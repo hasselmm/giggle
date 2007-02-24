@@ -53,7 +53,8 @@ GtkWidget *        giggle_diff_view_new               (void);
 
 void               giggle_diff_view_set_revisions     (GiggleDiffView *diff_view,
 						       GiggleRevision *revision1,
-						       GiggleRevision *revision2);
+						       GiggleRevision *revision2,
+						       GList          *files);
 
 
 G_END_DECLS

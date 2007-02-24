@@ -54,4 +54,4 @@ void               giggle_view_history_set_model         (GiggleViewHistory *vie
 
 G_END_DECLS
 
-#endif /* __GIGGLE_VIEW_H__ */
+#endif /* __GIGGLE_VIEW_HISTORY_H__ */
