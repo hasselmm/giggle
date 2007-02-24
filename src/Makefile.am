@@ -64,6 +64,8 @@ giggle_SOURCES =				\
 	giggle-sysdeps.h                        \
 	giggle-view.c				\
 	giggle-view.h				\
+	giggle-view-file.c			\
+	giggle-view-file.h			\
 	giggle-view-history.c			\
 	giggle-view-history.h			\
 	giggle-window.c				\

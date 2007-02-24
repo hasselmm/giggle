@@ -45,6 +45,7 @@
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 #include "giggle-view-history.h"
+#include "giggle-view-file.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -54,8 +55,9 @@ struct GiggleWindowPriv {
 	GtkWidget           *menubar_hbox;
 	GtkWidget           *main_notebook;
 
-	/* Pages */
-	GtkWidget           *history_page;
+	/* Views */
+	GtkWidget           *history_view;
+	GtkWidget           *file_view;
 
 	/* Summary Tab */
 	GtkWidget           *label_summary;
@@ -77,9 +79,6 @@ struct GiggleWindowPriv {
 	GiggleGit           *git;
 
 	GtkWidget           *personal_details_window;
-
-	/* Current jobs in progress. */
-	GiggleJob           *current_diff_tree_job;
 };
 
 enum {
@@ -407,13 +406,21 @@ giggle_window_init (GiggleWindow *window)
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
-	/* append history page */
-	priv->history_page = giggle_view_history_new ();
-	gtk_widget_show (priv->history_page);
+	/* append history view */
+	priv->history_view = giggle_view_history_new ();
+	gtk_widget_show (priv->history_view);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->history_page,
+				  priv->history_view,
 				  gtk_label_new ("History"));
+
+	/* append file view */
+	priv->file_view = giggle_view_file_new ();
+	gtk_widget_show (priv->file_view);
+
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->file_view,
+				  gtk_label_new ("Files"));
 }
 
 static void
@@ -424,12 +431,6 @@ window_finalize (GObject *object)
 	priv = GET_PRIV (object);
 	
 	g_object_unref (priv->ui_manager);
-
-	if (priv->current_diff_tree_job) {
-		giggle_git_cancel_job (priv->git, priv->current_diff_tree_job);
-		g_object_unref (priv->current_diff_tree_job);
-	}
-
 	g_object_unref (priv->git);
 	g_object_unref (priv->recent_manager);
 	g_object_unref (priv->recent_action_group);
@@ -621,7 +622,7 @@ window_git_get_revisions_cb (GiggleGit    *git,
 			revisions = revisions->next;
 		}
 
-		giggle_view_history_set_model (GIGGLE_VIEW_HISTORY (priv->history_page), GTK_TREE_MODEL (store));
+		giggle_view_history_set_model (GIGGLE_VIEW_HISTORY (priv->history_view), GTK_TREE_MODEL (store));
 		g_object_unref (store);
 	}
 
