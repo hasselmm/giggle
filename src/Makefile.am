@@ -14,6 +14,8 @@ giggle_SOURCES =				\
 	giggle-author.h				\
 	giggle-branch.c				\
 	giggle-branch.h				\
+	giggle-branches-view.c			\
+	giggle-branches-view.h			\
 	giggle-configuration.c			\
 	giggle-configuration.h			\
 	giggle-diff-view.c			\

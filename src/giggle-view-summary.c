@@ -24,12 +24,15 @@
 
 #include "giggle-git.h"
 #include "giggle-view-summary.h"
+#include "giggle-branches-view.h"
 
 typedef struct GiggleViewSummaryPriv GiggleViewSummaryPriv;
 
 struct GiggleViewSummaryPriv {
 	GtkWidget *name_label;
 	GtkWidget *path_label;
+
+	GtkWidget *branches_view;
 
 	GiggleGit *git;
 };
@@ -76,7 +79,8 @@ static void
 giggle_view_summary_init (GiggleViewSummary *view)
 {
 	GiggleViewSummaryPriv *priv;
-	GtkWidget             *vpaned;
+	GtkWidget             *vpaned, *table;
+	GtkWidget             *label, *scrolled_window, *box;
 
 	priv = GET_PRIV (view);
 
@@ -96,6 +100,27 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	vpaned = gtk_vpaned_new ();
 	gtk_widget_show (vpaned);
 	gtk_box_pack_start (GTK_BOX (view), vpaned, TRUE, TRUE, 0);
+
+	table = gtk_table_new (1, 1, FALSE);
+	gtk_widget_show (table);
+	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
+
+	/* add branches view */
+	priv->branches_view = giggle_branches_view_new ();
+	box = gtk_vbox_new (FALSE, 6);
+
+	/* FIXME: string should not contain markup */
+	label = gtk_label_new (NULL);
+	gtk_label_set_markup (GTK_LABEL (label), _("<b>Branches:</b>"));
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->branches_view);
+	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
+
+	gtk_widget_show_all (box);
+	gtk_table_attach (GTK_TABLE (table), box,
+			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	priv->git = giggle_git_get ();
 	g_signal_connect (G_OBJECT (priv->git), "notify::directory",
