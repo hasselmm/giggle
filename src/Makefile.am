@@ -58,6 +58,8 @@ giggle_SOURCES =				\
 	giggle-remote.h				\
 	giggle-remote-editor.c			\
 	giggle-remote-editor.h			\
+	giggle-remotes-view.c			\
+	giggle-remotes-view.h			\
 	giggle-revision.c			\
 	giggle-revision.h			\
 	giggle-revision-list.c			\

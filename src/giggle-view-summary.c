@@ -26,6 +26,7 @@
 #include "giggle-view-summary.h"
 #include "giggle-branches-view.h"
 #include "giggle-authors-view.h"
+#include "giggle-remotes-view.h"
 
 typedef struct GiggleViewSummaryPriv GiggleViewSummaryPriv;
 
@@ -35,6 +36,7 @@ struct GiggleViewSummaryPriv {
 
 	GtkWidget *branches_view;
 	GtkWidget *authors_view;
+	GtkWidget *remotes_view;
 
 	GiggleGit *git;
 };
@@ -140,6 +142,23 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	gtk_widget_show_all (box);
 	gtk_table_attach (GTK_TABLE (table), box,
 			  1, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
+
+	/* add remotes view */
+	priv->remotes_view = giggle_remotes_view_new ();
+	box = gtk_vbox_new (FALSE, 6);
+
+	/* FIXME: string should not contain markup */
+	label = gtk_label_new (NULL);
+	gtk_label_set_markup (GTK_LABEL (label), _("<b>Remotes:</b>"));
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->remotes_view);
+	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
+
+	gtk_widget_show_all (box);
+	gtk_table_attach (GTK_TABLE (table), box,
+			  0, 2, 1, 2, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	priv->git = giggle_git_get ();
 	g_signal_connect (G_OBJECT (priv->git), "notify::directory",
