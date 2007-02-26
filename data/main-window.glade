@@ -55,7 +55,7 @@
 	  <property name="enable_popup">False</property>
 
 	  <child>
-	    <widget class="GtkVBox" id="vbox2">
+	    <widget class="GtkVBox" id="summary_vbox">
 	      <property name="border_width">6</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>

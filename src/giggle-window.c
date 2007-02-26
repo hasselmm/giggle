@@ -22,8 +22,6 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 #include <glade/glade.h>
-#include <gtksourceview/gtksourceview.h>
-#include <gtksourceview/gtksourcelanguagesmanager.h>
 #include <string.h>
 
 #include "giggle-window.h"
@@ -44,6 +42,7 @@
 #include "giggle-revision-list.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
+#include "giggle-view-summary.h"
 #include "giggle-view-history.h"
 #include "giggle-view-file.h"
 #include "eggfindbar.h"
@@ -56,6 +55,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *main_notebook;
 
 	/* Views */
+	GtkWidget           *summary_view;
 	GtkWidget           *history_view;
 	GtkWidget           *file_view;
 
@@ -405,6 +405,14 @@ giggle_window_init (GiggleWindow *window)
 				      GTK_WINDOW (window));
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
+
+	/* append summary view */
+	priv->summary_view = giggle_view_summary_new ();
+	gtk_widget_show (priv->summary_view);
+
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->summary_view,
+				  gtk_label_new ("Summary"));
 
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
