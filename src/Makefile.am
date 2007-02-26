@@ -12,6 +12,8 @@ giggle_SOURCES =				\
 	eggfindbar.h				\
 	giggle-author.c				\
 	giggle-author.h				\
+	giggle-authors-view.c			\
+	giggle-authors-view.h			\
 	giggle-branch.c				\
 	giggle-branch.h				\
 	giggle-branches-view.c			\
