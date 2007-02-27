@@ -312,7 +312,12 @@ remote_editor_set_property (GObject      *object,
 	case PROP_REMOTE:
 		remote = g_value_get_object (value);
 		if(!remote) {
+			GiggleRemoteBranch* branch;
 			remote = giggle_remote_new (_("Unnamed"));
+			branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PULL,
+							   "ref/heads/master:ref/heads/incoming");
+			giggle_remote_add_branch (remote, branch);
+			g_object_unref (branch);
 		}
 		remote_editor_set_remote (GIGGLE_REMOTE_EDITOR (object),
 					  remote);
@@ -327,7 +332,9 @@ static void
 remote_editor_response (GtkDialog *dialog,
 			gint       response)
 {
-	/* FIXME: save the remote */
+	GiggleRemoteEditorPriv *priv;
+
+	priv = GET_PRIV (dialog);
 
 	if(GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response) {
 		GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response (dialog, response);
