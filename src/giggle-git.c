@@ -612,6 +612,22 @@ giggle_git_get_remotes (GiggleGit *git)
 	return GET_PRIV (git)->remotes;
 }
 
+void
+giggle_git_save_remote (GiggleGit   *git,
+			GiggleRemote*remote)
+{
+	GiggleGitPriv *priv;
+	gchar         *path;
+
+	g_return_if_fail (GIGGLE_IS_GIT (git));
+	g_return_if_fail (GIGGLE_IS_REMOTE (remote));
+
+	priv = GET_PRIV (git);
+	path = g_build_filename (priv->git_dir, "remotes", giggle_remote_get_name (remote), NULL);
+	giggle_remote_save_to_file (remote, path);
+	g_free (path);
+}
+
 void 
 giggle_git_run_job_full (GiggleGit             *git,
 			 GiggleJob             *job,
