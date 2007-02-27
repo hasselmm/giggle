@@ -116,6 +116,8 @@ giggle_description_editor_init (GiggleDescriptionEditor *editor)
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
 				  G_CALLBACK (description_editor_update), editor);
+	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::description",
+				  G_CALLBACK (description_editor_update), editor);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),

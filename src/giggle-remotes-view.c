@@ -78,18 +78,98 @@ remotes_view_update (GiggleRemotesView *view)
 
 static void
 remotes_view_cell_data_func (GtkTreeViewColumn *column,
-			      GtkCellRenderer   *cell,
-			      GtkTreeModel      *model,
-			      GtkTreeIter       *iter,
-			      gpointer           data)
+			     GtkCellRenderer   *cell,
+			     GtkTreeModel      *model,
+			     GtkTreeIter       *iter,
+			     gpointer           data)
 {
 	GiggleRemote *remote = NULL;
 
 	gtk_tree_model_get (model, iter,
 			    COL_REMOTE, &remote,
 			    -1);
-	g_object_set (cell, "text", giggle_remote_get_name (remote), NULL);
-	g_object_unref (remote);
+
+	if (GIGGLE_IS_REMOTE (remote)) {
+		g_object_set (cell,
+			      "foreground", "black",
+			      "text", giggle_remote_get_name (remote),
+			      NULL);
+		g_object_unref (remote);
+	} else {
+		g_object_set (cell,
+			      "foreground", "slategray",
+			      "text", _("Double-Click to add Remote..."),
+			      NULL);
+	}
+}
+
+static void
+remotes_view_url_data_func (GtkTreeViewColumn *column,
+			    GtkCellRenderer   *renderer,
+			    GtkTreeModel      *model,
+			    GtkTreeIter       *iter,
+			    gpointer           data)
+{
+	GiggleRemote *remote = NULL;
+
+	gtk_tree_model_get (model, iter,
+			    REMOTES_COL_REMOTE, &remote,
+			    -1);
+
+	if(GIGGLE_IS_REMOTE (remote)) {
+		g_object_set (renderer,
+			      "text", giggle_remote_get_url (remote),
+			      NULL);
+		g_object_unref (remote);
+	} else {
+		g_object_set (renderer, "text", NULL, NULL);
+	}
+}
+
+static void
+window_remotes_row_activated_cb (GiggleWindow      *window,
+				 GtkTreePath       *path,
+				 GtkTreeViewColumn *column,
+				 GtkTreeView       *treeview)
+{
+	GiggleRemote*remote;
+	GtkTreeModel*model;
+	GtkTreeIter  iter;
+	GtkWidget   *editor;
+	gint         response;
+
+	model = gtk_tree_view_get_model (treeview);
+	g_return_if_fail (gtk_tree_model_get_iter (model, &iter, path));
+
+	gtk_tree_model_get (model, &iter,
+			    REMOTES_COL_REMOTE, &remote,
+			    -1);
+
+	editor = giggle_remote_editor_new (remote);
+	gtk_window_set_transient_for (GTK_WINDOW (editor),
+				      GTK_WINDOW (window));
+	response = gtk_dialog_run (GTK_DIALOG (editor));
+
+	if (!remote && response == GTK_RESPONSE_ACCEPT) {
+		GtkListStore* store = GTK_LIST_STORE (model);
+		GtkTreeIter   new;
+
+		g_object_get (editor,
+			      "remote", &remote,
+			      NULL);
+
+		gtk_list_store_insert_before (store, &new, &iter);
+		gtk_list_store_set (store, &new,
+				    REMOTES_COL_REMOTE, remote,
+				    -1);
+	}
+
+	if (remote) {
+		/* doesn't happen in this case: !remote && response != ACCEPT */
+		g_object_unref (remote);
+	}
+
+	gtk_widget_destroy (editor);
 }
 
 static void
@@ -104,9 +184,19 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
-						    _("Branch"), renderer,
+						    _("Name"), renderer,
 						    remotes_view_cell_data_func,
 						    NULL, NULL);
+
+	renderer = gtk_cell_renderer_text_new ();
+	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_MIDDLE, NULL);
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
+						    _("URL"), renderer,
+						    remotes_view_url_data_func,
+						    NULL, NULL);
+
+	g_signal_connect_swapped (priv->treeview_remotes, "row-activated",
+				  G_CALLBACK (window_remotes_row_activated_cb), window);
 
 	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (view),
