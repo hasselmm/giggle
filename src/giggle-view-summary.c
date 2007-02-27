@@ -23,6 +23,7 @@
 #include <glib/gi18n.h>
 
 #include "giggle-git.h"
+#include "giggle-description-editor.h"
 #include "giggle-view-summary.h"
 #include "giggle-branches-view.h"
 #include "giggle-authors-view.h"
@@ -33,6 +34,8 @@ typedef struct GiggleViewSummaryPriv GiggleViewSummaryPriv;
 struct GiggleViewSummaryPriv {
 	GtkWidget *name_label;
 	GtkWidget *path_label;
+
+	GtkWidget *description_editor;
 
 	GtkWidget *branches_view;
 	GtkWidget *authors_view;
@@ -104,6 +107,10 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	vpaned = gtk_vpaned_new ();
 	gtk_widget_show (vpaned);
 	gtk_box_pack_start (GTK_BOX (view), vpaned, TRUE, TRUE, 0);
+
+	priv->description_editor = giggle_description_editor_new ();
+	gtk_widget_show (priv->description_editor);
+	gtk_paned_pack1 (GTK_PANED (vpaned), priv->description_editor, FALSE, FALSE);
 
 	table = gtk_table_new (1, 1, FALSE);
 	gtk_widget_show (table);
