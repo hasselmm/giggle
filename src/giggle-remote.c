@@ -161,9 +161,9 @@ giggle_remote_new (gchar const *name)
 	return g_object_new (GIGGLE_TYPE_REMOTE, "name", name, NULL);
 }
 
-static void
-remote_add_branch (GiggleRemote       *remote,
-		   GiggleRemoteBranch *branch)
+void
+giggle_remote_add_branch (GiggleRemote       *remote,
+			  GiggleRemoteBranch *branch)
 {
 	GiggleRemotePriv *priv;
 
@@ -209,7 +209,7 @@ giggle_remote_new_from_file (gchar const *filename)
 			}
 
 			if(GIGGLE_IS_REMOTE_BRANCH (branch)) {
-				remote_add_branch (remote, branch);
+				giggle_remote_add_branch (remote, branch);
 				g_object_unref (branch);
 				branch = NULL;
 			}
@@ -262,5 +262,21 @@ giggle_remote_set_url (GiggleRemote *remote,
 	priv->url = g_strdup (url);
 
 	g_object_notify (G_OBJECT (remote), "url");
+}
+
+void
+giggle_remote_save_to_file (GiggleRemote *self,
+			    gchar const  *filename)
+{
+	FILE* file;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+	
+	file = g_fopen (filename, "w");
+
+	g_return_if_fail (file);
+
+	// FIXME: write stuff
+	fclose (file);
 }
 
