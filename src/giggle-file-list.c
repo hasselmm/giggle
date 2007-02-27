@@ -743,7 +743,7 @@ file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
 				     GtkTreeIter     *iter,
 				     gpointer         data)
 {
-	GdkColor            color = { 0x0, 0xffff, 0x0, 0x0 };
+	GdkColor            color = { 0x0, 0xed00, 0xd400, 0x0 };
 	GiggleFileListPriv *priv;
 	GiggleFileList     *file_list;
 	gboolean            highlight;
