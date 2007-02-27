@@ -620,7 +620,6 @@ window_action_open_cb (GtkAction    *action,
 	}
 
 	gtk_widget_destroy (file_chooser);
-#endif
 }
 
 static void
@@ -666,6 +665,7 @@ window_action_save_patch_cb (GtkAction    *action,
 	}
 
 	gtk_widget_destroy (file_chooser);
+#endif
 }
 
 static void

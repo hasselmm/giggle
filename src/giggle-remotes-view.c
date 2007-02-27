@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "giggle-remotes-view.h"
+#include "giggle-remote-editor.h"
 #include "giggle-remote.h"
 #include "giggle-git.h"
 
@@ -113,7 +114,7 @@ remotes_view_url_data_func (GtkTreeViewColumn *column,
 	GiggleRemote *remote = NULL;
 
 	gtk_tree_model_get (model, iter,
-			    REMOTES_COL_REMOTE, &remote,
+			    COL_REMOTE, &remote,
 			    -1);
 
 	if(GIGGLE_IS_REMOTE (remote)) {
@@ -127,7 +128,7 @@ remotes_view_url_data_func (GtkTreeViewColumn *column,
 }
 
 static void
-window_remotes_row_activated_cb (GiggleWindow      *window,
+window_remotes_row_activated_cb (GiggleRemotesView *view,
 				 GtkTreePath       *path,
 				 GtkTreeViewColumn *column,
 				 GtkTreeView       *treeview)
@@ -135,19 +136,19 @@ window_remotes_row_activated_cb (GiggleWindow      *window,
 	GiggleRemote*remote;
 	GtkTreeModel*model;
 	GtkTreeIter  iter;
-	GtkWidget   *editor;
+	GtkWidget   *editor, *toplevel;
 	gint         response;
 
 	model = gtk_tree_view_get_model (treeview);
 	g_return_if_fail (gtk_tree_model_get_iter (model, &iter, path));
 
 	gtk_tree_model_get (model, &iter,
-			    REMOTES_COL_REMOTE, &remote,
+			    COL_REMOTE, &remote,
 			    -1);
 
 	editor = giggle_remote_editor_new (remote);
-	gtk_window_set_transient_for (GTK_WINDOW (editor),
-				      GTK_WINDOW (window));
+	toplevel = gtk_widget_get_toplevel (GTK_WIDGET (view));
+	gtk_window_set_transient_for (GTK_WINDOW (editor), GTK_WINDOW (toplevel));
 	response = gtk_dialog_run (GTK_DIALOG (editor));
 
 	if (!remote && response == GTK_RESPONSE_ACCEPT) {
@@ -160,7 +161,7 @@ window_remotes_row_activated_cb (GiggleWindow      *window,
 
 		gtk_list_store_insert_before (store, &new, &iter);
 		gtk_list_store_set (store, &new,
-				    REMOTES_COL_REMOTE, remote,
+				    COL_REMOTE, remote,
 				    -1);
 	}
 
@@ -195,8 +196,8 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 						    remotes_view_url_data_func,
 						    NULL, NULL);
 
-	g_signal_connect_swapped (priv->treeview_remotes, "row-activated",
-				  G_CALLBACK (window_remotes_row_activated_cb), window);
+	g_signal_connect_swapped (view, "row-activated",
+				  G_CALLBACK (window_remotes_row_activated_cb), view);
 
 	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (view),
