@@ -97,6 +97,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 			  GTK_FILL, GTK_FILL, 0, 0);
 
 	priv->sha = gtk_label_new (NULL);
+	gtk_label_set_selectable (GTK_LABEL (priv->sha), TRUE);
 	gtk_misc_set_alignment (GTK_MISC (priv->sha), 0.0, 0.5);
 	gtk_widget_show (priv->sha);
 
