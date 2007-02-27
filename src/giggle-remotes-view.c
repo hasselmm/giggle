@@ -76,6 +76,11 @@ remotes_view_update (GiggleRemotesView *view)
 				    COL_REMOTE, remotes->data,
 				    -1);
 	}
+
+	gtk_list_store_append (priv->store, &iter);
+	gtk_list_store_set (priv->store, &iter,
+			    COL_REMOTE, NULL,
+			    -1);
 }
 
 static void
