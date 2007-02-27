@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "giggle-job.h"
+#include "giggle-remote.h"
 
 G_BEGIN_DECLS
 
@@ -63,6 +64,8 @@ const gchar *    giggle_git_get_git_dir      (GiggleGit    *git);
 const gchar *    giggle_git_get_project_dir  (GiggleGit    *git);
 const gchar *    giggle_git_get_project_name (GiggleGit    *git);
 GList *          giggle_git_get_remotes      (GiggleGit    *git);
+void             giggle_git_save_remote      (GiggleGit    *git,
+					      GiggleRemote *remote);
 
 void             giggle_git_run_job_full     (GiggleGit             *git,
 					      GiggleJob             *job,

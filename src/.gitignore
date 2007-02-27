@@ -12,3 +12,6 @@ giggle-marshal.[ch]
 Makefile
 Makefile.in
 test-file-list
+giggle-enums.c
+giggle-enums.h
+giggle-enums.o

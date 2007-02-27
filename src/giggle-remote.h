@@ -21,7 +21,7 @@
 #ifndef __GIGGLE_REMOTE_H__
 #define __GIGGLE_REMOTE_H__
 
-#include <glib-object.h>
+#include "giggle-remote-branch.h"
 
 G_BEGIN_DECLS
 
@@ -43,12 +43,18 @@ struct GiggleRemoteClass {
 	GObjectClass parent_class;
 };
 
-GType		      giggle_remote_get_type (void);
-GiggleRemote *        giggle_remote_new      (gchar const  *name);
-const gchar *         giggle_remote_get_name (GiggleRemote *remote);
-const gchar *         giggle_remote_get_url  (GiggleRemote *remote);
-void                  giggle_remote_set_url  (GiggleRemote *remote,
-					      gchar const  *url);
+GType		      giggle_remote_get_type     (void);
+GiggleRemote *        giggle_remote_new          (gchar const  *name);
+GiggleRemote *        giggle_remote_new_from_file(gchar const  *filename);
+void                  giggle_remote_add_branch   (GiggleRemote *remote,
+						  GiggleRemoteBranch *branch);
+GList *               giggle_remote_get_branches (GiggleRemote *remote);
+const gchar *         giggle_remote_get_name     (GiggleRemote *remote);
+const gchar *         giggle_remote_get_url      (GiggleRemote *remote);
+void                  giggle_remote_set_url      (GiggleRemote *remote,
+					          gchar const  *url);
+void                  giggle_remote_save_to_file (GiggleRemote *remote,
+						  gchar const  *filename);
 
 G_END_DECLS
 

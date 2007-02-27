@@ -20,6 +20,7 @@
 
 #include <config.h>
 
+#include <string.h>
 #include "giggle-remote.h"
 
 typedef struct GiggleRemotePriv GiggleRemotePriv;
@@ -27,10 +28,13 @@ typedef struct GiggleRemotePriv GiggleRemotePriv;
 struct GiggleRemotePriv {
 	gchar *name;
 	gchar *url;
+
+	GList *branches; // of GiggleRemoteBranch
 };
 
 enum {
 	PROP_0,
+	PROP_BRANCHES,
 	PROP_NAME,
 	PROP_URL
 };
@@ -58,6 +62,11 @@ giggle_remote_class_init (GiggleRemoteClass *class)
 	object_class->get_property = remote_get_property;
 	object_class->set_property = remote_set_property;
 
+	g_object_class_install_property (object_class,
+					 PROP_BRANCHES,
+					 g_param_spec_pointer ("branches", "Branches",
+						 	       "The list of remote branches",
+							       G_PARAM_READABLE));
 	g_object_class_install_property (object_class,
 					 PROP_NAME,
 					 g_param_spec_string ("name", "Name",
@@ -90,6 +99,10 @@ remote_finalize (GObject *object)
 	g_free (priv->name);
 	g_free (priv->url);
 
+	g_list_foreach (priv->branches, (GFunc)g_object_unref, NULL);
+	g_list_free (priv->branches);
+	priv->branches = NULL;
+
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
 
@@ -104,6 +117,9 @@ remote_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_BRANCHES:
+		g_value_set_pointer (value, priv->branches);
+		break;
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
 		break;
@@ -145,6 +161,74 @@ giggle_remote_new (gchar const *name)
 	return g_object_new (GIGGLE_TYPE_REMOTE, "name", name, NULL);
 }
 
+void
+giggle_remote_add_branch (GiggleRemote       *remote,
+			  GiggleRemoteBranch *branch)
+{
+	GiggleRemotePriv *priv;
+
+	priv = GET_PRIV (remote);
+
+	priv->branches = g_list_append (priv->branches, g_object_ref (branch));
+	g_object_notify (G_OBJECT (remote), "branches");
+}
+
+GiggleRemote *
+giggle_remote_new_from_file (gchar const *filename)
+{
+	GiggleRemote *remote;
+	gchar        *content;
+
+	content = g_path_get_basename (filename);
+	remote = giggle_remote_new (content);
+	g_free (content);
+	content = NULL;
+
+	if(g_file_get_contents (filename, &content, NULL, NULL)) {
+		gchar**lines;
+		gchar**step;
+		lines = g_strsplit (content, "\n", -1);
+		for (step = lines; step && *step; step++) {
+			GiggleRemoteBranch* branch = NULL;
+			if(!**step) {
+				/* empty string */
+				continue;
+			} else if(g_str_has_prefix(*step, "URL: ")) {
+				giggle_remote_set_url (remote, *step + strlen ("URL: "));
+			} else if(g_str_has_prefix(*step, "Push: ")) {
+				branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PUSH,
+								   *step + strlen ("Push: "));
+			} else if(g_str_has_prefix(*step, "Pull: ")) {
+				branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PULL,
+								   *step + strlen ("Pull: "));
+			} else {
+				gchar* escaped = g_strescape (*step, NULL);
+				g_warning ("Read unexpected line at %s:%d\n\"%s\"",
+					   filename, step - lines, escaped);
+				g_free (escaped);
+			}
+
+			if(GIGGLE_IS_REMOTE_BRANCH (branch)) {
+				giggle_remote_add_branch (remote, branch);
+				g_object_unref (branch);
+				branch = NULL;
+			}
+		}
+		g_strfreev (lines);
+	}
+	g_free (content);
+
+	return remote;
+}
+
+GList *
+giggle_remote_get_branches (GiggleRemote *remote)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
+
+	return GET_PRIV (remote)->branches;
+}
+
 const gchar *
 giggle_remote_get_name (GiggleRemote *remote)
 {
@@ -178,5 +262,21 @@ giggle_remote_set_url (GiggleRemote *remote,
 	priv->url = g_strdup (url);
 
 	g_object_notify (G_OBJECT (remote), "url");
+}
+
+void
+giggle_remote_save_to_file (GiggleRemote *self,
+			    gchar const  *filename)
+{
+	FILE* file;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+	
+	file = g_fopen (filename, "w");
+
+	g_return_if_fail (file);
+
+	// FIXME: write stuff
+	fclose (file);
 }
 
