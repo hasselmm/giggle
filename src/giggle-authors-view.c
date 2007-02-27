@@ -153,7 +153,7 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
-						    _("Branch"), renderer,
+						    _("Author"), renderer,
 						    authors_view_cell_data_func,
 						    NULL, NULL);
 
