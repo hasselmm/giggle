@@ -21,6 +21,7 @@
 #include <config.h>
 
 #include <string.h>
+#include <glib/gstdio.h>
 #include "giggle-remote.h"
 
 typedef struct GiggleRemotePriv GiggleRemotePriv;
