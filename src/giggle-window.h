@@ -22,6 +22,7 @@
 #define __GIGGLE_WINDOW_H__
 
 #include <gtk/gtkwindow.h>
+#include "giggle-git.h"
 
 G_BEGIN_DECLS
 
@@ -45,6 +46,7 @@ struct GiggleWindowClass {
 
 GType		   giggle_window_get_type (void);
 GtkWidget         *giggle_window_new      (void);
+GiggleGit *        giggle_window_get_git  (GiggleWindow *self);
 
 G_END_DECLS
 

@@ -854,3 +854,11 @@ giggle_window_new (void)
 	return window;
 }
 
+GiggleGit *
+giggle_window_get_git (GiggleWindow *self)
+{
+	g_return_val_if_fail (GIGGLE_IS_WINDOW (self), NULL);
+
+	return GET_PRIV (self)->git;
+}
+

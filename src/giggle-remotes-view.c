@@ -22,10 +22,11 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
+#include "giggle-git.h"
 #include "giggle-remotes-view.h"
 #include "giggle-remote-editor.h"
 #include "giggle-remote.h"
-#include "giggle-git.h"
+#include "giggle-window.h"
 
 typedef struct GiggleRemotesViewPriv GiggleRemotesViewPriv;
 
@@ -75,6 +76,11 @@ remotes_view_update (GiggleRemotesView *view)
 				    COL_REMOTE, remotes->data,
 				    -1);
 	}
+
+	gtk_list_store_append (priv->store, &iter);
+	gtk_list_store_set (priv->store, &iter,
+			    COL_REMOTE, NULL,
+			    -1);
 }
 
 static void
@@ -136,7 +142,8 @@ window_remotes_row_activated_cb (GiggleRemotesView *view,
 	GiggleRemote*remote;
 	GtkTreeModel*model;
 	GtkTreeIter  iter;
-	GtkWidget   *editor, *toplevel;
+	GtkWidget   *editor;
+	GtkWidget   *toplevel;
 	gint         response;
 
 	model = gtk_tree_view_get_model (treeview);
@@ -163,6 +170,11 @@ window_remotes_row_activated_cb (GiggleRemotesView *view,
 		gtk_list_store_set (store, &new,
 				    COL_REMOTE, remote,
 				    -1);
+	}
+
+	if (response == GTK_RESPONSE_ACCEPT) {
+		GiggleGit *git = giggle_window_get_git (GIGGLE_WINDOW (toplevel));
+		giggle_git_save_remote (git, remote);
 	}
 
 	if (remote) {
