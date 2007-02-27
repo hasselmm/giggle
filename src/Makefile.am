@@ -7,17 +7,14 @@ AM_CPPFLAGS =					\
 
 bin_PROGRAMS = giggle
 
-dist_ENUMS_TEMPLATES=\
+dist_ENUMS_TEMPLATES=				\
 	giggle-enums.c.in			\
 	giggle-enums.h.in
 # h_files are the headers that include enums
 h_files = giggle-remote-branch.h
 
-nodist_BUILT_SOURCES=\
-	$(dist_ENUMS_TEMPLATES:.in=)
-
 giggle_SOURCES =				\
-	$(nodist_BUILT_SOURCES)			\
+	$(BUILT_SOURCES)			\
 	$(h_files)				\
 	eggfindbar.c				\
 	eggfindbar.h				\
@@ -92,23 +89,10 @@ giggle_SOURCES =				\
 	giggle-view-summary.h			\
 	giggle-window.c				\
 	giggle-window.h				\
-	giggle-main.c				\
-	$(BUILT_SOURCES)
+	giggle-main.c
 
 giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
-
-giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
-	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
-	$(h_files) ) >> xgen-gtbh \
-	&& (cmp -s xgen-gtbh $@ || (echo "Creating $@..."; cp xgen-gtbh $@) ) \
-	&& rm -f xgen-gtbh
-
-giggle-enums.c: $(h_files) $(priv_h_files) Makefile giggle-enums.c.in
-	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.c.in \
-	$(h_files) ) > xgen-gtbc \
-	&& (cmp -s xgen-gtbc $@ || (echo "Creating $@..."; cp xgen-gtbc $@) ) \
-	&& rm -f xgen-gtbc
 
 noinst_PROGRAMS = 			        \
 	test-dispatcher                         \
@@ -136,7 +120,7 @@ test_dispatcher_LDADD =                         \
 	$(GIGGLE_LIBS) 
 
 test_file_list_SOURCES =			\
-	$(nodist_BUILT_SOURCES)			\
+	$(BUILT_SOURCES)			\
 	giggle-dispatcher.c			\
 	giggle-error.c				\
 	giggle-sysdeps.c			\
@@ -158,7 +142,7 @@ test_file_list_LDADD =				\
 	$(GIGGLE_LIBS)
 
 test_giggle_git_SOURCES =                       \
-	$(nodist_BUILT_SOURCES)			\
+	$(BUILT_SOURCES)			\
 	giggle-dispatcher.c                     \
 	giggle-error.c                          \
 	giggle-sysdeps.c                        \
@@ -174,6 +158,19 @@ test_giggle_git_SOURCES =                       \
 
 test_giggle_git_LDADD =                         \
 	$(GIGGLE_LIBS)
+
+giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
+	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
+	$(h_files) ) >> xgen-gtbh \
+	&& (cmp -s xgen-gtbh $@ || (echo "Creating $@..."; cp xgen-gtbh $@) ) \
+	&& rm -f xgen-gtbh
+
+giggle-enums.c: $(h_files) $(priv_h_files) Makefile giggle-enums.c.in
+	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.c.in \
+	$(h_files) ) > xgen-gtbc \
+	&& (cmp -s xgen-gtbc $@ || (echo "Creating $@..."; cp xgen-gtbc $@) ) \
+	&& rm -f xgen-gtbc
+
 
 giggle-marshal.h: giggle-marshal.list
 	(cd $(srcdir) && \
@@ -192,10 +189,14 @@ marshal-main.c: giggle-marshal.c giggle-marshal.h
 
 BUILT_SOURCES =					\
 	giggle-marshal.h			\
-	giggle-marshal.c
+	giggle-marshal.c			\
+	giggle-enums.h				\
+	giggle-enums.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST =					\
-	giggle-marshal.list
+	giggle-marshal.list			\
+	giggle-enums.c.in			\
+	giggle-enums.h.in
 

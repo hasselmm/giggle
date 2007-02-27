@@ -21,6 +21,7 @@
 #ifndef __GIGGLE_REMOTE_H__
 #define __GIGGLE_REMOTE_H__
 
+#include <glib-object.h>
 #include "giggle-remote-branch.h"
 
 G_BEGIN_DECLS
