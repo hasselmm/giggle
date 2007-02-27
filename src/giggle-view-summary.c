@@ -108,11 +108,22 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	gtk_widget_show (vpaned);
 	gtk_box_pack_start (GTK_BOX (view), vpaned, TRUE, TRUE, 0);
 
-	priv->description_editor = giggle_description_editor_new ();
-	gtk_widget_show (priv->description_editor);
-	gtk_paned_pack1 (GTK_PANED (vpaned), priv->description_editor, FALSE, FALSE);
+	/* add decription editor */
+	box = gtk_vbox_new (FALSE, 6);
+	gtk_paned_pack1 (GTK_PANED (vpaned), box, FALSE, FALSE);
 
-	table = gtk_table_new (1, 1, FALSE);
+	label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+	gtk_label_set_markup (GTK_LABEL (label), _("<b>Description:</b>"));
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+
+	priv->description_editor = giggle_description_editor_new ();
+	gtk_box_pack_start (GTK_BOX (box), priv->description_editor, TRUE, TRUE, 0);
+	gtk_widget_show_all (box);
+
+	table = gtk_table_new (0, 0, FALSE);
+	gtk_table_set_col_spacings (GTK_TABLE (table), 12);
+	gtk_table_set_row_spacings (GTK_TABLE (table), 12);
 	gtk_widget_show (table);
 	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
 
@@ -122,10 +133,14 @@ giggle_view_summary_init (GiggleViewSummary *view)
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_label_set_markup (GTK_LABEL (label), _("<b>Branches:</b>"));
 	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->branches_view);
 	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
 
@@ -139,10 +154,14 @@ giggle_view_summary_init (GiggleViewSummary *view)
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_label_set_markup (GTK_LABEL (label), _("<b>Authors:</b>"));
 	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->authors_view);
 	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
 
@@ -156,10 +175,14 @@ giggle_view_summary_init (GiggleViewSummary *view)
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_label_set_markup (GTK_LABEL (label), _("<b>Remotes:</b>"));
 	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->remotes_view);
 	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
 
