@@ -21,6 +21,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
@@ -35,14 +36,20 @@ struct GiggleViewHistoryPriv {
 	GtkWidget *revision_list;
 	GtkWidget *revision_view;
 	GtkWidget *diff_view;
+
+	GtkWidget *diff_view_expander;
+	GtkWidget *diff_view_sw;
 };
 
-static void    view_history_finalize              (GObject *object);
+static void     view_history_finalize              (GObject *object);
 
-static void    view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
-								GiggleRevision     *revision1,
-								GiggleRevision     *revision2,
-								GiggleViewHistory  *view);
+static void     view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
+								 GiggleRevision     *revision1,
+								 GiggleRevision     *revision2,
+								 GiggleViewHistory  *view);
+static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionList *list,
+								 GdkEventKey        *event,
+								 GiggleViewHistory  *view);
 
 
 G_DEFINE_TYPE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW)
@@ -107,6 +114,8 @@ giggle_view_history_init (GiggleViewHistory *view)
 	priv->revision_list = giggle_revision_list_new ();
 	g_signal_connect (G_OBJECT (priv->revision_list), "selection-changed",
 			  G_CALLBACK (view_history_revision_list_selection_changed_cb), view);
+	g_signal_connect (G_OBJECT (priv->revision_list), "key-press-event",
+			  G_CALLBACK (view_history_revision_list_key_press_cb), view);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
 	gtk_widget_show_all (scrolled_window);
@@ -122,20 +131,20 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_box_pack_start (GTK_BOX (vbox), expander, FALSE, TRUE, 0);
 
 	/* diff view */
-	expander = gtk_expander_new_with_mnemonic (_("_Differences"));
+	priv->diff_view_expander = gtk_expander_new_with_mnemonic (_("_Differences"));
 
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+	priv->diff_view_sw = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->diff_view_sw),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->diff_view_sw), GTK_SHADOW_IN);
 
 	priv->diff_view = giggle_diff_view_new ();
 
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_view);
-	gtk_container_add (GTK_CONTAINER (expander), scrolled_window);
-	gtk_widget_show_all (expander);
+	gtk_container_add (GTK_CONTAINER (priv->diff_view_sw), priv->diff_view);
+	gtk_container_add (GTK_CONTAINER (priv->diff_view_expander), priv->diff_view_sw);
+	gtk_widget_show_all (priv->diff_view_expander);
 
-	gtk_box_pack_start (GTK_BOX (vbox), expander, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), priv->diff_view_expander, TRUE, TRUE, 0);
 
 	gtk_widget_pop_composite_child ();
 }
@@ -169,6 +178,36 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	}
 }
 
+static gboolean
+view_history_revision_list_key_press_cb (GiggleRevisionList *list,
+					 GdkEventKey        *event,
+					 GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv *priv;
+	GtkAdjustment         *adj;
+	gdouble                value;
+
+	priv = GET_PRIV (view);
+
+	if (event->keyval == GDK_space ||
+	    event->keyval == GDK_BackSpace) {
+		gtk_expander_set_expanded (GTK_EXPANDER (priv->diff_view_expander), TRUE);
+		
+		adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->diff_view_sw));
+
+		value = (event->keyval == GDK_space) ?
+			adj->value + (adj->page_size * 0.8) :
+			adj->value - (adj->page_size * 0.8);
+
+		value = CLAMP (value, adj->lower, adj->upper - adj->page_size);
+
+		g_object_set (G_OBJECT (adj), "value", value, NULL);
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
 
 GtkWidget *
 giggle_view_history_new (void)
