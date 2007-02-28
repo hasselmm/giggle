@@ -337,7 +337,9 @@ remote_editor_response (GtkDialog *dialog,
 	priv = GET_PRIV (dialog);
 
 	if (response == GTK_RESPONSE_ACCEPT) {
-		gchar const* data;
+		GtkTreeModel*model;
+		GtkTreeIter  iter;
+		gchar const *data;
 
 		/* 1. name */
 		data = gtk_entry_get_text (GTK_ENTRY (priv->entry_name));
@@ -348,7 +350,18 @@ remote_editor_response (GtkDialog *dialog,
 		giggle_remote_set_url (priv->remote, data);
 
 		/* 3. branches */
-		// FIXME
+		giggle_remote_remove_branches (priv->remote);
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->treeview_branches));
+		if (gtk_tree_model_iter_children (model, &iter, NULL)) {
+			do {
+				GiggleRemoteBranch *branch = NULL;
+				gtk_tree_model_get (model, &iter,
+						    COL_BRANCH, &branch,
+						    -1);
+				giggle_remote_add_branch (priv->remote, branch);
+				g_object_unref (branch);
+			} while (gtk_tree_model_iter_next (model, &iter));
+		}
 	}
 
 	if(GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response) {
