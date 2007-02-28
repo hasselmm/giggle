@@ -187,6 +187,7 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	d(g_print ("GiggleDispatcher::run_job(job-started)\n"));
 
 	priv->channel = g_io_channel_unix_new (job->std_out);
+	g_io_channel_set_encoding (priv->channel, NULL, NULL);
 	g_io_channel_set_line_term (priv->channel, "\0", 1);
 	priv->output = g_string_new ("");
 	priv->length = 0;
