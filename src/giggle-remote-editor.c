@@ -336,6 +336,21 @@ remote_editor_response (GtkDialog *dialog,
 
 	priv = GET_PRIV (dialog);
 
+	if (response == GTK_RESPONSE_ACCEPT) {
+		gchar const* data;
+
+		/* 1. name */
+		data = gtk_entry_get_text (GTK_ENTRY (priv->entry_name));
+		giggle_remote_set_name (priv->remote, data);
+
+		/* 2. url */
+		data = gtk_entry_get_text (GTK_ENTRY (priv->entry_url));
+		giggle_remote_set_url (priv->remote, data);
+
+		/* 3. branches */
+		// FIXME
+	}
+
 	if(GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response) {
 		GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response (dialog, response);
 	}
