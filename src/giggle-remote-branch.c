@@ -158,6 +158,14 @@ giggle_remote_branch_new (GiggleRemoteDirection direction,
 			     NULL);
 }
 
+GiggleRemoteDirection
+giggle_remote_branch_get_direction (GiggleRemoteBranch *self)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE_BRANCH (self), GIGGLE_REMOTE_DIRECTION_PULL);
+
+	return GET_PRIV (self)->direction;
+}
+
 gchar const *
 giggle_remote_branch_get_refspec (GiggleRemoteBranch *branch)
 {
