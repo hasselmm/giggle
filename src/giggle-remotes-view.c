@@ -26,6 +26,7 @@
 #include "giggle-remotes-view.h"
 #include "giggle-remote-editor.h"
 #include "giggle-remote.h"
+#include "giggle-tree-view-helpers.h"
 #include "giggle-window.h"
 
 typedef struct GiggleRemotesViewPriv GiggleRemotesViewPriv;
@@ -194,6 +195,9 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 	priv = GET_PRIV (view);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
+
+	g_signal_connect (view, "key-press-event",
+			  G_CALLBACK (tree_view_delete_selection_on_list_store), NULL);
 
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
