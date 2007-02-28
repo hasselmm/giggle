@@ -25,6 +25,8 @@
 
 G_BEGIN_DECLS
 
+/* returns TRUE if the key press was delete and at least one row has been
+ * deleted */
 gboolean tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
 						   GdkEventKey *event);
 

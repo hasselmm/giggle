@@ -260,19 +260,54 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 	GString *long_log = NULL;
 
 	while (lines[i]) {
-		if (g_str_has_prefix (lines[i], "author ")) {
-			git_revisions_set_committer_info (revision, lines[i] + strlen ("author "));
-		} else if (g_str_has_prefix (lines[i], " ")) {
-			g_strstrip (lines[i]);
+		gchar* converted = NULL;
+
+		if (g_utf8_validate (lines[i], -1, NULL)) {
+			converted = g_strdup (lines[i]);
+		}
+
+		if (!converted) {
+			converted = g_locale_to_utf8 (lines[i], -1,
+						      NULL, NULL,
+						      NULL); // FIXME: add GError
+		}
+
+		if (!converted) {
+			converted = g_filename_to_utf8 (lines[i], -1,
+							NULL, NULL,
+							NULL); // FIXME: add GError
+		}
+
+		if (!converted) {
+			converted = g_convert (lines[i], -1,
+					       "UTF-8", "ISO-8859-15",
+					       NULL, NULL, NULL); // FIXME: add GError
+		}
+
+		if (!converted) {
+			converted = g_strescape (lines[i], "\n\r\\\"\'");
+		}
+
+		if (!converted) {
+			g_warning ("Error while converting string");
+			// FIXME: fallback
+		}
+
+		if (g_str_has_prefix (converted, "author ")) {
+			git_revisions_set_committer_info (revision, converted + strlen ("author "));
+		} else if (g_str_has_prefix (converted, " ")) {
+			g_strstrip (converted);
 
 			if (!long_log) {
 				/* no short log neither, get some */
-				g_object_set (revision, "short-log", lines[i], NULL);
+				g_object_set (revision, "short-log", converted, NULL);
 				long_log = g_string_new ("");
 			}
 
-			g_string_append_printf (long_log, "%s\n", lines[i]);
+			g_string_append_printf (long_log, "%s\n", converted);
 		}
+
+		g_free (converted);
 
 		i++;
 	}
