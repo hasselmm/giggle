@@ -102,9 +102,7 @@ remote_finalize (GObject *object)
 	g_free (priv->name);
 	g_free (priv->url);
 
-	g_list_foreach (priv->branches, (GFunc)g_object_unref, NULL);
-	g_list_free (priv->branches);
-	priv->branches = NULL;
+	giggle_remote_remove_branches (GIGGLE_REMOTE (object));
 
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
@@ -147,7 +145,7 @@ remote_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_NAME:
-		priv->name = g_value_dup_string (value);
+		giggle_remote_set_name (GIGGLE_REMOTE (object), g_value_get_string (value));
 		break;
 	case PROP_URL:
 		giggle_remote_set_url (GIGGLE_REMOTE (object), g_value_get_string (value));
@@ -232,12 +230,48 @@ giggle_remote_get_branches (GiggleRemote *remote)
 	return GET_PRIV (remote)->branches;
 }
 
+void
+giggle_remote_remove_branches (GiggleRemote *self)
+{
+	GiggleRemotePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+
+	priv = GET_PRIV (self);
+
+	g_list_foreach (priv->branches, (GFunc)g_object_unref, NULL);
+	g_list_free (priv->branches);
+	priv->branches = NULL;
+	g_object_notify (G_OBJECT (self), "branches");
+}
+
 const gchar *
 giggle_remote_get_name (GiggleRemote *remote)
 {
 	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
 
 	return GET_PRIV (remote)->name;
+}
+
+void
+giggle_remote_set_name (GiggleRemote *self,
+			gchar const  *name)
+{
+	GiggleRemotePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+	g_return_if_fail (name && *name);
+
+	priv = GET_PRIV (self);
+
+	if (name == priv->name) {
+		return;
+	}
+
+	g_free (priv->name);
+	priv->name = g_strdup (name);
+
+	g_object_notify (G_OBJECT (self), "name");
 }
 
 const gchar *
@@ -271,7 +305,8 @@ void
 giggle_remote_save_to_file (GiggleRemote *self,
 			    gchar const  *filename)
 {
-	FILE* file;
+	GList            *branches;
+	FILE             *file;
 
 	g_return_if_fail (GIGGLE_IS_REMOTE (self));
 	
@@ -279,7 +314,30 @@ giggle_remote_save_to_file (GiggleRemote *self,
 
 	g_return_if_fail (file);
 
-	// FIXME: write stuff
+	/* "URL: kenny.imendio.com:/var/git/public/sven/giggle.git" */
+	fprintf (file, "URL: %s\n", giggle_remote_get_url (self));
+
+	for (branches = giggle_remote_get_branches (self); branches; branches = g_list_next (branches)) {
+		/* "Pull: refs/heads/master:refs/heads/origin" */
+		gchar const* direction;
+
+		switch(giggle_remote_branch_get_direction (branches->data)) {
+		case GIGGLE_REMOTE_DIRECTION_PULL:
+			direction = "Pull";
+			break;
+		case GIGGLE_REMOTE_DIRECTION_PUSH:
+			direction = "Push";
+			break;
+		default:
+			g_warning ("Got unexpected remote direction: %d",
+				   giggle_remote_branch_get_direction (branches->data));
+			direction = "";
+			break;
+		}
+
+		fprintf (file, "%s: %s\n", direction,
+			 giggle_remote_branch_get_refspec (branches->data));
+	}
 	fclose (file);
 }
 
