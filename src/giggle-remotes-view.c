@@ -42,7 +42,9 @@ enum {
 	N_COLUMNS
 };
 
-static void remotes_view_finalize                (GObject *object);
+static void     remotes_view_finalize            (GObject *object);
+static gboolean remotes_view_key_press_event     (GtkWidget   *widget,
+						  GdkEventKey *event);
 
 
 G_DEFINE_TYPE (GiggleRemotesView, giggle_remotes_view, GTK_TYPE_TREE_VIEW)
@@ -53,9 +55,12 @@ G_DEFINE_TYPE (GiggleRemotesView, giggle_remotes_view, GTK_TYPE_TREE_VIEW)
 static void
 giggle_remotes_view_class_init (GiggleRemotesViewClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = remotes_view_finalize;
+
+	widget_class->key_press_event = remotes_view_key_press_event;
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemotesViewPriv));
 }
@@ -196,9 +201,6 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 
-	g_signal_connect (view, "key-press-event",
-			  G_CALLBACK (tree_view_delete_selection_on_list_store), NULL);
-
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
 						    _("Name"), renderer,
@@ -237,6 +239,21 @@ remotes_view_finalize (GObject *object)
 	g_object_unref (priv->store);
 
 	G_OBJECT_CLASS (giggle_remotes_view_parent_class)->finalize (object);
+}
+
+static gboolean
+remotes_view_key_press_event (GtkWidget   *widget,
+			      GdkEventKey *event)
+{
+	gboolean retval = tree_view_delete_selection_on_list_store (widget, event);
+
+	if (retval) {
+		// FIXME: delete the files
+	} else if (GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event) {
+		retval = GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event (widget, event);
+	}
+
+	return retval;
 }
 
 GtkWidget *
