@@ -340,6 +340,7 @@ remote_editor_response (GtkDialog *dialog,
 		GtkTreeModel*model;
 		GtkTreeIter  iter;
 		gchar const *data;
+		GList       *branches;
 
 		/* 1. name */
 		data = gtk_entry_get_text (GTK_ENTRY (priv->entry_name));
@@ -350,18 +351,25 @@ remote_editor_response (GtkDialog *dialog,
 		giggle_remote_set_url (priv->remote, data);
 
 		/* 3. branches */
-		giggle_remote_remove_branches (priv->remote);
+		/* create a list first so the model doesn't change while updating the branches */
 		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->treeview_branches));
+		branches = NULL;
 		if (gtk_tree_model_iter_children (model, &iter, NULL)) {
 			do {
 				GiggleRemoteBranch *branch = NULL;
 				gtk_tree_model_get (model, &iter,
 						    COL_BRANCH, &branch,
 						    -1);
-				giggle_remote_add_branch (priv->remote, branch);
-				g_object_unref (branch);
+				branches = g_list_prepend (branches, branch);
 			} while (gtk_tree_model_iter_next (model, &iter));
 		}
+
+		giggle_remote_remove_branches (priv->remote);
+		for(branches = g_list_reverse (branches); branches; branches = g_list_next (branches)) {
+			giggle_remote_add_branch (priv->remote, branches->data);
+			g_object_unref (branches->data);
+		}
+		g_list_free (branches);
 	}
 
 	if(GTK_DIALOG_CLASS(giggle_remote_editor_parent_class)->response) {
