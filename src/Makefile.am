@@ -32,6 +32,8 @@ giggle_SOURCES =				\
 	giggle-description-editor.h		\
 	giggle-diff-view.c			\
 	giggle-diff-view.h			\
+	giggle-diff-tree-view.c			\
+	giggle-diff-tree-view.h			\
 	giggle-dispatcher.c             	\
 	giggle-dispatcher.h             	\
 	giggle-dummy.c                  	\

@@ -28,6 +28,7 @@
 #include "giggle-revision-list.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
+#include "giggle-diff-tree-view.h"
 
 typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
@@ -36,6 +37,11 @@ struct GiggleViewHistoryPriv {
 	GtkWidget *revision_list;
 	GtkWidget *revision_view;
 	GtkWidget *diff_view;
+	GtkWidget *diff_tree_view;
+
+	GtkWidget *main_hpaned;
+	GtkWidget *main_vpaned;
+	GtkWidget *revision_hpaned;
 
 	GtkWidget *diff_view_expander;
 	GtkWidget *diff_view_sw;
@@ -70,7 +76,7 @@ static void
 giggle_view_history_init (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
-	GtkWidget             *hpaned, *vpaned, *vbox;
+	GtkWidget             *vbox;
 	GtkWidget             *scrolled_window;
 	GtkWidget             *expander;
 
@@ -78,20 +84,35 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	gtk_widget_push_composite_child ();
 
-	hpaned = gtk_hpaned_new ();
-	gtk_widget_show (hpaned);
-	gtk_container_add (GTK_CONTAINER (view), hpaned);
+	priv->main_hpaned = gtk_hpaned_new ();
+	gtk_widget_show (priv->main_hpaned);
+	gtk_container_add (GTK_CONTAINER (view), priv->main_hpaned);
 
-	vpaned = gtk_vpaned_new ();
-	gtk_widget_show (vpaned);
-	gtk_paned_pack2 (GTK_PANED (hpaned), vpaned, TRUE, FALSE);
+	priv->main_vpaned = gtk_vpaned_new ();
+	gtk_widget_show (priv->main_vpaned);
+	gtk_paned_pack2 (GTK_PANED (priv->main_hpaned), priv->main_vpaned, TRUE, FALSE);
 
 	/* FIXME: hardcoded sizes are evil */
-	gtk_paned_set_position (GTK_PANED (hpaned), 150);
+	gtk_paned_set_position (GTK_PANED (priv->main_hpaned), 150);
+
+	priv->revision_hpaned = gtk_hpaned_new ();
+	gtk_widget_show (priv->revision_hpaned);
+	gtk_paned_pack2 (GTK_PANED (priv->main_vpaned), priv->revision_hpaned, FALSE, FALSE);
+	
+	/* diff file view */
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+
+	priv->diff_tree_view = giggle_diff_tree_view_new ();
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_tree_view);
+	gtk_paned_pack2 (GTK_PANED (priv->revision_hpaned), scrolled_window, FALSE, FALSE);
+	gtk_widget_show_all (scrolled_window);
 
 	vbox = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox);
-	gtk_paned_pack2 (GTK_PANED (vpaned), vbox, FALSE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->revision_hpaned), vbox, FALSE, FALSE);
 
 	/* file view */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -103,7 +124,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->file_list);
 	gtk_widget_show_all (scrolled_window);
 
-	gtk_paned_pack1 (GTK_PANED (hpaned), scrolled_window, FALSE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->main_hpaned), scrolled_window, FALSE, FALSE);
 
 	/* revisions list */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -120,7 +141,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
 	gtk_widget_show_all (scrolled_window);
 
-	gtk_paned_pack1 (GTK_PANED (vpaned), scrolled_window, TRUE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), scrolled_window, TRUE, FALSE);
 
 	/* revision view */
 	expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
@@ -173,8 +194,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	if (revision1 && revision2) {
 		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
 						revision1, revision2, NULL);
-		giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
-						      revision1, revision2);
+		giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
+						     revision1, revision2);
 	}
 }
 
