@@ -79,6 +79,8 @@ giggle_SOURCES =				\
 	giggle-revision-view.h			\
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
+	giggle-tree-view-helpers.c		\
+	giggle-tree-view-helpers.h		\
 	giggle-view.c				\
 	giggle-view.h				\
 	giggle-view-file.c			\

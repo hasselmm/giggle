@@ -30,6 +30,8 @@
 #include <gtk/gtktreeview.h>
 #include <glade/glade.h>
 
+#include "giggle-tree-view-helpers.h"
+
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 
 struct GiggleRemoteEditorPriv {
@@ -165,6 +167,9 @@ remote_editor_setup_treeview (GiggleRemoteEditor *self)
 	GtkListStore           *store;
 
 	priv = GET_PRIV (self);
+
+	g_signal_connect (priv->treeview_branches, "key-press-event",
+			  G_CALLBACK (tree_view_delete_selection_on_list_store), NULL);
 
 	store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
