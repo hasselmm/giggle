@@ -116,9 +116,13 @@ remote_editor_text_edited_cb (GiggleRemoteEditor  *self,
 			    -1);
 
 	if (!branch) {
+		GtkTreeIter iter2;
 		branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PULL,
 						   value);
-		giggle_remote_add_branch (priv->remote, branch);
+		gtk_list_store_insert_before (GTK_LIST_STORE (model), &iter2, &iter);
+		gtk_list_store_set (GTK_LIST_STORE (model), &iter2,
+				    COL_BRANCH, branch,
+				    -1);
 	} else {
 		giggle_remote_branch_set_refspec (branch, value);
 	}
