@@ -53,6 +53,8 @@ GiggleRemoteBranch *  giggle_remote_branch_new          (GiggleRemoteDirection d
 							 const gchar          *refspec);
 GiggleRemoteDirection giggle_remote_branch_get_direction(GiggleRemoteBranch   *branch);
 const gchar *         giggle_remote_branch_get_refspec  (GiggleRemoteBranch   *branch);
+void                  giggle_remote_branch_set_refspec  (GiggleRemoteBranch   *branch,
+							 const gchar          *refspec);
 
 G_END_DECLS
 

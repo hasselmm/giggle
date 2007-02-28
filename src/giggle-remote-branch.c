@@ -138,9 +138,7 @@ remote_branch_set_property (GObject      *object,
 		g_object_notify (object, "direction");
 		break;
 	case PROP_REFSPEC:
-		g_free (priv->refspec);
-		priv->refspec = g_value_dup_string (value);
-		g_object_notify (object, "refspec");
+		giggle_remote_branch_set_refspec (GIGGLE_REMOTE_BRANCH (object), g_value_get_string (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -172,5 +170,24 @@ giggle_remote_branch_get_refspec (GiggleRemoteBranch *branch)
 	g_return_val_if_fail (GIGGLE_IS_REMOTE_BRANCH (branch), NULL);
 
 	return GET_PRIV (branch)->refspec;
+}
+
+void
+giggle_remote_branch_set_refspec (GiggleRemoteBranch *self,
+				  const gchar        *refspec)
+{
+	GiggleRemoteBranchPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE_BRANCH (self));
+
+	priv = GET_PRIV (self);
+
+	if (priv->refspec == refspec) {
+		return;
+	}
+
+	g_free (priv->refspec);
+	priv->refspec = g_strdup (refspec);
+	g_object_notify (G_OBJECT (self), "refspec");
 }
 

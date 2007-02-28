@@ -95,6 +95,31 @@ giggle_remote_editor_class_init (GiggleRemoteEditorClass *class)
 }
 
 static void
+remote_editor_text_edited_cb (GiggleRemoteEditor  *self,
+			      gchar               *path_s,
+			      gchar               *value,
+			      GtkCellRendererText *cell)
+{
+	GiggleRemoteEditorPriv *priv;
+	GiggleRemoteBranch     *branch;
+	GtkTreeModel           *model;
+	GtkTreePath            *path;
+	GtkTreeIter             iter;
+
+	priv = GET_PRIV (self);
+
+	model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->treeview_branches));
+	path = gtk_tree_path_new_from_string (path_s);
+	gtk_tree_model_get_iter (model, &iter, path);
+	gtk_tree_model_get (model, &iter,
+			    COL_BRANCH, &branch,
+			    -1);
+	giggle_remote_branch_set_refspec (branch, value);
+	g_object_unref (branch);
+	gtk_tree_path_free (path);
+}
+
+static void
 remote_editor_tree_cell_data_func (GtkTreeViewColumn *tree_column,
 		                   GtkCellRenderer   *cell,
 				   GtkTreeModel      *model,
@@ -114,6 +139,7 @@ static void
 remote_editor_setup_treeview (GiggleRemoteEditor *self)
 {
 	GiggleRemoteEditorPriv *priv;
+	GtkCellRenderer        *renderer;
 	GtkListStore           *store;
 
 	priv = GET_PRIV (self);
@@ -122,8 +148,12 @@ remote_editor_setup_treeview (GiggleRemoteEditor *self)
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
 	g_object_unref (store);
 
+	renderer = gtk_cell_renderer_text_new ();
+	g_object_set (renderer, "editable", TRUE, NULL);
+	g_signal_connect_swapped (renderer, "edited",
+				  G_CALLBACK (remote_editor_text_edited_cb), self);
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview_branches), -1,
-						    _("Branches"), gtk_cell_renderer_text_new (),
+						    _("Branches"), renderer,
 						    remote_editor_tree_cell_data_func,
 						    NULL, NULL);
 }
