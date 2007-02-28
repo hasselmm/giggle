@@ -114,7 +114,14 @@ remote_editor_text_edited_cb (GiggleRemoteEditor  *self,
 	gtk_tree_model_get (model, &iter,
 			    COL_BRANCH, &branch,
 			    -1);
-	giggle_remote_branch_set_refspec (branch, value);
+
+	if (!branch) {
+		branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PULL,
+						   value);
+		giggle_remote_add_branch (priv->remote, branch);
+	} else {
+		giggle_remote_branch_set_refspec (branch, value);
+	}
 	g_object_unref (branch);
 	gtk_tree_path_free (path);
 }
@@ -131,8 +138,19 @@ remote_editor_tree_cell_data_func (GtkTreeViewColumn *tree_column,
 	gtk_tree_model_get (model, iter,
 			    COL_BRANCH, &branch,
 			    -1);
-	g_object_set (cell, "text", giggle_remote_branch_get_refspec (branch), NULL);
-	g_object_unref (branch);
+
+	if (branch) {
+		g_object_set (cell,
+			      "foreground", "black",
+			      "text", giggle_remote_branch_get_refspec (branch),
+			      NULL);
+		g_object_unref (branch);
+	} else {
+		g_object_set (cell,
+			      "foreground", "slategray",
+			      "text", _("Double-Click to add mapping"),
+			      NULL);
+	}
 }
 	
 static void
@@ -223,6 +241,11 @@ remote_editor_notify_branches_cb (GiggleRemoteEditor *editor)
 				    COL_BRANCH, branch->data,
 				    -1);
 	}
+
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter,
+			    COL_BRANCH, NULL,
+			    -1);
 }
 
 static void
