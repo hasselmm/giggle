@@ -468,14 +468,40 @@ file_list_populate (GiggleFileList *list)
 }
 
 static gboolean
+file_list_ignore_file (GtkTreeModel *model,
+		       GtkTreeIter  *file_iter,
+		       const gchar  *name)
+{
+	GiggleGitIgnore *git_ignore;
+	GtkTreeIter      iter, parent;
+	gboolean         matches = FALSE;
+
+	iter = *file_iter;
+
+	while (!matches && gtk_tree_model_iter_parent (model, &parent, &iter)) {
+		gtk_tree_model_get (model, &parent,
+				    COL_GIT_IGNORE, &git_ignore,
+				    -1);
+
+		if (git_ignore) {
+			matches = giggle_git_ignore_name_matches (git_ignore, name);
+			g_object_unref (git_ignore);
+		}
+
+		/* scale up through the hierarchy */
+		iter = parent;
+	}
+
+	return matches;
+}
+
+static gboolean
 file_list_filter_func (GtkTreeModel   *model,
 		       GtkTreeIter    *iter,
 		       gpointer        user_data)
 {
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
-	GiggleGitIgnore    *git_ignore = NULL;
-	GtkTreeIter         parent;
 	gchar              *name;
 	gboolean            retval = TRUE;
 
@@ -491,28 +517,11 @@ file_list_filter_func (GtkTreeModel   *model,
 
 	/* we never want to show these files */
 	if (strcmp (name, ".git") == 0 ||
-	    strcmp (name, ".gitignore") == 0) {
-		retval = FALSE;
-		goto failed;
-	}
-
-	/* get the GiggleGitIgnore from the directory iter */
-	if (gtk_tree_model_iter_parent (model, &parent, iter)) {
-		gtk_tree_model_get (model, &parent,
-				    COL_GIT_IGNORE, &git_ignore,
-				    -1);
-	}
-
-	/* ignore file? */
-	if (!priv->show_all && git_ignore &&
-	    giggle_git_ignore_name_matches (git_ignore, name)) {
+	    strcmp (name, ".gitignore") == 0 ||
+	    file_list_ignore_file (model, iter, name)) {
 		retval = FALSE;
 	}
 
- failed:
-	if (git_ignore) {
-		g_object_unref (git_ignore);
-	}
 	g_free (name);
 
 	return retval;
