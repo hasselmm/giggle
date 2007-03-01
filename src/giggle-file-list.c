@@ -76,9 +76,6 @@ static gboolean   file_list_search_equal_func   (GtkTreeModel   *model,
 						 GtkTreeIter    *iter,
 						 gpointer        search_data);
 
-static gboolean   file_list_get_name_and_ignore (GiggleFileList   *list,
-						 gchar           **name,
-						 GiggleGitIgnore **git_ignore);
 static gboolean   file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
 							  GtkTreeIter      *iter,
 							  gchar           **name,
@@ -518,7 +515,7 @@ file_list_filter_func (GtkTreeModel   *model,
 	/* we never want to show these files */
 	if (strcmp (name, ".git") == 0 ||
 	    strcmp (name, ".gitignore") == 0 ||
-	    file_list_ignore_file (model, iter, name)) {
+	    (!priv->show_all && file_list_ignore_file (model, iter, name))) {
 		retval = FALSE;
 	}
 
@@ -552,28 +549,6 @@ file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
 			    COL_GIT_IGNORE, git_ignore,
 			    -1);
 	return TRUE;
-}
-
-static gboolean
-file_list_get_name_and_ignore (GiggleFileList   *list,
-			       gchar           **name,
-			       GiggleGitIgnore **git_ignore)
-{
-	GiggleFileListPriv *priv;
-	GtkTreeSelection   *selection;
-	GtkTreeIter         iter;
-
-	priv = GET_PRIV (list);
-	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
-
-	if (gtk_tree_selection_get_selected (selection, NULL, &iter)) {
-		return file_list_get_name_and_ignore_for_iter (list, &iter, name, git_ignore);
-	}
-
-	*name = NULL;
-	*git_ignore = NULL;
-
-	return FALSE;
 }
 
 static gboolean
@@ -624,23 +599,21 @@ file_list_search_equal_func (GtkTreeModel *model,
 }
 
 static void
-file_list_add_file (GtkWidget      *widget,
-		    GiggleFileList *list)
+file_list_add_file_foreach (GtkTreeModel *model,
+			    GtkTreePath  *path,
+			    GtkTreeIter  *iter,
+			    gpointer      data)
 {
-	GiggleFileListPriv *priv;
-	GiggleGitIgnore    *git_ignore;
-	gchar              *name;
+	GiggleGitIgnore *git_ignore;
+	gchar           *name;
 
-	priv = GET_PRIV (list);
-
-	if (!file_list_get_name_and_ignore (list, &name, &git_ignore)) {
+	if (!file_list_get_name_and_ignore_for_iter (GIGGLE_FILE_LIST (data),
+						     iter, &name, &git_ignore)) {
 		return;
 	}
 
 	if (git_ignore) {
 		giggle_git_ignore_add_glob (git_ignore, name);
-		gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
-
 		g_object_unref (git_ignore);
 	}
 
@@ -648,16 +621,32 @@ file_list_add_file (GtkWidget      *widget,
 }
 
 static void
-file_list_remove_file (GtkWidget      *widget,
-		       GiggleFileList *list)
+file_list_add_file (GtkWidget      *widget,
+		    GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
-	gchar              *name;
-	GiggleGitIgnore    *git_ignore;
+	GtkTreeSelection   *selection;
 
 	priv = GET_PRIV (list);
 
-	if (!file_list_get_name_and_ignore (list, &name, &git_ignore)) {
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	gtk_tree_selection_selected_foreach (selection, file_list_add_file_foreach, list);
+	gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
+}
+
+static void
+file_list_remove_file_foreach (GtkTreeModel *model,
+			       GtkTreePath  *path,
+			       GtkTreeIter  *iter,
+			       gpointer      data)
+{
+	GiggleFileList  *list;
+	GiggleGitIgnore *git_ignore;
+	gchar           *name;
+
+	list = GIGGLE_FILE_LIST (data);
+
+	if (!file_list_get_name_and_ignore_for_iter (list, iter, &name, &git_ignore)) {
 		return;
 	}
 
@@ -683,11 +672,24 @@ file_list_remove_file (GtkWidget      *widget,
 			gtk_widget_destroy (dialog);
 		}
 
-		gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
 		g_object_unref (git_ignore);
 	}
 
 	g_free (name);
+}
+
+static void
+file_list_remove_file (GtkWidget      *widget,
+		       GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkTreeSelection   *selection;
+
+	priv = GET_PRIV (list);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	gtk_tree_selection_selected_foreach (selection, file_list_remove_file_foreach, list);
+	gtk_tree_model_filter_refilter (GTK_TREE_MODEL_FILTER (priv->filter_model));
 }
 
 static void
