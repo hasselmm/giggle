@@ -86,7 +86,6 @@ authors_view_job_callback (GiggleGit *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		g_error_free (error);
 	} else {
 		authors = giggle_git_authors_get_list (GIGGLE_GIT_AUTHORS (job));
 

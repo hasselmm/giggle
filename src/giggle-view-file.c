@@ -189,7 +189,6 @@ view_file_select_file_job_callback (GiggleGit *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		g_error_free (error);
 	} else {
 		store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));

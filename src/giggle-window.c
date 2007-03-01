@@ -547,7 +547,6 @@ window_git_get_revisions_cb (GiggleGit    *git,
 		window_show_error (window,
 				   N_("An error ocurred when getting the revisions list:\n%s"),
 				   error);
-		g_error_free (error);
 	} else {
 		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
 		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));

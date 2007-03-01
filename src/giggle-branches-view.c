@@ -86,7 +86,6 @@ branches_view_job_callback (GiggleGit *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		g_error_free (error);
 	} else {
 		branches = giggle_git_branches_get_branches (GIGGLE_GIT_BRANCHES (job));
 

@@ -885,7 +885,6 @@ file_list_job_callback (GiggleGit *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		g_error_free (error);
 	} else {
 		files = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (priv->job));
 		file_list_update_highlight (list, NULL, NULL, files);
