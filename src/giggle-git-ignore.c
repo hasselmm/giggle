@@ -24,12 +24,16 @@
 #include <fnmatch.h>
 
 #include "giggle-git-ignore.h"
+#include "giggle-git.h"
 
 typedef struct GiggleGitIgnorePriv GiggleGitIgnorePriv;
 
 struct GiggleGitIgnorePriv {
+	GiggleGit *git;
 	gchar     *directory_path;
+
 	GPtrArray *globs;
+	GPtrArray *global_globs; /* .git/info/exclude */
 };
 
 static void       git_ignore_finalize           (GObject               *object);
@@ -83,8 +87,7 @@ giggle_git_ignore_init (GiggleGitIgnore *git_ignore)
 
 	priv = GET_PRIV (git_ignore);
 
-	/* reserve some slots to avoid many reallocations */
-	priv->globs = g_ptr_array_sized_new (10);
+	priv->git = giggle_git_get ();
 }
 
 static void
@@ -94,8 +97,16 @@ git_ignore_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	g_object_unref (priv->git);
 	g_free (priv->directory_path);
-	g_ptr_array_free (priv->globs, TRUE);
+
+	if (priv->globs) {
+		g_ptr_array_free (priv->globs, TRUE);
+	}
+
+	if (priv->global_globs) {
+		g_ptr_array_free (priv->global_globs, TRUE);
+	}
 
 	G_OBJECT_CLASS (giggle_git_ignore_parent_class)->finalize (object);
 }
@@ -140,41 +151,54 @@ git_ignore_set_property (GObject      *object,
 	}
 }
 
+static GPtrArray *
+git_ignore_read_file (const gchar *path)
+{
+	GPtrArray  *array;
+	gchar     **strarr;
+	gchar      *contents;
+	gint        i;
+
+	if (!g_file_get_contents (path, &contents, NULL, NULL)) {
+		return NULL;
+	}
+
+	array = g_ptr_array_sized_new (10);
+	strarr = g_strsplit (contents, "\n", -1);
+
+	for (i = 0; strarr[i]; i++) {
+		if (*strarr[i] && !g_str_has_prefix (strarr[i], "#")) {
+			g_ptr_array_add (array, g_strdup (strarr[i]));
+		}
+	}
+
+	g_free (contents);
+	g_strfreev (strarr);
+
+	return array;
+}
+
 static GObject*
 git_ignore_constructor (GType                  type,
 			guint                  n_construct_properties,
 			GObjectConstructParam *construct_params)
 {
-	GObject              *object;
-	GiggleGitIgnorePriv  *priv;
-	gchar                *path, *contents;
-	gchar               **strarr;
-	gint                  i;
+	GObject             *object;
+	GiggleGitIgnorePriv *priv;
+	gchar               *path;
 
 	object = (* G_OBJECT_CLASS (giggle_git_ignore_parent_class)->constructor) (type,
 										   n_construct_properties,
 										   construct_params);
 	priv = GET_PRIV (object);
+
 	path = g_build_filename (priv->directory_path, ".gitignore", NULL);
+	priv->globs = git_ignore_read_file (path);
+	g_free (path);
 
-	if (g_file_get_contents (path,
-				 &contents, NULL, NULL)) {
-		strarr = g_strsplit (contents, "\n", -1);
-
-		for (i = 0; strarr[i]; i++) {
-			if (*strarr[i]) {
-				g_ptr_array_add (priv->globs, strarr[i]);
-			} else {
-				/* ignore and free empty lines */
-				g_free (strarr[i]);
-			}
-		}
-
-		/* keep the contents of strarr for priv->globs */
-		g_free (strarr);
-		g_free (contents);
-	}
-
+	path = g_build_filename (giggle_git_get_git_dir (priv->git),
+				 "info", "exclude", NULL);
+	priv->global_globs = git_ignore_read_file (path);
 	g_free (path);
 
 	return object;
@@ -210,25 +234,41 @@ giggle_git_ignore_new (const gchar *directory_path)
 			     NULL);
 }
 
-gboolean
-giggle_git_ignore_name_matches (GiggleGitIgnore *git_ignore,
-				const gchar     *name)
+static gboolean
+git_ignore_name_matches (const gchar *name,
+			 GPtrArray   *array)
 {
-	GiggleGitIgnorePriv *priv;
-	gint                 n_glob = 0;
-	const gchar         *glob;
-
-	g_return_val_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore), FALSE);
-
-	priv = GET_PRIV (git_ignore);
-
-	while (n_glob < priv->globs->len) {
-		glob = g_ptr_array_index (priv->globs, n_glob);
+	gint         n_glob = 0;
+	const gchar *glob;
+	
+	while (n_glob < array->len) {
+		glob = g_ptr_array_index (array, n_glob);
 		n_glob++;
 
 		if (fnmatch (glob, name, 0) == 0) {
 			return TRUE;
 		}
+	}
+
+	return FALSE;
+}
+
+gboolean
+giggle_git_ignore_name_matches (GiggleGitIgnore *git_ignore,
+				const gchar     *name)
+{
+	GiggleGitIgnorePriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore), FALSE);
+
+	priv = GET_PRIV (git_ignore);
+
+	if (git_ignore_name_matches (name, priv->globs)) {
+		return TRUE;
+	}
+
+	if (git_ignore_name_matches (name, priv->global_globs)) {
+		return TRUE;
 	}
 
 	return FALSE;
