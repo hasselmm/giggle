@@ -19,7 +19,7 @@
  */
 
 #include <config.h>
-
+#include <unistd.h>
 #include <glib/gi18n.h>
 
 #include "giggle-error.h"
@@ -272,6 +272,14 @@ dispatcher_job_free (DispatcherJob *job)
 
 	if (job->pid) {
 		g_spawn_close_pid (job->pid);
+	}
+
+	if (job->std_out) {
+		close (job->std_out);
+	}
+
+	if (job->std_err) {
+		close (job->std_err);
 	}
 
 	g_slice_free (DispatcherJob, job);
