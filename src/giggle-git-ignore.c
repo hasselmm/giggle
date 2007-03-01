@@ -240,6 +240,10 @@ git_ignore_name_matches (const gchar *name,
 {
 	gint         n_glob = 0;
 	const gchar *glob;
+
+	if (!array) {
+		return FALSE;
+	}
 	
 	while (n_glob < array->len) {
 		glob = g_ptr_array_index (array, n_glob);
