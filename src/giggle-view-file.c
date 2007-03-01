@@ -178,8 +178,18 @@ view_file_select_file_job_callback (GiggleGit *git,
 	priv = GET_PRIV (view);
 
 	if (error) {
-		g_print (">> %s\n", error->message);
-		/* FIXME: handle */
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when getting the revisions list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+		g_error_free (error);
 	} else {
 		store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
