@@ -244,7 +244,7 @@ git_ignore_name_matches (const gchar *name,
 	if (!array) {
 		return FALSE;
 	}
-	
+
 	while (n_glob < array->len) {
 		glob = g_ptr_array_index (array, n_glob);
 		n_glob++;

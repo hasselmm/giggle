@@ -352,7 +352,6 @@ file_list_button_press (GtkWidget      *widget,
 
 		g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 		g_list_free (rows);
-		g_object_unref (model);
 	}
 
 	return TRUE;
