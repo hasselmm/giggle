@@ -77,21 +77,6 @@ enum {
 };
 
 enum {
-	AUTHORS_COL_AUTHOR,
-	AUTHORS_N_COLUMNS
-};
-
-enum {
-	BRANCHES_COL_BRANCH,
-	BRANCHES_N_COLUMNS
-};
-
-enum {
-	REMOTES_COL_REMOTE,
-	REMOTES_N_COLUMNS
-};
-
-enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
@@ -721,7 +706,7 @@ window_find (GiggleWindow *window,
 	gboolean          valid, found;
 	GiggleRevision   *revision;
 	GtkTreePath      *path;
-	
+
 	priv = GET_PRIV (window);
 	found = FALSE;
 
