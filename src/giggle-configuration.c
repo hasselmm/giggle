@@ -103,9 +103,17 @@ configuration_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	if (priv->current_job) {
+		giggle_git_cancel_job (priv->git, priv->current_job);
+		g_object_unref (priv->current_job);
+		priv->current_job = NULL;
+	}
+
 	if (priv->config) {
 		g_hash_table_unref (priv->config);
 	}
+
+	g_object_unref (priv->git);
 
 	G_OBJECT_CLASS (giggle_configuration_parent_class)->finalize (object);
 }
@@ -168,6 +176,8 @@ giggle_configuration_update (GiggleConfiguration     *configuration,
 
 	if (priv->current_job) {
 		giggle_git_cancel_job (priv->git, priv->current_job);
+		g_object_unref (priv->current_job);
+		priv->current_job = NULL;
 	}
 
 	if (priv->config) {

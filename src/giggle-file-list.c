@@ -249,6 +249,12 @@ file_list_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
 	g_object_unref (priv->git);
 	g_object_unref (priv->store);
 	g_object_unref (priv->filter_model);
