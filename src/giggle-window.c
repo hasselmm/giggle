@@ -72,11 +72,6 @@ struct GiggleWindowPriv {
 };
 
 enum {
-	REVISION_COL_OBJECT,
-	REVISION_NUM_COLS
-};
-
-enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
@@ -494,63 +489,6 @@ window_recent_repositories_update (GiggleWindow *window)
 	window_recent_repositories_reload (window);
 }
 
-static void
-window_show_error (GiggleWindow *window,
-		   const gchar  *message,
-		   GError       *error)
-{
-	GtkWidget *dialog;
-
-	g_return_if_fail (error != NULL);
-
-	dialog = gtk_message_dialog_new (GTK_WINDOW (window),
-					 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-					 GTK_MESSAGE_ERROR,
-					 GTK_BUTTONS_OK,
-					 _(message), error->message);
-
-	gtk_dialog_run (GTK_DIALOG (dialog));
-	gtk_widget_destroy (dialog);
-}
-
-static void
-window_git_get_revisions_cb (GiggleGit    *git,
-			     GiggleJob    *job,
-			     GError       *error,
-			     gpointer      user_data)
-{
-	GiggleWindow *window;
-	GiggleWindowPriv *priv;
-	GtkListStore *store;
-	GtkTreeIter iter;
-	GList *revisions;
-
-	window = GIGGLE_WINDOW (user_data);
-	priv = GET_PRIV (window);
-
-	if (error) {
-		window_show_error (window,
-				   N_("An error ocurred when getting the revisions list:\n%s"),
-				   error);
-	} else {
-		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
-		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
-
-		while (revisions) {
-			gtk_list_store_append (store, &iter);
-			gtk_list_store_set (store, &iter,
-					    REVISION_COL_OBJECT, revisions->data,
-					    -1);
-			revisions = revisions->next;
-		}
-
-		giggle_view_history_set_model (GIGGLE_VIEW_HISTORY (priv->history_view), GTK_TREE_MODEL (store));
-		g_object_unref (store);
-	}
-
-	g_object_unref (job);
-}
-
 /* Update revision info. If previous_revision is not NULL, a diff between it and
  * the current revision will be shown.
  */
@@ -811,7 +749,6 @@ window_directory_changed_cb (GiggleGit    *git,
 			     GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	GiggleJob        *job;
 	gchar            *title;
 	const gchar      *directory;
 
@@ -821,11 +758,6 @@ window_directory_changed_cb (GiggleGit    *git,
 	title = g_strdup_printf ("%s - Giggle", directory);
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
-
-	job = giggle_git_revisions_new ();
-	giggle_git_run_job (priv->git, job,
-			    window_git_get_revisions_cb,
-			    window);
 }
 
 GtkWidget *

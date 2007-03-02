@@ -49,8 +49,6 @@ struct GiggleViewHistoryClass {
 GType              giggle_view_history_get_type          (void);
 GtkWidget *        giggle_view_history_new               (void);
 
-void               giggle_view_history_set_model         (GiggleViewHistory *view_history,
-							  GtkTreeModel      *model);
 
 G_END_DECLS
 

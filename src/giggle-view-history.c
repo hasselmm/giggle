@@ -23,6 +23,8 @@
 #include <glib/gi18n.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "giggle-git.h"
+#include "giggle-git-revisions.h"
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
@@ -45,6 +47,9 @@ struct GiggleViewHistoryPriv {
 
 	GtkWidget *diff_view_expander;
 	GtkWidget *diff_view_sw;
+
+	GiggleGit *git;
+	GiggleJob *job;
 };
 
 static void     view_history_finalize              (GObject *object);
@@ -56,11 +61,18 @@ static void     view_history_revision_list_selection_changed_cb (GiggleRevisionL
 static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionList *list,
 								 GdkEventKey        *event,
 								 GiggleViewHistory  *view);
+static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
 
 G_DEFINE_TYPE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_HISTORY, GiggleViewHistoryPriv))
+
+enum {
+	REVISION_COL_OBJECT,
+	REVISION_NUM_COLS
+};
+
 
 static void
 giggle_view_history_class_init (GiggleViewHistoryClass *class)
@@ -168,6 +180,12 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_box_pack_start (GTK_BOX (vbox), priv->diff_view_expander, TRUE, TRUE, 0);
 
 	gtk_widget_pop_composite_child ();
+
+	/* git interaction */
+	priv->git = giggle_git_get ();
+	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
+				  G_CALLBACK (view_history_update_revisions), view);
+	view_history_update_revisions (view);
 }
 
 static void
@@ -176,6 +194,14 @@ view_history_finalize (GObject *object)
 	GiggleViewHistoryPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	g_object_unref (priv->git);
 }
 
 static void
@@ -230,24 +256,79 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	return FALSE;
 }
 
+static void
+view_history_get_revisions_cb (GiggleGit    *git,
+			       GiggleJob    *job,
+			       GError       *error,
+			       gpointer      user_data)
+{
+	GiggleViewHistory     *view;
+	GiggleViewHistoryPriv *priv;
+	GtkListStore          *store;
+	GtkTreeIter            iter;
+	GList                 *revisions;
+
+	view = GIGGLE_VIEW_HISTORY (user_data);
+	priv = GET_PRIV (view);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when getting the revisions list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+	} else {
+		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
+		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
+
+		while (revisions) {
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+					    REVISION_COL_OBJECT, revisions->data,
+					    -1);
+			revisions = revisions->next;
+		}
+
+		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list),
+						GTK_TREE_MODEL (store));
+		g_object_unref (store);
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
+view_history_update_revisions (GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (view);
+
+	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), NULL);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_revisions_new ();
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    view_history_get_revisions_cb,
+			    view);
+}
+
 GtkWidget *
 giggle_view_history_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY, NULL);
-}
-
-/* FIXME: this function is ugly, but we somehow want
- * the revisions list to be global to all the application */
-void
-giggle_view_history_set_model (GiggleViewHistory *view_history,
-			       GtkTreeModel      *model)
-{
-	GiggleViewHistoryPriv *priv;
-
-	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view_history));
-	g_return_if_fail (GTK_IS_TREE_MODEL (model));
-
-	priv = GET_PRIV (view_history);
-
-	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), model);
 }
