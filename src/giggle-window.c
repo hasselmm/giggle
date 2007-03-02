@@ -201,7 +201,7 @@ window_create_menu (GiggleWindow *window)
 
 	gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_layout, -1, &error);
 	if (error) {
-		g_error ("Couldn't create UI: %s}\n", error->message);
+		g_error ("Couldn't create UI: %s\n", error->message);
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);

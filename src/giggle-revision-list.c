@@ -34,6 +34,8 @@ struct GiggleRevisionListPriv {
 	GtkTreeViewColumn *graph_column;
 	GtkCellRenderer   *graph_renderer;
 
+	GtkIconTheme      *icon_theme;
+
 	gboolean           show_graph : 1;
 };
 
@@ -64,6 +66,11 @@ static void revision_list_set_property            (GObject        *object,
 						   const GValue   *value,
 						   GParamSpec     *pspec);
 
+static void revision_list_cell_data_emblem_func   (GtkCellLayout     *layout,
+						   GtkCellRenderer   *cell,
+						   GtkTreeModel      *model,
+						   GtkTreeIter       *iter,
+						   gpointer           data);
 static void revision_list_cell_data_log_func      (GtkTreeViewColumn *column,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
@@ -129,11 +136,22 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	priv = GET_PRIV (revision_list);
 
-	priv->graph_renderer = giggle_graph_renderer_new ();
-	g_object_ref_sink (priv->graph_renderer);
+	priv->icon_theme = gtk_icon_theme_get_default ();
 
 	priv->graph_column = gtk_tree_view_column_new ();
 	g_object_ref_sink (priv->graph_column);
+
+	/* emblems renderer */
+	cell = gtk_cell_renderer_pixbuf_new ();
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->graph_column), cell, FALSE);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->graph_column), cell,
+					    revision_list_cell_data_emblem_func,
+					    revision_list,
+					    NULL);
+
+	/* graph renderer */
+	priv->graph_renderer = giggle_graph_renderer_new ();
+	g_object_ref_sink (priv->graph_renderer);
 
 	gtk_tree_view_column_set_title (priv->graph_column, _("Graph"));
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->graph_column),
@@ -246,6 +264,41 @@ revision_list_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+static void
+revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
+				     GtkCellRenderer   *cell,
+				     GtkTreeModel      *model,
+				     GtkTreeIter       *iter,
+				     gpointer           data)
+{
+	GiggleRevisionListPriv *priv;
+	GiggleRevisionList     *list;
+	GiggleRevision         *revision;
+	GdkPixbuf              *pixbuf = NULL;
+
+	list = GIGGLE_REVISION_LIST (data);
+	priv = GET_PRIV (list);
+
+	gtk_tree_model_get (model, iter,
+			    COL_OBJECT, &revision,
+			    -1);
+
+	if (giggle_revision_get_branch_heads (revision)) {
+		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
+						   "gtk-info", 16, 0, NULL);
+	}
+
+	g_object_set (G_OBJECT (cell),
+		      "pixbuf", pixbuf,
+		      NULL);
+
+	if (pixbuf) {
+		g_object_unref (pixbuf);
+	}
+
+	g_object_unref (revision);
 }
 
 static void

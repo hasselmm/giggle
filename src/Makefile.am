@@ -136,6 +136,8 @@ test_file_list_SOURCES =			\
 	giggle-job.c				\
 	giggle-file-list.c			\
 	giggle-git-ignore.c			\
+	giggle-ref.c				\
+	giggle-ref.h				\
 	giggle-remote.c				\
 	giggle-remote.h				\
 	giggle-remote-branch.c			\
@@ -152,6 +154,7 @@ test_giggle_git_SOURCES =                       \
 	giggle-dispatcher.c                     \
 	giggle-error.c                          \
 	giggle-sysdeps.c                        \
+	giggle-ref.c				\
 	giggle-revision.c                       \
 	giggle-git.c                            \
 	giggle-git-diff.c                       \

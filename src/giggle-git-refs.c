@@ -172,8 +172,9 @@ git_refs_get_ref (GiggleJob   *job,
 		strlen ("refs/tags/");
 
 	data = g_strsplit (str, " ", 2);
-	/* FIXME: use sha to set head revision */
 	ref = giggle_ref_new (data[1] + len);
+	g_object_set (ref, "sha", data[0], NULL);
+	
 	g_strfreev (data);
 
 	return ref;

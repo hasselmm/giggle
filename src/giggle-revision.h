@@ -22,9 +22,10 @@
 #define __GIGGLE_REVISION_H__
 
 #include <glib-object.h>
-
 #include <gdk/gdk.h>
 #include <gtk/gtktreemodel.h>
+
+#include "giggle-ref.h"
 
 G_BEGIN_DECLS
 
@@ -61,6 +62,10 @@ void               giggle_revision_add_parent        (GiggleRevision   *revision
 						      GiggleRevision   *parent);
 void               giggle_revision_remove_parent     (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
+
+GList            * giggle_revision_get_branch_heads  (GiggleRevision   *revision);
+void               giggle_revision_add_branch_head   (GiggleRevision   *revision,
+						      GiggleRef        *branch);
 
 G_END_DECLS
 

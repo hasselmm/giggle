@@ -21,12 +21,14 @@
 #include <config.h>
 #include <gtk/gtk.h>
 
+#include "giggle-revision.h"
 #include "giggle-ref.h"
 
 typedef struct GiggleRefPriv GiggleRefPriv;
 
 struct GiggleRefPriv {
 	gchar          *name;
+	gchar          *sha;
 	GiggleRevision *revision;
 };
 
@@ -45,6 +47,7 @@ G_DEFINE_TYPE (GiggleRef, giggle_ref, G_TYPE_OBJECT)
 enum {
 	PROP_0,
 	PROP_NAME,
+	PROP_SHA,
 	PROP_HEAD,
 };
 
@@ -67,6 +70,14 @@ giggle_ref_class_init (GiggleRefClass *class)
 				     "Ref name",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class,
+		PROP_SHA,
+		g_param_spec_string ("sha",
+				     "Ref SHA",
+				     "Ref SHA",
+				     NULL,
+				     G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class,
 		PROP_HEAD,
@@ -92,6 +103,7 @@ giggle_ref_finalize (GObject *object)
 	priv = GET_PRIV (object);
 
 	g_free (priv->name);
+	g_free (priv->sha);
 
 	if (priv->revision) {
 		g_object_unref (priv->revision);
@@ -113,6 +125,9 @@ giggle_ref_get_property (GObject    *object,
 	switch (param_id) {
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
+		break;
+	case PROP_SHA:
+		g_value_set_string (value, priv->sha);
 		break;
 	case PROP_HEAD:
 		g_value_set_object (value, priv->name);
@@ -137,6 +152,10 @@ giggle_ref_set_property (GObject      *object,
 	case PROP_NAME:
 		g_free (priv->name);
 		priv->name = g_value_dup_string (value);
+		break;
+	case PROP_SHA:
+		g_free (priv->sha);
+		priv->sha = g_value_dup_string (value);
 		break;
 	case PROP_HEAD:
 		if (priv->revision) {
@@ -168,16 +187,4 @@ giggle_ref_get_name (GiggleRef *ref)
 	priv = GET_PRIV (ref);
 
 	return priv->name;
-}
-
-GiggleRevision *
-giggle_ref_get_revision (GiggleRef *ref)
-{
-	GiggleRefPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_REF (ref), NULL);
-
-	priv = GET_PRIV (ref);
-
-	return priv->revision;
 }

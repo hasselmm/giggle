@@ -22,9 +22,11 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 #include <gdk/gdkkeysyms.h>
+#include <string.h>
 
 #include "giggle-git.h"
 #include "giggle-git-revisions.h"
+#include "giggle-git-refs.h"
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
@@ -257,6 +259,78 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 }
 
 static void
+view_history_add_branches (GiggleRevision *revision,
+			   GList          *list)
+{
+	GiggleRef *ref;
+	gchar     *sha1, *sha2;
+
+	g_object_get (revision, "sha", &sha1, NULL);
+
+	while (list) {
+		ref = GIGGLE_REF (list->data);
+
+		g_object_get (ref, "sha", &sha2, NULL);
+
+		if (strcmp (sha1, sha2) == 0) {
+			giggle_revision_add_branch_head (revision, ref);
+		}
+
+		list = list->next;
+	}
+}
+
+static void
+view_history_get_branches_cb (GiggleGit    *git,
+			      GiggleJob    *job,
+			      GError       *error,
+			      gpointer      user_data)
+{
+	GiggleViewHistory     *view;
+	GiggleViewHistoryPriv *priv;
+	GiggleRevision        *revision;
+	GtkTreeModel          *model;
+	GtkTreeIter            iter;
+	gboolean               valid;
+	GList                 *list;
+
+	view = GIGGLE_VIEW_HISTORY (user_data);
+	priv = GET_PRIV (view);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when getting the revisions list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+	} else {
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
+		valid = gtk_tree_model_get_iter_first (model, &iter);
+		list = giggle_git_refs_get_refs (GIGGLE_GIT_REFS (job));
+
+		while (valid) {
+			gtk_tree_model_get (model, &iter,
+					    REVISION_COL_OBJECT, &revision,
+					    -1);
+
+			view_history_add_branches (revision, list);
+
+			g_object_unref (revision);
+			valid = gtk_tree_model_iter_next (model, &iter);
+		}
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
 view_history_get_revisions_cb (GiggleGit    *git,
 			       GiggleJob    *job,
 			       GError       *error,
@@ -283,6 +357,8 @@ view_history_get_revisions_cb (GiggleGit    *git,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
+		g_object_unref (priv->job);
+		priv->job = NULL;
 	} else {
 		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
 		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
@@ -298,10 +374,17 @@ view_history_get_revisions_cb (GiggleGit    *git,
 		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list),
 						GTK_TREE_MODEL (store));
 		g_object_unref (store);
-	}
+		g_object_unref (priv->job);
+		priv->job = NULL;
 
-	g_object_unref (priv->job);
-	priv->job = NULL;
+		/* now get the list of branches */
+		priv->job = giggle_git_refs_new (GIGGLE_GIT_REF_TYPE_BRANCH);
+
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    view_history_get_branches_cb,
+				    view);
+	}
 }
 
 static void

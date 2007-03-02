@@ -18,11 +18,10 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GIGGLE_BRANCH_H__
-#define __GIGGLE_BRANCH_H__
+#ifndef __GIGGLE_REF_H__
+#define __GIGGLE_REF_H__
 
 #include <glib-object.h>
-#include "giggle-revision.h"
 
 G_BEGIN_DECLS
 
@@ -48,7 +47,6 @@ GType                   giggle_ref_get_type          (void);
 GiggleRef             * giggle_ref_new               (const gchar *name);
 
 G_CONST_RETURN gchar  * giggle_ref_get_name          (GiggleRef   *ref);
-GiggleRevision        * giggle_ref_get_revision      (GiggleRef   *ref);
 
 
 G_END_DECLS
