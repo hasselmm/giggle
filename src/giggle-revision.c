@@ -142,6 +142,12 @@ revision_finalize (GObject *object)
 		g_free (priv->date);
 	}
 
+	g_list_free (priv->parents);
+	g_list_free (priv->children);
+
+	g_list_foreach (priv->branch_heads, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->branch_heads);
+
 	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
 }
 
