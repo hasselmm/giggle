@@ -294,6 +294,61 @@ revision_list_cell_data_author_func (GtkTreeViewColumn *column,
 	g_object_unref (revision);
 }
 
+static gchar *
+revision_list_get_formatted_time (const struct tm *rev_tm)
+{
+	struct tm *tm;
+	time_t t1, t2;
+
+	t1 = mktime ((struct tm *) rev_tm);
+
+	/* check whether it's ahead in time */
+	time (&t2);
+	if (t1 > t2) {
+		return g_strdup ("%c");
+	}
+
+	/* check whether it's as fresh as today's bread */
+	t2 = time (NULL);
+	tm = localtime (&t2);
+	tm->tm_sec = tm->tm_min = tm->tm_hour = 0;
+	t2 = mktime (tm);
+
+	if (t1 > t2) {
+		/* TRANSLATORS: it's a strftime format string */
+		return g_strdup (_("%I:%M %p"));
+	}
+
+	/* check whether it's older than a week */
+	t2 = time (NULL);
+	tm = localtime (&t2);
+	tm->tm_sec = tm->tm_min = tm->tm_hour = 0;
+	t2 = mktime (tm);
+
+	t2 -= 60 * 60 * 24 * 6; /* substract 1 week */
+
+	if (t1 > t2) {
+		/* TRANSLATORS: it's a strftime format string */
+		return g_strdup (_("%a %I:%M %p"));
+	}
+
+	/* check whether it's more recent than the new year hangover */
+	t2 = time (NULL);
+	tm = localtime (&t2);
+	tm->tm_sec = tm->tm_min = tm->tm_hour = tm->tm_mon = 0;
+	tm->tm_mday = 1;
+	t2 = mktime (tm);
+
+	if (t1 > t2) {
+		/* TRANSLATORS: it's a strftime format string */
+		return g_strdup (_("%b %d %I:%M %p"));
+	}
+
+	/* it's older */
+	/* TRANSLATORS: it's a strftime format string */
+	return g_strdup (_("%b %d %Y"));
+}
+
 static void
 revision_list_cell_data_date_func (GtkTreeViewColumn *column,
 				   GtkCellRenderer   *cell,
@@ -303,6 +358,9 @@ revision_list_cell_data_date_func (GtkTreeViewColumn *column,
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
+	gchar                  *format;
+	gchar                   buf[256];
+	const struct tm        *tm;
 
 	priv = GET_PRIV (data);
 
@@ -310,9 +368,18 @@ revision_list_cell_data_date_func (GtkTreeViewColumn *column,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	g_object_set (cell,
-		      "text", giggle_revision_get_date (revision),
-		      NULL);
+	tm = giggle_revision_get_date (revision);
+
+	if (tm) {
+		format = revision_list_get_formatted_time (tm);
+		strftime (buf, sizeof (buf), format, tm);
+
+		g_object_set (cell,
+			      "text", buf,
+			      NULL);
+
+		g_free (format);
+	}
 
 	g_object_unref (revision);
 }

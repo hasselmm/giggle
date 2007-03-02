@@ -20,6 +20,7 @@
 
 #include <config.h>
 #include <gtk/gtk.h>
+#include <time.h>
 
 #include "giggle-revision.h"
 
@@ -28,7 +29,7 @@ typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 struct GiggleRevisionPriv {
 	gchar              *sha;
 	gchar              *author;
-	gchar              *date; /* FIXME: shouldn't be a string. */
+	struct tm          *date;
 	gchar              *short_log;
 	gchar              *long_log;
 
@@ -88,12 +89,11 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 
 	g_object_class_install_property (
 		object_class,
-		PROP_DATE, /* FIXME: should not be a string... */
-		g_param_spec_string ("date",
-				     "Date",
-				     "Date of the revision",
-				     NULL,
-				     G_PARAM_READWRITE));
+		PROP_DATE,
+		g_param_spec_pointer ("date",
+				      "Date",
+				      "Date of the revision",
+				      G_PARAM_READWRITE));
 
 	g_object_class_install_property (
 		object_class,
@@ -136,6 +136,10 @@ revision_finalize (GObject *object)
 	g_free (priv->short_log);
 	g_free (priv->long_log);
 	
+	if (priv->date) {
+		g_free (priv->date);
+	}
+
 	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
 }
 
@@ -157,7 +161,7 @@ revision_get_property (GObject    *object,
 		g_value_set_string (value, priv->author);
 		break;
 	case PROP_DATE:
-		g_value_set_string (value, priv->date);
+		g_value_set_pointer (value, priv->date);
 		break;
 	case PROP_SHORT_LOG:
 		g_value_set_string (value, priv->short_log);
@@ -191,8 +195,10 @@ revision_set_property (GObject      *object,
 		priv->author = g_strdup (g_value_get_string (value));
 		break;
 	case PROP_DATE:
-		g_free (priv->date);
-		priv->date = g_strdup (g_value_get_string (value));
+		if (priv->date) {
+			g_free (priv->date);
+		}
+		priv->date = g_value_get_pointer (value);
 		break;
 	case PROP_SHORT_LOG:
 		g_free (priv->short_log);
@@ -240,7 +246,7 @@ giggle_revision_get_author (GiggleRevision *revision)
 	return priv->author;
 }
 
-const gchar *
+const struct tm *
 giggle_revision_get_date (GiggleRevision *revision)
 {
 	GiggleRevisionPriv *priv;

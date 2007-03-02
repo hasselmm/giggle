@@ -201,13 +201,31 @@ git_revisions_handle_output (GiggleJob   *job,
 	g_hash_table_destroy (revisions_hash);
 }
 
+static struct tm *
+git_revisions_get_time (const gchar *date)
+{
+	const gchar *returned;
+	struct tm   *tm = NULL;
+
+	returned = NULL;
+
+#if STRPTIME_HAS_GNU
+	tm = g_new0 (struct tm, 1);
+	returned = strptime (date, "%s %z", tm);
+
+	if (!returned) {
+		g_free (tm);
+		return NULL;
+	}
+#else
+	/* FIXME: This case is not implemented */
+#endif
+	return tm;
+}
+
 static void
 git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 {
-#if STRPTIME_HAS_GNU
-	struct tm tm = {};
-	const gchar* returned = NULL;
-#endif
 	gchar *author, *date;
 	gchar **strarr;
 
@@ -221,35 +239,12 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 	date = g_strdup (strarr[1]);
 	g_strfreev (strarr);
 
-#if STRPTIME_HAS_GNU
-	returned = strptime (date, "%s %z", &tm);
-	if (returned && !*returned) {
-		char buf[256]; // that's a lot more than necessary
-		char* timezone;
-		strftime(buf, sizeof(buf), "%c", &tm);
-		g_free(date);
-
-		// fixing broken continental time zones
-		timezone = g_strrstr(buf, "CET");
-		if(!timezone) {
-			timezone = g_strrstr(buf, "CEST");
-		}
-		if(timezone) {
-			timezone[0] = 'I';
-			timezone[1] = 'D';
-		}
-
-		date = g_strdup(buf);
-	}
-#endif
-
 	g_object_set (revision,
 		      "author", author,
-		      "date", date,
+		      "date", git_revisions_get_time (date),
 		      NULL);
 
 	g_free (author);
-	g_free (date);
 }
 
 static void

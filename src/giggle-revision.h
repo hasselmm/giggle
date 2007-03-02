@@ -51,7 +51,7 @@ GiggleRevision *   giggle_revision_new               (const gchar *sha);
 
 const gchar      * giggle_revision_get_sha           (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_author        (GiggleRevision   *revision);
-const gchar      * giggle_revision_get_date          (GiggleRevision   *revision);
+const struct tm  * giggle_revision_get_date          (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
 const gchar      * giggle_revision_get_long_log      (GiggleRevision   *revision);
 
