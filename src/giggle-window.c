@@ -26,11 +26,11 @@
 
 #include "giggle-window.h"
 #include "giggle-author.h"
-#include "giggle-branch.h"
+#include "giggle-ref.h"
 #include "giggle-error.h"
 #include "giggle-git.h"
 #include "giggle-git-authors.h"
-#include "giggle-git-branches.h"
+#include "giggle-git-refs.h"
 #include "giggle-git-diff.h"
 #include "giggle-git-diff-tree.h"
 #include "giggle-git-revisions.h"

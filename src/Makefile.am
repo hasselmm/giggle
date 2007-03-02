@@ -10,20 +10,20 @@ bin_PROGRAMS = giggle
 dist_ENUMS_TEMPLATES=				\
 	giggle-enums.c.in			\
 	giggle-enums.h.in
+
 # h_files are the headers that include enums
-h_files = giggle-remote-branch.h
+h_files = 					\
+	giggle-remote-branch.h 			\
+	giggle-git-refs.h
 
 giggle_SOURCES =				\
 	$(BUILT_SOURCES)			\
-	$(h_files)				\
 	eggfindbar.c				\
 	eggfindbar.h				\
 	giggle-author.c				\
 	giggle-author.h				\
 	giggle-authors-view.c			\
 	giggle-authors-view.h			\
-	giggle-branch.c				\
-	giggle-branch.h				\
 	giggle-branches-view.c			\
 	giggle-branches-view.h			\
 	giggle-configuration.c			\
@@ -46,8 +46,6 @@ giggle_SOURCES =				\
 	giggle-git.h                            \
 	giggle-git-authors.c			\
 	giggle-git-authors.h			\
-	giggle-git-branches.c			\
-	giggle-git-branches.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-diff-tree.c			\
@@ -56,6 +54,8 @@ giggle_SOURCES =				\
 	giggle-git-ignore.h			\
 	giggle-git-read-config.c		\
 	giggle-git-read-config.h		\
+	giggle-git-refs.c			\
+	giggle-git-refs.h			\
 	giggle-git-revisions.c			\
 	giggle-git-revisions.h			\
 	giggle-git-write-config.c		\
@@ -66,6 +66,8 @@ giggle_SOURCES =				\
 	giggle-job.h                            \
 	giggle-personal-details-window.c	\
 	giggle-personal-details-window.h	\
+	giggle-ref.c				\
+	giggle-ref.h				\
 	giggle-remote.c				\
 	giggle-remote.h				\
 	giggle-remote-branch.c			\
