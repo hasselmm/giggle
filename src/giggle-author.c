@@ -22,10 +22,14 @@
 
 #include "giggle-author.h"
 
+#include <string.h>
+
 typedef struct GiggleAuthorPriv GiggleAuthorPriv;
 
 struct GiggleAuthorPriv {
 	gchar* string;
+	gchar* email;
+	gchar* name;
 };
 
 enum {
@@ -118,9 +122,23 @@ author_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+		gchar* iter1;
 	case PROP_STRING:
 		g_free (priv->string);
 		priv->string = g_value_dup_string (value);
+		/* update name and email */
+		g_free (priv->name);
+		g_free (priv->email);
+		iter1 = strrchr(priv->string, '<');
+		if (iter1) {
+			gchar* iter2 = strstr (iter1, ">");
+			priv->email = g_strndup (iter1 + 1, iter2 - iter1 - 1);
+			iter1 -= 1;
+			priv->name = g_strndup (priv->string, iter1 - priv->string);
+		} else {
+			priv->email = NULL;
+			priv->name = g_strdup (priv->string);
+		}
 		g_object_notify (object, "string");
 		break;
 	default:
@@ -130,9 +148,25 @@ author_set_property (GObject      *object,
 }
 
 GiggleAuthor *
-giggle_author_new (const gchar *string)
+giggle_author_new_from_string (const gchar *string)
 {
 	return g_object_new (GIGGLE_TYPE_AUTHOR, "string", string, NULL);
+}
+
+const gchar *
+giggle_author_get_email (GiggleAuthor* self)
+{
+	g_return_val_if_fail (GIGGLE_IS_AUTHOR (self), NULL);
+
+	return GET_PRIV (self)->email;
+}
+
+const gchar *
+giggle_author_get_name (GiggleAuthor* self)
+{
+	g_return_val_if_fail (GIGGLE_IS_AUTHOR (self), NULL);
+
+	return GET_PRIV (self)->name;
 }
 
 const gchar *

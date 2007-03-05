@@ -43,9 +43,11 @@ struct GiggleAuthorClass {
 	GObjectClass parent_class;
 };
 
-GType		      giggle_author_get_type  (void);
-GiggleAuthor *        giggle_author_new       (const gchar  *string);
-gchar const *         giggle_author_get_string(GiggleAuthor *author);
+GType		      giggle_author_get_type       (void);
+GiggleAuthor *        giggle_author_new_from_string(const gchar  *string);
+gchar const *         giggle_author_get_email      (GiggleAuthor *author);
+gchar const *         giggle_author_get_name       (GiggleAuthor *author);
+gchar const *         giggle_author_get_string     (GiggleAuthor *author);
 
 G_END_DECLS
 
