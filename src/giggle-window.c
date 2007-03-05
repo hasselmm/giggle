@@ -183,7 +183,6 @@ window_create_menu (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	GtkActionGroup   *action_group;
-	GtkAction        *action;
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
@@ -212,9 +211,6 @@ window_create_menu (GiggleWindow *window)
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, SAVE_PATCH_UI_PATH);
-	gtk_action_set_sensitive (action, FALSE);
 
 	/* create recent repositories resources */
 	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
