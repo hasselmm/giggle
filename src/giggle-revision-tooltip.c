@@ -236,6 +236,14 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 
 	priv = GET_PRIV (tooltip);
 
+	if (priv->revision == revision) {
+		return;
+	}
+
+	if (priv->revision) {
+		g_object_unref (priv->revision);
+	}
+
 	priv->revision = g_object_ref (revision);
 	str = g_string_new ("");
 
