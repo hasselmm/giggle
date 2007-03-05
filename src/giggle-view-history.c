@@ -33,6 +33,7 @@
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 #include "giggle-diff-tree-view.h"
+#include "giggle-searchable.h"
 
 typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
@@ -56,6 +57,7 @@ struct GiggleViewHistoryPriv {
 
 static void     view_history_finalize              (GObject *object);
 
+static void     giggle_view_history_searchable_init             (GiggleSearchableIface *iface);
 static void     view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 								 GiggleRevision     *revision1,
 								 GiggleRevision     *revision2,
@@ -63,10 +65,17 @@ static void     view_history_revision_list_selection_changed_cb (GiggleRevisionL
 static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionList *list,
 								 GdkEventKey        *event,
 								 GiggleViewHistory  *view);
+
+static gboolean view_history_search                             (GiggleSearchable      *searchable,
+								 const gchar           *search_term,
+								 GiggleSearchDirection  direction);
+
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
 
-G_DEFINE_TYPE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW)
+G_DEFINE_TYPE_WITH_CODE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
+						giggle_view_history_searchable_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_HISTORY, GiggleViewHistoryPriv))
 
@@ -84,6 +93,12 @@ giggle_view_history_class_init (GiggleViewHistoryClass *class)
 	object_class->finalize = view_history_finalize;
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewHistoryPriv));
+}
+
+static void
+giggle_view_history_searchable_init (GiggleSearchableIface *iface)
+{
+	iface->search = view_history_search;
 }
 
 static void
@@ -256,6 +271,19 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	}
 
 	return FALSE;
+}
+
+static gboolean
+view_history_search (GiggleSearchable      *searchable,
+		     const gchar           *search_term,
+		     GiggleSearchDirection  direction)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (searchable);
+
+	return giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_list),
+					 search_term, direction);
 }
 
 typedef void (AddRefFunc) (GiggleRevision*, GiggleRef*);

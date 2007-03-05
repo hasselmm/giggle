@@ -21,13 +21,14 @@
 #include <config.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "giggle-graph-renderer.h"
 #include "giggle-revision-tooltip.h"
 #include "giggle-revision-list.h"
 #include "giggle-revision.h"
 #include "giggle-marshal.h"
-
+#include "giggle-searchable.h"
 
 typedef struct GiggleRevisionListPriv GiggleRevisionListPriv;
 
@@ -61,6 +62,7 @@ enum {
 static guint signals [LAST_SIGNAL] = { 0 };
 
 static void revision_list_finalize                (GObject *object);
+static void giggle_revision_list_searchable_init  (GiggleSearchableIface *iface);
 static void revision_list_get_property            (GObject        *object,
 						   guint           param_id,
 						   GValue         *value,
@@ -97,8 +99,14 @@ static void revision_list_cell_data_date_func     (GtkTreeViewColumn *column,
 static void revision_list_selection_changed_cb    (GtkTreeSelection  *selection,
 						   gpointer           data);
 
+static gboolean revision_list_search              (GiggleSearchable      *searchable,
+						   const gchar           *search_term,
+						   GiggleSearchDirection  direction);
 
-G_DEFINE_TYPE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW)
+
+G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
+						giggle_revision_list_searchable_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListPriv))
 
@@ -136,6 +144,12 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 			      2, GIGGLE_TYPE_REVISION, GIGGLE_TYPE_REVISION);
 
 	g_type_class_add_private (object_class, sizeof (GiggleRevisionListPriv));
+}
+
+static void
+giggle_revision_list_searchable_init (GiggleSearchableIface *iface)
+{
+	iface->search = revision_list_search;
 }
 
 static void
@@ -592,6 +606,98 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 
 	g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (rows);
+}
+
+static gboolean
+revision_property_matches (GiggleRevision *revision,
+			   const gchar    *property,
+			   const gchar    *search_term)
+{
+	gboolean  match;
+	gchar    *str;
+
+	g_object_get (revision, property, &str, NULL);
+	match = strcasestr (str, search_term) != NULL;
+	g_free (str);
+
+	return match;
+}
+
+static gboolean
+revision_matches (GiggleRevision *revision,
+		  const gchar    *search_term)
+{
+	return (revision_property_matches (revision, "author", search_term) ||
+		revision_property_matches (revision, "long-log", search_term) ||
+		revision_property_matches (revision, "sha", search_term));
+}
+
+static gboolean
+revision_list_search (GiggleSearchable      *searchable,
+		      const gchar           *search_term,
+		      GiggleSearchDirection  direction)
+{
+	GtkTreeModel     *model;
+	GtkTreeSelection *selection;
+	GList            *list;
+	GtkTreeIter       iter;
+	gboolean          valid, found;
+	GiggleRevision   *revision;
+	GtkTreePath      *path;
+
+	found = FALSE;
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (searchable));
+	list = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	/* Find the first/current element */
+	if (list) {
+		if (direction == GIGGLE_SEARCH_DIRECTION_NEXT) {
+			path = gtk_tree_path_copy (list->data);
+			gtk_tree_path_next (path);
+			valid = TRUE;
+		} else {
+			path = gtk_tree_path_copy ((g_list_last (list))->data);
+			valid = gtk_tree_path_prev (path);
+		}
+	} else {
+		path = gtk_tree_path_new_first ();
+		valid = TRUE;
+	}
+
+	while (valid && !found) {
+		valid = gtk_tree_model_get_iter (model, &iter, path);
+
+		if (!valid) {
+			break;
+		}
+
+		gtk_tree_model_get (model, &iter, 0, &revision, -1);
+		found = revision_matches (revision, search_term);
+		g_object_unref (revision);
+
+		if (!found) {
+			if (direction == GIGGLE_SEARCH_DIRECTION_NEXT) {
+				gtk_tree_path_next (path);
+			} else {
+				valid = gtk_tree_path_prev (path);
+			}
+		}
+	}
+
+	if (found) {
+		gtk_tree_selection_unselect_all (selection);
+		gtk_tree_selection_select_iter (selection, &iter);
+
+		/* scroll to row */
+		gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (searchable),
+					      path, NULL, FALSE, 0., 0.);
+	}
+
+	gtk_tree_path_free (path);
+	g_list_foreach (list, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (list);
+
+	return found;
 }
 
 GtkWidget*
