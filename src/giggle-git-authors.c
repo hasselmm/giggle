@@ -237,6 +237,12 @@ add_author (gchar const          *key,
 	gchar const* popular_name  = giggle_flexible_author_get_voted_name (value);
 	gchar const* popular_email = giggle_flexible_author_get_voted_email (value);
 	gchar* string = NULL;
+
+	if (strcmp (popular_name, key)) {
+		/* this is not the most popular one */
+		return;
+	}
+
 	if (popular_email && *popular_email) {
 		string = g_strdup_printf ("%s <%s>", popular_name, popular_email);
 	} else {
