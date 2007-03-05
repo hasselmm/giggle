@@ -273,7 +273,6 @@ view_history_add_refs (GiggleRevision *revision,
 
 	while (list) {
 		ref = GIGGLE_REF (list->data);
-
 		g_object_get (ref, "sha", &sha2, NULL);
 
 		if (strcmp (sha1, sha2) == 0) {
@@ -301,6 +300,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 	GtkTreeIter            iter;
 	gboolean               valid;
 	GList                 *branches, *tags;
+	gboolean               changed;
 
 	view = GIGGLE_VIEW_HISTORY (user_data);
 	priv = GET_PRIV (view);
@@ -328,8 +328,10 @@ view_history_get_branches_cb (GiggleGit    *git,
 					    REVISION_COL_OBJECT, &revision,
 					    -1);
 
-			if (view_history_add_refs (revision, branches, giggle_revision_add_branch_head) ||
-			    view_history_add_refs (revision, tags, giggle_revision_add_tag)) {
+			changed = view_history_add_refs (revision, branches, giggle_revision_add_branch_head);
+			changed |= view_history_add_refs (revision, tags, giggle_revision_add_tag);
+
+			if (changed) {
 				path = gtk_tree_model_get_path (model, &iter);
 				gtk_tree_model_row_changed (model, path, &iter);
 				gtk_tree_path_free (path);

@@ -324,7 +324,8 @@ revision_list_motion_notify (GtkWidget      *widget,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	if (!giggle_revision_get_branch_heads (revision)) {
+	if (!giggle_revision_get_tags (revision) &&
+	    !giggle_revision_get_branch_heads (revision)) {
 		goto failed;
 	}
 
@@ -382,7 +383,8 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	if (giggle_revision_get_branch_heads (revision)) {
+	if (giggle_revision_get_tags (revision) ||
+	    giggle_revision_get_branch_heads (revision)) {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
 						   "gtk-info", 16, 0, NULL);
 	}

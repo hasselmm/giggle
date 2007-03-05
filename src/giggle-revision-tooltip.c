@@ -202,6 +202,28 @@ giggle_revision_tooltip_new ()
 			     NULL);
 }
 
+static void
+revision_tooltip_add_refs (GString *str,
+			   gchar   *label,
+			   GList   *list)
+{
+	GiggleRef *ref;
+
+	while (list) {
+		ref = list->data;
+		list = list->next;
+
+		g_string_append_printf (str,
+					"<b>%s</b>: %s",
+					label,
+					giggle_ref_get_name (ref));
+
+		if (list) {
+			g_string_append (str, "\n");
+		}
+	}
+}
+
 void
 giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 				      GiggleRevision        *revision)
@@ -209,28 +231,19 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 	GiggleRevisionTooltipPriv *priv;
 	GList                     *list;
 	GString                   *str;
-	GiggleRef                 *ref;
 
 	g_return_if_fail (GIGGLE_IS_REVISION_TOOLTIP (tooltip));
 
 	priv = GET_PRIV (tooltip);
 
 	priv->revision = g_object_ref (revision);
-	list = giggle_revision_get_branch_heads (revision);
 	str = g_string_new ("");
 
-	while (list) {
-		ref = list->data;
-		list = list->next;
-		g_string_append_printf (str,
-					"<b>%s</b>: %s",
-					_("Branch"),
-					giggle_ref_get_name (ref));
+	list = giggle_revision_get_branch_heads (revision);
+	revision_tooltip_add_refs (str, _("Branch"), list);
 
-		if (list) {
-			g_string_append (str, "\n");
-		}
-	}
+	list = giggle_revision_get_tags (revision);
+	revision_tooltip_add_refs (str, _("Tag"), list);
 
 	gtk_label_set_markup (GTK_LABEL (priv->label), str->str);
 	g_object_notify (G_OBJECT (tooltip), "revision");
