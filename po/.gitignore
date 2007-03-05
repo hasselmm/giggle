@@ -4,3 +4,4 @@ stamp-it
 *.gmo
 giggle.pot
 Makefile
+.intltool-merge-cache

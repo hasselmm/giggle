@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Giggle
+Comment=Git repository viewer
+Exec=giggle %F
+# Icon=giggle
+StartupNotify=true
+Encoding=UTF-8
+Categories=Application;Development;
