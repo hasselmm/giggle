@@ -258,12 +258,13 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	return FALSE;
 }
 
-static void
+static gboolean
 view_history_add_branches (GiggleRevision *revision,
 			   GList          *list)
 {
 	GiggleRef *ref;
 	gchar     *sha1, *sha2;
+	gboolean   updated = FALSE;
 
 	g_object_get (revision, "sha", &sha1, NULL);
 
@@ -273,11 +274,14 @@ view_history_add_branches (GiggleRevision *revision,
 		g_object_get (ref, "sha", &sha2, NULL);
 
 		if (strcmp (sha1, sha2) == 0) {
+			updated = TRUE;
 			giggle_revision_add_branch_head (revision, ref);
 		}
 
 		list = list->next;
 	}
+
+	return updated;
 }
 
 static void
@@ -290,6 +294,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 	GiggleViewHistoryPriv *priv;
 	GiggleRevision        *revision;
 	GtkTreeModel          *model;
+	GtkTreePath           *path;
 	GtkTreeIter            iter;
 	gboolean               valid;
 	GList                 *list;
@@ -319,7 +324,11 @@ view_history_get_branches_cb (GiggleGit    *git,
 					    REVISION_COL_OBJECT, &revision,
 					    -1);
 
-			view_history_add_branches (revision, list);
+			if (view_history_add_branches (revision, list)) {
+				path = gtk_tree_model_get_path (model, &iter);
+				gtk_tree_model_row_changed (model, path, &iter);
+				gtk_tree_path_free (path);
+			}
 
 			g_object_unref (revision);
 			valid = gtk_tree_model_iter_next (model, &iter);
