@@ -160,7 +160,7 @@ git_ignore_read_file (const gchar *path)
 	gint        i;
 
 	if (!g_file_get_contents (path, &contents, NULL, NULL)) {
-		return NULL;
+		return g_ptr_array_new ();
 	}
 
 	array = g_ptr_array_sized_new (10);
