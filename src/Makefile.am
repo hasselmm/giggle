@@ -82,6 +82,8 @@ giggle_SOURCES =				\
 	giggle-revision-tooltip.h		\
 	giggle-revision-view.c			\
 	giggle-revision-view.h			\
+	giggle-searchable.c			\
+	giggle-searchable.h			\
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
 	giggle-tree-view-helpers.c		\
