@@ -21,7 +21,6 @@
 #include <config.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
-#include <glade/glade.h>
 #include <string.h>
 
 #include "giggle-window.h"
@@ -30,6 +29,7 @@
 #include "giggle-view-summary.h"
 #include "giggle-view-history.h"
 #include "giggle-view-file.h"
+#include "giggle-searchable.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -85,6 +85,11 @@ static void window_directory_changed_cb           (GiggleGit         *git,
 static void window_recent_repositories_add        (GiggleWindow      *window);
 static void window_recent_repositories_update     (GiggleWindow      *window);
 
+static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
+						   GtkNotebookPage   *page,
+						   guint              page_num,
+						   GiggleWindow      *window);
+
 static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
@@ -134,7 +139,9 @@ static const gchar *ui_layout =
 	"  <menubar name='MainMenubar'>"
 	"    <menu action='ProjectMenu'>"
 	"      <menuitem action='Open'/>"
+/*
 	"      <menuitem action='SavePatch'/>"
+*/
 	"      <separator/>"
 	"      <placeholder name='RecentRepositories'/>"
 	"      <separator/>"
@@ -158,6 +165,7 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define RECENT_FILES_GROUP "giggle"
 #define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
+#define FIND_PATH "/ui/MainMenubar/EditMenu/Find"
 #define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
 static void
@@ -229,6 +237,7 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_get ();
+
 	g_signal_connect (priv->git,
 			  "notify::directory",
 			  G_CALLBACK (window_directory_changed_cb),
@@ -238,16 +247,18 @@ giggle_window_init (GiggleWindow *window)
 				  G_CALLBACK (window_recent_repositories_add),
 				  window);
 
-	priv->main_notebook = gtk_notebook_new ();
-	gtk_widget_show (priv->main_notebook);
-
 	priv->content_vbox = gtk_vbox_new (FALSE, 0);
-	gtk_box_pack_end_defaults (GTK_BOX (priv->content_vbox), priv->main_notebook);
 	gtk_widget_show (priv->content_vbox);
-
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
 	window_create_menu (window);
+
+	priv->main_notebook = gtk_notebook_new ();
+	gtk_widget_show (priv->main_notebook);
+	gtk_box_pack_start_defaults (GTK_BOX (priv->content_vbox), priv->main_notebook);
+
+	g_signal_connect (priv->main_notebook, "switch-page",
+			  G_CALLBACK (window_notebook_switch_page_cb), window);
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
@@ -568,6 +579,23 @@ window_action_save_patch_cb (GtkAction    *action,
 }
 
 static void
+window_notebook_switch_page_cb (GtkNotebook     *notebook,
+				GtkNotebookPage *page,
+				guint            page_num,
+				GiggleWindow    *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page_widget;
+	GtkAction        *action;
+
+	priv = GET_PRIV (window);
+	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
+	gtk_action_set_sensitive (action, GIGGLE_IS_SEARCHABLE (page_widget));
+}
+
+static void
 window_action_find_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
@@ -579,123 +607,39 @@ window_action_find_cb (GtkAction    *action,
 	gtk_widget_grab_focus (priv->find_bar);
 }
 
-/* FIXME: implement these again with GiggleView */
-#if 0
-static gboolean
-revision_property_matches (GiggleRevision *revision,
-			   const gchar    *property,
-			   const gchar    *search_string)
-{
-	gboolean  match;
-	gchar    *str;
-
-	g_object_get (revision, property, &str, NULL);
-	match = strstr (str, search_string) != NULL;
-	g_free (str);
-
-	return match;
-}
-
-static gboolean
-revision_matches (GiggleRevision *revision,
-		  const gchar    *search_string)
-{
-	return (revision_property_matches (revision, "author", search_string) ||
-		revision_property_matches (revision, "long-log", search_string) ||
-		revision_property_matches (revision, "sha", search_string));
-}
-#endif
-
 static void
-window_find (GiggleWindow *window,
-	     const gchar  *search_string,
-	     gint          direction)
+window_find (GtkWidget             *widget,
+	     GiggleWindow          *window,
+	     GiggleSearchDirection  direction)
 {
-/* FIXME: implement this again with GiggleView */
-#if 0
 	GiggleWindowPriv *priv;
-	GtkTreeModel     *model;
-	GtkTreeSelection *selection;
-	GList            *list;
-	GtkTreeIter       iter;
-	gboolean          valid, found;
-	GiggleRevision   *revision;
-	GtkTreePath      *path;
+	GtkWidget        *page;
+	guint             page_num;
+	const gchar      *search_string;
 
 	priv = GET_PRIV (window);
-	found = FALSE;
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
 
-	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
-	list = gtk_tree_selection_get_selected_rows (selection, &model);
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
 
-	/* Find the first/current element */
-	if (list) {
-		if (direction == SEARCH_NEXT) {
-			path = gtk_tree_path_copy (list->data);
-			gtk_tree_path_next (path);
-			valid = TRUE;
-		} else {
-			path = gtk_tree_path_copy ((g_list_last (list))->data);
-			valid = gtk_tree_path_prev (path);
-		}
-	} else {
-		path = gtk_tree_path_new_first ();
-		valid = TRUE;
-	}
-
-	while (valid && !found) {
-		valid = gtk_tree_model_get_iter (model, &iter, path);
-
-		if (!valid) {
-			break;
-		}
-
-		gtk_tree_model_get (model, &iter, 0, &revision, -1);
-		found = revision_matches (revision, search_string);
-		g_object_unref (revision);
-
-		if (!found) {
-			if (direction == SEARCH_NEXT) {
-				gtk_tree_path_next (path);
-			} else {
-				valid = gtk_tree_path_prev (path);
-			}
-		}
-	}
-
-	if (found) {
-		gtk_tree_selection_unselect_all (selection);
-		gtk_tree_selection_select_iter (selection, &iter);
-
-		/* scroll to row */
-		gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (priv->revision_list),
-					      path, NULL, FALSE, 0., 0.);
-	}
-
-	gtk_tree_path_free (path);
-	g_list_foreach (list, (GFunc) gtk_tree_path_free, NULL);
-	g_list_free (list);
-#endif
+	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
+	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
+				  search_string, direction);
 }
 
 static void
 window_find_next (GtkWidget    *widget,
 		  GiggleWindow *window)
 {
-	const gchar *search_string;
-
-	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
-	window_find (window, search_string, SEARCH_NEXT);
+	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_NEXT);
 }
 
 static void
 window_find_previous (GtkWidget    *widget,
 		      GiggleWindow *window)
 {
-	const gchar *search_string;
-
-	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
-	window_find (window, search_string, SEARCH_PREV);
+	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_PREV);
 }
 
 static void
