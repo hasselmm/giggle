@@ -317,7 +317,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 	} else {
 		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
 		valid = gtk_tree_model_get_iter_first (model, &iter);
-		list = giggle_git_refs_get_refs (GIGGLE_GIT_REFS (job));
+		list = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
 
 		while (valid) {
 			gtk_tree_model_get (model, &iter,
@@ -387,7 +387,7 @@ view_history_get_revisions_cb (GiggleGit    *git,
 		priv->job = NULL;
 
 		/* now get the list of branches */
-		priv->job = giggle_git_refs_new (GIGGLE_GIT_REF_TYPE_BRANCH);
+		priv->job = giggle_git_refs_new ();
 
 		giggle_git_run_job (priv->git,
 				    priv->job,

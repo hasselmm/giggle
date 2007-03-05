@@ -87,7 +87,7 @@ branches_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
-		branches = giggle_git_refs_get_refs (GIGGLE_GIT_REFS (job));
+		branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
 
 		for(; branches; branches = g_list_next (branches)) {
 			gtk_list_store_append (priv->store, &iter);
@@ -116,7 +116,7 @@ branches_view_update (GiggleBranchesView *view)
 		priv->job = NULL;
 	}
 
-	priv->job = giggle_git_refs_new (GIGGLE_GIT_REF_TYPE_BRANCH);
+	priv->job = giggle_git_refs_new ();
 
 	giggle_git_run_job (priv->git,
 			    priv->job,

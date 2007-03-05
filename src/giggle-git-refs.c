@@ -24,13 +24,12 @@
 
 #include "giggle-git-refs.h"
 #include "giggle-ref.h"
-#include "giggle-enums.h"
 
 typedef struct GiggleGitRefsPriv GiggleGitRefsPriv;
 
 struct GiggleGitRefsPriv {
-	GiggleGitRefType  type;
-	GList            *refs;
+	GList *branches;
+	GList *tags;
 };
 
 static void     git_refs_finalize            (GObject           *object);
@@ -54,10 +53,6 @@ G_DEFINE_TYPE (GiggleGitRefs, giggle_git_refs, GIGGLE_TYPE_JOB)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_REFS, GiggleGitRefsPriv))
 
-enum {
-	PROP_0,
-	PROP_TYPE
-};
 
 static void
 giggle_git_refs_class_init (GiggleGitRefsClass *class)
@@ -71,16 +66,6 @@ giggle_git_refs_class_init (GiggleGitRefsClass *class)
 
 	job_class->get_command_line = git_refs_get_command_line;
 	job_class->handle_output    = git_refs_handle_output;
-
-	g_object_class_install_property (
-		object_class,
-		PROP_TYPE,
-		g_param_spec_enum ("type",
-				   "Type",
-				   "Type",
-				   GIGGLE_TYPE_GIT_REF_TYPE,
-				   GIGGLE_GIT_REF_TYPE_BRANCH,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitRefsPriv));
 }
@@ -97,8 +82,11 @@ git_refs_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
-	g_list_foreach (priv->refs, (GFunc) g_object_unref, NULL);
-	g_list_free (priv->refs);
+	g_list_foreach (priv->branches, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->branches);
+
+	g_list_foreach (priv->tags, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->tags);
 
 	G_OBJECT_CLASS (giggle_git_refs_parent_class)->finalize (object);
 }
@@ -114,9 +102,6 @@ git_refs_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 	
 	switch (param_id) {
-	case PROP_TYPE:
-		g_value_set_enum (value, priv->type);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -134,9 +119,6 @@ git_refs_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_TYPE:
-		priv->type = g_value_get_enum (value);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -150,34 +132,32 @@ git_refs_get_command_line (GiggleJob *job, gchar **command_line)
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf ("git show-ref %s",
-					 (priv->type == GIGGLE_GIT_REF_TYPE_BRANCH) ?
-					 "--heads" : "--tags");
+	*command_line = g_strdup_printf ("git show-ref");
 	return TRUE;
 }
 
-static GiggleRef *
-git_refs_get_ref (GiggleJob   *job,
+static void
+git_refs_add_ref (GiggleJob   *job,
 		  const gchar *str)
 {
 	GiggleGitRefsPriv  *priv;
 	GiggleRef          *ref;
 	gchar             **data;
-	gint                len;
 
 	priv = GET_PRIV (job);
-
-	len = (priv->type == GIGGLE_GIT_REF_TYPE_BRANCH) ?
-		strlen ("refs/heads/") :
-		strlen ("refs/tags/");
-
 	data = g_strsplit (str, " ", 2);
-	ref = giggle_ref_new (data[1] + len);
-	g_object_set (ref, "sha", data[0], NULL);
-	
-	g_strfreev (data);
 
-	return ref;
+	if (g_str_has_prefix (data[1], "refs/heads/")) {
+		ref = giggle_ref_new (data[1] + strlen ("refs/heads/"));
+		g_object_set (ref, "sha", data[0], NULL);
+		priv->branches = g_list_prepend (priv->branches, ref);
+	} else if (g_str_has_prefix (data[1], "refs/tags/")) {
+		ref = giggle_ref_new (data[1] + strlen ("refs/tags/"));
+		g_object_set (ref, "sha", data[0], NULL);
+		priv->tags = g_list_prepend (priv->tags, ref);
+	}
+
+	g_strfreev (data);
 }
 
 static void
@@ -193,26 +173,23 @@ git_refs_handle_output (GiggleJob   *job,
 	lines = g_strsplit (output_str, "\n", -1);
 
 	while (lines[n_line] && *lines[n_line]) {
-		priv->refs =
-			g_list_prepend (priv->refs,
-					git_refs_get_ref (job, lines[n_line]));
+		git_refs_add_ref (job, lines[n_line]);
 		n_line++;
 	}
 
-	priv->refs = g_list_reverse (priv->refs);
+	priv->branches = g_list_reverse (priv->branches);
+	priv->tags = g_list_reverse (priv->tags);
 	g_strfreev (lines);
 }
 
 GiggleJob *
-giggle_git_refs_new (GiggleGitRefType type)
+giggle_git_refs_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_GIT_REFS,
-			     "type", type,
-			     NULL);
+	return g_object_new (GIGGLE_TYPE_GIT_REFS, NULL);
 }
 
 GList *
-giggle_git_refs_get_refs (GiggleGitRefs *refs)
+giggle_git_refs_get_branches (GiggleGitRefs *refs)
 {
 	GiggleGitRefsPriv *priv;
 
@@ -220,5 +197,17 @@ giggle_git_refs_get_refs (GiggleGitRefs *refs)
 
 	priv = GET_PRIV (refs);
 
-	return priv->refs;
+	return priv->branches;
+}
+
+GList *
+giggle_git_refs_get_tags (GiggleGitRefs *refs)
+{
+	GiggleGitRefsPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_REFS (refs), NULL);
+
+	priv = GET_PRIV (refs);
+
+	return priv->tags;
 }

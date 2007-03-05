@@ -45,14 +45,10 @@ struct GiggleGitRefsClass {
 	GiggleJobClass parent_class;
 };
 
-typedef enum {
-	GIGGLE_GIT_REF_TYPE_BRANCH,
-	GIGGLE_GIT_REF_TYPE_TAG
-} GiggleGitRefType;
-
 GType	     giggle_git_refs_get_type      (void);
-GiggleJob *  giggle_git_refs_new           (GiggleGitRefType  type);
-GList *      giggle_git_refs_get_refs      (GiggleGitRefs     *refs);
+GiggleJob *  giggle_git_refs_new           (void);
+GList *      giggle_git_refs_get_branches  (GiggleGitRefs     *refs);
+GList *      giggle_git_refs_get_tags      (GiggleGitRefs     *refs);
 
 G_END_DECLS
 
