@@ -36,7 +36,6 @@ typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
 	GtkWidget           *content_vbox;
-	GtkWidget           *menubar_hbox;
 	GtkWidget           *main_notebook;
 
 	/* Views */
@@ -225,7 +224,6 @@ giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	gchar            *dir;
-	GladeXML         *xml;
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
@@ -240,20 +238,14 @@ giggle_window_init (GiggleWindow *window)
 				  G_CALLBACK (window_recent_repositories_add),
 				  window);
 
-	xml = glade_xml_new (GLADEDIR "/main-window.glade",
-			     "content_vbox", NULL);
-	if (!xml) {
-		g_error ("Couldn't find glade file, did you install?");
-	}
+	priv->main_notebook = gtk_notebook_new ();
+	gtk_widget_show (priv->main_notebook);
 
-	priv->main_notebook = glade_xml_get_widget (xml, "main_notebook");
+	priv->content_vbox = gtk_vbox_new (FALSE, 0);
+	gtk_box_pack_end_defaults (GTK_BOX (priv->content_vbox), priv->main_notebook);
+	gtk_widget_show (priv->content_vbox);
 
-	priv->content_vbox = glade_xml_get_widget (xml, "content_vbox");
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
-
-	priv->menubar_hbox = glade_xml_get_widget (xml, "menubar_hbox");
-
-	g_object_unref (xml);
 
 	window_create_menu (window);
 
@@ -487,7 +479,7 @@ window_add_widget_cb (GtkUIManager *merge,
 
 	priv = GET_PRIV (window);
 
-	gtk_box_pack_start (GTK_BOX (priv->menubar_hbox), widget, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (priv->content_vbox), widget, TRUE, TRUE, 0);
 }
 
 static void
