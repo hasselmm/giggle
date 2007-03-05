@@ -34,6 +34,7 @@ struct GiggleRevisionPriv {
 	gchar              *long_log;
 
 	GList              *branch_heads;
+	GList              *tags;
 
 	GList              *parents;
 	GList              *children;
@@ -399,4 +400,31 @@ giggle_revision_add_branch_head (GiggleRevision *revision,
 
 	priv->branch_heads = g_list_prepend (priv->branch_heads,
 					     g_object_ref (branch));
+}
+
+GList *
+giggle_revision_get_tags (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+
+	return priv->tags;
+}
+
+void
+giggle_revision_add_tag (GiggleRevision *revision,
+			 GiggleRef      *tag)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REF (tag));
+
+	priv = GET_PRIV (revision);
+
+	priv->tags = g_list_prepend (priv->tags,
+				     g_object_ref (tag));
 }

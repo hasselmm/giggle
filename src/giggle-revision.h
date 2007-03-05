@@ -67,6 +67,10 @@ GList            * giggle_revision_get_branch_heads  (GiggleRevision   *revision
 void               giggle_revision_add_branch_head   (GiggleRevision   *revision,
 						      GiggleRef        *branch);
 
+GList            * giggle_revision_get_tags          (GiggleRevision   *revision);
+void               giggle_revision_add_tag           (GiggleRevision   *revision,
+						      GiggleRef        *tag);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_REVISION_H__ */

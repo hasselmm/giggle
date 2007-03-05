@@ -258,9 +258,12 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	return FALSE;
 }
 
+typedef void (AddRefFunc) (GiggleRevision*, GiggleRef*);
+
 static gboolean
-view_history_add_branches (GiggleRevision *revision,
-			   GList          *list)
+view_history_add_refs (GiggleRevision *revision,
+		       GList          *list,
+		       AddRefFunc      func)
 {
 	GiggleRef *ref;
 	gchar     *sha1, *sha2;
@@ -275,7 +278,7 @@ view_history_add_branches (GiggleRevision *revision,
 
 		if (strcmp (sha1, sha2) == 0) {
 			updated = TRUE;
-			giggle_revision_add_branch_head (revision, ref);
+			(* func) (revision, ref);
 		}
 
 		list = list->next;
@@ -297,7 +300,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 	GtkTreePath           *path;
 	GtkTreeIter            iter;
 	gboolean               valid;
-	GList                 *list;
+	GList                 *branches, *tags;
 
 	view = GIGGLE_VIEW_HISTORY (user_data);
 	priv = GET_PRIV (view);
@@ -317,14 +320,16 @@ view_history_get_branches_cb (GiggleGit    *git,
 	} else {
 		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
 		valid = gtk_tree_model_get_iter_first (model, &iter);
-		list = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
+		branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
+		tags = giggle_git_refs_get_tags (GIGGLE_GIT_REFS (job));
 
 		while (valid) {
 			gtk_tree_model_get (model, &iter,
 					    REVISION_COL_OBJECT, &revision,
 					    -1);
 
-			if (view_history_add_branches (revision, list)) {
+			if (view_history_add_refs (revision, branches, giggle_revision_add_branch_head) ||
+			    view_history_add_refs (revision, tags, giggle_revision_add_tag)) {
 				path = gtk_tree_model_get_path (model, &iter);
 				gtk_tree_model_row_changed (model, path, &iter);
 				gtk_tree_path_free (path);
