@@ -479,7 +479,7 @@ window_add_widget_cb (GtkUIManager *merge,
 
 	priv = GET_PRIV (window);
 
-	gtk_box_pack_start (GTK_BOX (priv->content_vbox), widget, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (priv->content_vbox), widget, FALSE, FALSE, 0);
 }
 
 static void
