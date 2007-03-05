@@ -1,4 +1,5 @@
 data/main-window.glade
+data/giggle.desktop.in
 src/eggfindbar.c
 src/giggle-authors-view.c
 src/giggle-branches-view.c

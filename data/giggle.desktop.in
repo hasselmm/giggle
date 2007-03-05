@@ -1,8 +1,8 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Giggle
-Comment=Git repository viewer
+_Name=Giggle
+_Comment=Git repository viewer
 Exec=giggle %F
 # Icon=giggle
 StartupNotify=true
