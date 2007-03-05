@@ -329,11 +329,9 @@ revision_list_motion_notify (GtkWidget      *widget,
 		goto failed;
 	}
 
-	if (!GTK_WIDGET_VISIBLE (priv->revision_tooltip)) {
-		giggle_revision_tooltip_set_revision (GIGGLE_REVISION_TOOLTIP (priv->revision_tooltip),
+	giggle_revision_tooltip_set_revision (GIGGLE_REVISION_TOOLTIP (priv->revision_tooltip),
 						      revision);
-		gtk_widget_show (priv->revision_tooltip);
-	}
+	gtk_widget_show (priv->revision_tooltip);
 
 	gtk_window_move (GTK_WINDOW (priv->revision_tooltip),
 			 event->x_root + 16,
