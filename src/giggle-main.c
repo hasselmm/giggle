@@ -38,7 +38,7 @@ main (int argc, char **argv)
 	g_set_application_name ("Giggle");
 
 	window = giggle_window_new ();
-	gtk_window_set_default_size (GTK_WINDOW (window), 600, 500);
+	gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
 	g_signal_connect (window,
 			  "destroy",
 			  G_CALLBACK (gtk_main_quit),
