@@ -320,9 +320,11 @@ view_history_add_refs (GiggleRevision *revision,
 			(* func) (revision, ref);
 		}
 
+		g_free (sha2);
 		list = list->next;
 	}
 
+	g_free (sha1);
 	return updated;
 }
 

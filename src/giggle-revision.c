@@ -149,6 +149,9 @@ revision_finalize (GObject *object)
 	g_list_foreach (priv->branch_heads, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->branch_heads);
 
+	g_list_foreach (priv->tags, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->tags);
+
 	G_OBJECT_CLASS (giggle_revision_parent_class)->finalize (object);
 }
 

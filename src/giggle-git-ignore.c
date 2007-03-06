@@ -101,10 +101,12 @@ git_ignore_finalize (GObject *object)
 	g_free (priv->directory_path);
 
 	if (priv->globs) {
+		g_ptr_array_foreach (priv->globs, (GFunc) g_free, NULL);
 		g_ptr_array_free (priv->globs, TRUE);
 	}
 
 	if (priv->global_globs) {
+		g_ptr_array_foreach (priv->global_globs, (GFunc) g_free, NULL);
 		g_ptr_array_free (priv->global_globs, TRUE);
 	}
 

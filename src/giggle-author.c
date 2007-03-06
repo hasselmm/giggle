@@ -85,8 +85,10 @@ author_finalize (GObject *object)
 	GiggleAuthorPriv *priv;
 
 	priv = GET_PRIV (object);
-	
-	/* FIXME: Free object data */
+
+	g_free (priv->string);
+	g_free (priv->email);
+	g_free (priv->name);
 
 	G_OBJECT_CLASS (giggle_author_parent_class)->finalize (object);
 }

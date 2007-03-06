@@ -245,6 +245,7 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 		      NULL);
 
 	g_free (author);
+	g_free (date);
 }
 
 static void
