@@ -36,7 +36,7 @@ typedef GtkVBox      GiggleShortList;
 typedef GtkVBoxClass GiggleShortListClass;
 
 GType		      giggle_short_list_get_type (void);
-GtkWidget *           giggle_short_list_new      (void);
+GtkWidget *           giggle_short_list_new      (gchar const* label);
 
 G_END_DECLS
 

@@ -22,10 +22,17 @@
 
 #include "giggle-short-list.h"
 
+#include <gtk/gtklabel.h>
+
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
-	guint i;
+	GtkWidget* label;
+};
+
+enum {
+	PROP_0,
+	PROP_LABEL
 };
 
 static void     dummy_finalize            (GObject           *object);
@@ -51,25 +58,38 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 	object_class->get_property = dummy_get_property;
 	object_class->set_property = dummy_set_property;
 
-#if 0
 	g_object_class_install_property (object_class,
-					 PROP_MY_PROP,
-					 g_param_spec_string ("my-prop",
-							      "My Prop",
-							      "Describe the property",
+					 PROP_LABEL,
+					 g_param_spec_string ("label",
+							      "Label",
+							      "The text of the displayed label",
 							      NULL,
-							      G_PARAM_READABLE));
-#endif
+							      G_PARAM_WRITABLE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
 }
 
 static void
-giggle_short_list_init (GiggleShortList *dummy)
+giggle_short_list_init (GiggleShortList *self)
 {
 	GiggleShortListPriv *priv;
+	PangoAttrList       *attributes;
+	PangoAttribute      *attribute;
 
-	priv = GET_PRIV (dummy);
+	priv = GET_PRIV (self);
+
+	attributes = pango_attr_list_new ();
+	attribute = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
+	attribute->start_index = 0;
+	attribute->end_index = -1;
+	pango_attr_list_insert (attributes, attribute);
+
+	priv->label = gtk_label_new (NULL);
+	gtk_label_set_attributes (GTK_LABEL (priv->label), attributes);
+	gtk_misc_set_alignment (GTK_MISC (priv->label), 0.0, 0.5);
+	gtk_box_pack_start (GTK_BOX (self), priv->label, FALSE, FALSE, 0);
+
+	pango_attr_list_unref (attributes);
 }
 
 static void
@@ -112,6 +132,9 @@ dummy_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_LABEL:
+		gtk_label_set_text (GTK_LABEL (priv->label), g_value_get_string (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -119,10 +142,11 @@ dummy_set_property (GObject      *object,
 }
 
 GtkWidget*
-giggle_short_list_new (void)
+giggle_short_list_new (gchar const* label)
 {
 	return g_object_new (GIGGLE_TYPE_SHORT_LIST,
 			     "homogeneous", FALSE,
+			     "label", label,
 			     "spacing", 6,
 			     NULL);
 }

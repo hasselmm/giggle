@@ -129,14 +129,8 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
 
 	/* add branches view */
-	box = giggle_short_list_new ();
+	box = giggle_short_list_new ("Branches:");
 	priv->branches_view = giggle_branches_view_new ();
-
-	/* FIXME: string should not contain markup */
-	label = gtk_label_new (NULL);
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_label_set_markup (GTK_LABEL (label), _("<b>Branches:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -150,14 +144,8 @@ giggle_view_summary_init (GiggleViewSummary *view)
 			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add authors view */
-	box = giggle_short_list_new ();
+	box = giggle_short_list_new ("Authors:");
 	priv->authors_view = giggle_authors_view_new ();
-
-	/* FIXME: string should not contain markup */
-	label = gtk_label_new (NULL);
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_label_set_markup (GTK_LABEL (label), _("<b>Authors:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
