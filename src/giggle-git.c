@@ -420,15 +420,18 @@ giggle_git_update_remotes (GiggleGit* git)
 	error = NULL;
 	path = g_build_filename (priv->git_dir, "remotes", NULL);
 	dir = g_dir_open (path, 0, &error);
+
 	if(error) {
 		g_warning ("Error loading remotes: %s", error->message);
 	} else {
-		const gchar* file;
+		const gchar *file;
+
 		for(file = g_dir_read_name(dir); file; file = g_dir_read_name(dir)) {
-			gchar*filename = g_build_filename (path, file, NULL);
+			gchar *filename = g_build_filename (path, file, NULL);
 			priv->remotes = g_list_prepend (priv->remotes, giggle_remote_new_from_file (filename));
 			g_free (filename);
 		}
+
 		g_dir_close (dir);
 	}
 	priv->remotes = g_list_reverse (priv->remotes);
