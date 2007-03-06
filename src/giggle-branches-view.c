@@ -37,13 +37,7 @@ struct GiggleBranchesViewPriv {
 	GiggleJob    *job;
 };
 
-enum {
-	COL_BRANCH,
-	N_COLUMNS
-};
-
 static void branches_view_finalize                (GObject *object);
-
 
 G_DEFINE_TYPE (GiggleBranchesView, giggle_branches_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -92,7 +86,7 @@ branches_view_job_callback (GiggleGit *git,
 		for(; branches; branches = g_list_next (branches)) {
 			gtk_list_store_append (priv->store, &iter);
 			gtk_list_store_set (priv->store, &iter,
-					    COL_BRANCH, branches->data,
+					    GIGGLE_SHORT_LIST_COL_OBJECT, branches->data,
 					    -1);
 		}
 	}
@@ -134,7 +128,7 @@ branches_view_cell_data_func (GtkTreeViewColumn *column,
 	GiggleRef *ref = NULL;
 
 	gtk_tree_model_get (model, iter,
-			    COL_BRANCH, &ref,
+			    GIGGLE_SHORT_LIST_COL_OBJECT, &ref,
 			    -1);
 	g_object_set (cell, "text", giggle_ref_get_name (ref), NULL);
 	g_object_unref (ref);
@@ -154,7 +148,7 @@ giggle_branches_view_init (GiggleBranchesView *view)
 						    branches_view_cell_data_func,
 						    NULL, NULL);
 
-	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
+	priv->store = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))),
 				 GTK_TREE_MODEL (priv->store));
 

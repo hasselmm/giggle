@@ -37,13 +37,7 @@ struct GiggleAuthorsViewPriv {
 	GiggleJob    *job;
 };
 
-enum {
-	COL_AUTHOR,
-	N_COLUMNS
-};
-
 static void authors_view_finalize                (GObject *object);
-
 
 G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -92,7 +86,7 @@ authors_view_job_callback (GiggleGit *git,
 		for(; authors; authors = g_list_next (authors)) {
 			gtk_list_store_append (priv->store, &iter);
 			gtk_list_store_set (priv->store, &iter,
-					    COL_AUTHOR, authors->data,
+					    GIGGLE_SHORT_LIST_COL_OBJECT, authors->data,
 					    -1);
 		}
 	}
@@ -134,7 +128,7 @@ authors_view_cell_data_func (GtkTreeViewColumn *column,
 	GiggleAuthor *author = NULL;
 
 	gtk_tree_model_get (model, iter,
-			    COL_AUTHOR, &author,
+			    GIGGLE_SHORT_LIST_COL_OBJECT, &author,
 			    -1);
 	g_object_set (cell, "text", giggle_author_get_string (author), NULL);
 	g_object_unref (author);
@@ -154,7 +148,7 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 						    authors_view_cell_data_func,
 						    NULL, NULL);
 
-	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
+	priv->store = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))),
 				 GTK_TREE_MODEL (priv->store));
 
