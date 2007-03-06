@@ -21,9 +21,11 @@
 #include <config.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "giggle-revision-view.h"
 #include "giggle-revision.h"
+#include "giggle-searchable.h"
 
 typedef struct GiggleRevisionViewPriv GiggleRevisionViewPriv;
 
@@ -32,7 +34,11 @@ struct GiggleRevisionViewPriv {
 
 	GtkWidget      *sha;
 	GtkWidget      *log;
+
+	GtkTextMark    *search_mark;
 };
+
+static void       giggle_revision_view_searchable_init (GiggleSearchableIface *iface);
 
 static void       revision_view_finalize           (GObject        *object);
 static void       revision_view_get_property       (GObject        *object,
@@ -43,10 +49,17 @@ static void       revision_view_set_property       (GObject        *object,
 						    guint           param_id,
 						    const GValue   *value,
 						    GParamSpec     *pspec);
+
+static gboolean   revision_view_search             (GiggleSearchable      *searchable,
+						    const gchar           *search_term,
+						    GiggleSearchDirection  direction);
+
 static void       revision_view_update             (GiggleRevisionView *view);
 
 
-G_DEFINE_TYPE (GiggleRevisionView, giggle_revision_view, GTK_TYPE_TABLE)
+G_DEFINE_TYPE_WITH_CODE (GiggleRevisionView, giggle_revision_view, GTK_TYPE_TABLE,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
+						giggle_revision_view_searchable_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_VIEW, GiggleRevisionViewPriv))
 
@@ -76,10 +89,18 @@ giggle_revision_view_class_init (GiggleRevisionViewClass *class)
 }
 
 static void
+giggle_revision_view_searchable_init (GiggleSearchableIface *iface)
+{
+	iface->search = revision_view_search;
+}
+
+static void
 giggle_revision_view_init (GiggleRevisionView *revision_view)
 {
 	GiggleRevisionViewPriv *priv;
 	GtkWidget              *label, *scrolled_window;
+	GtkTextBuffer          *buffer;
+	GtkTextIter             iter;
 
 	priv = GET_PRIV (revision_view);
 
@@ -118,18 +139,25 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
 					     GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+					GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_widget_set_size_request (scrolled_window, -1, 60);
 	gtk_widget_show (scrolled_window);
 
 	priv->log = gtk_text_view_new ();
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->log), FALSE);
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (priv->log), GTK_WRAP_WORD);
 	gtk_widget_show (priv->log);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->log);
 	gtk_table_attach (GTK_TABLE (revision_view), scrolled_window,
 			  1, 2, 1, 2,
 			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
+
+	gtk_text_buffer_get_start_iter (buffer, &iter);
+	priv->search_mark = gtk_text_buffer_create_mark (buffer,
+							 "search-mark",
+							 &iter, FALSE);
 }
 
 static void
@@ -189,6 +217,58 @@ revision_view_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+static gboolean
+revision_view_search (GiggleSearchable      *searchable,
+		      const gchar           *search_term,
+		      GiggleSearchDirection  direction)
+{
+	GiggleRevisionViewPriv *priv;
+	const gchar            *str, *p;
+	gchar                  *log;
+	glong                   offset, len;
+	GtkTextBuffer          *buffer;
+	GtkTextIter             start_iter, end_iter;
+
+	priv = GET_PRIV (searchable);
+
+	/* search in SHA label */
+	str = gtk_label_get_text (GTK_LABEL (priv->sha));
+
+	if ((p = strcasestr (str, search_term)) != NULL) {
+		offset = g_utf8_pointer_to_offset (str, p);
+		len = g_utf8_strlen (search_term, -1);
+
+		gtk_label_select_region (GTK_LABEL (priv->sha),
+					 (gint) offset, (gint) len);
+
+		return TRUE;
+	}
+
+	/* search in log */
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
+	gtk_text_buffer_get_bounds (buffer, &start_iter, &end_iter);
+	log = gtk_text_buffer_get_text (buffer, &start_iter, &end_iter, FALSE);
+
+	if ((p = strcasestr (log, search_term)) != NULL) {
+		offset = g_utf8_pointer_to_offset (log, p);
+		len = g_utf8_strlen (search_term, -1);
+
+		gtk_text_buffer_get_iter_at_offset (buffer, &start_iter, (gint) offset);
+		gtk_text_buffer_get_iter_at_offset (buffer, &end_iter, (gint) offset + len);
+
+		gtk_text_buffer_select_range (buffer, &start_iter, &end_iter);
+
+		gtk_text_buffer_move_mark (buffer, priv->search_mark, &start_iter);
+		gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (priv->log), priv->search_mark,
+					      0.0, FALSE, 0.5, 0.5);
+		g_free (log);
+		return TRUE;
+	}
+
+	g_free (log);
+	return FALSE;
 }
 
 static void

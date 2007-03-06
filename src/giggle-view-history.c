@@ -48,6 +48,7 @@ struct GiggleViewHistoryPriv {
 	GtkWidget *main_vpaned;
 	GtkWidget *revision_hpaned;
 
+	GtkWidget *revision_view_expander;
 	GtkWidget *diff_view_expander;
 	GtkWidget *diff_view_sw;
 
@@ -107,7 +108,6 @@ giggle_view_history_init (GiggleViewHistory *view)
 	GiggleViewHistoryPriv *priv;
 	GtkWidget             *vbox;
 	GtkWidget             *scrolled_window;
-	GtkWidget             *expander;
 
 	priv = GET_PRIV (view);
 
@@ -173,12 +173,12 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), scrolled_window, TRUE, FALSE);
 
 	/* revision view */
-	expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
+	priv->revision_view_expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
 	priv->revision_view = giggle_revision_view_new ();
-	gtk_container_add (GTK_CONTAINER (expander), priv->revision_view);
-	gtk_widget_show_all (expander);
+	gtk_container_add (GTK_CONTAINER (priv->revision_view_expander), priv->revision_view);
+	gtk_widget_show_all (priv->revision_view_expander);
 
-	gtk_box_pack_start (GTK_BOX (vbox), expander, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), priv->revision_view_expander, FALSE, TRUE, 0);
 
 	/* diff view */
 	priv->diff_view_expander = gtk_expander_new_with_mnemonic (_("_Differences"));
@@ -282,8 +282,20 @@ view_history_search (GiggleSearchable      *searchable,
 
 	priv = GET_PRIV (searchable);
 
-	return giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_list),
-					 search_term, direction);
+	if (!giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_list),
+				       search_term, direction)) {
+		return FALSE;
+	}
+
+	if (giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_view),
+				      search_term, direction)) {
+		/* search term is contained in the
+		 * revision description, expand it
+		 */
+		gtk_expander_set_expanded (GTK_EXPANDER (priv->revision_view_expander), TRUE);
+	}
+
+	return TRUE;
 }
 
 typedef void (AddRefFunc) (GiggleRevision*, GiggleRef*);
