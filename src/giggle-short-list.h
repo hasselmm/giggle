@@ -37,7 +37,7 @@ typedef GtkVBox      GiggleShortList;
 typedef GtkVBoxClass GiggleShortListClass;
 
 GType		      giggle_short_list_get_type (void);
-GtkWidget *           giggle_short_list_get_swin (GiggleShortList* self);
+GtkWidget *           giggle_short_list_get_treeview (GiggleShortList* self);
 
 G_END_DECLS
 

@@ -148,8 +148,7 @@ giggle_branches_view_init (GiggleBranchesView *view)
 	GtkCellRenderer        *renderer;
 
 	priv = GET_PRIV (view);
-	priv->treeview = gtk_tree_view_new ();
-	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (view))), priv->treeview);
+	priv->treeview = giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view));
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 

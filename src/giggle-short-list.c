@@ -30,6 +30,7 @@ typedef struct GiggleShortListPriv GiggleShortListPriv;
 struct GiggleShortListPriv {
 	GtkWidget* label;
 	GtkWidget* scrolled_window;
+	GtkWidget* treeview;
 };
 
 enum {
@@ -80,6 +81,9 @@ giggle_short_list_init (GiggleShortList *self)
 
 	priv = GET_PRIV (self);
 
+	gtk_box_set_homogeneous (GTK_BOX (self), FALSE);
+	gtk_box_set_spacing (GTK_BOX (self), 6);
+
 	attributes = pango_attr_list_new ();
 	attribute = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
 	attribute->start_index = 0;
@@ -99,8 +103,8 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
 	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
 
-	gtk_box_set_homogeneous (GTK_BOX (self), FALSE);
-	gtk_box_set_spacing (GTK_BOX (self), 6);
+	priv->treeview = gtk_tree_view_new ();
+	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
 }
 
 static void
@@ -153,10 +157,10 @@ dummy_set_property (GObject      *object,
 }
 
 GtkWidget*
-giggle_short_list_get_swin (GiggleShortList* self)
+giggle_short_list_get_treeview (GiggleShortList* self)
 {
 	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
 
-	return GET_PRIV (self)->scrolled_window;
+	return GET_PRIV (self)->treeview;
 }
 
