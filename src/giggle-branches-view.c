@@ -92,7 +92,7 @@ branches_view_job_callback (GiggleGit *git,
 		for(; branches; branches = g_list_next (branches)) {
 			gtk_list_store_append (priv->store, &iter);
 			gtk_list_store_set (priv->store, &iter,
-					    COL_BRANCH, g_object_ref (branches->data),
+					    COL_BRANCH, branches->data,
 					    -1);
 		}
 	}

@@ -92,7 +92,7 @@ authors_view_job_callback (GiggleGit *git,
 		for(; authors; authors = g_list_next (authors)) {
 			gtk_list_store_append (priv->store, &iter);
 			gtk_list_store_set (priv->store, &iter,
-					    COL_AUTHOR, g_object_ref (authors->data),
+					    COL_AUTHOR, authors->data,
 					    -1);
 		}
 	}
