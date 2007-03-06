@@ -307,8 +307,10 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		i++;
 	}
 
-	g_object_set (revision, "long-log", long_log->str, NULL);
-	g_string_free (long_log, TRUE);
+	if (long_log) {
+		g_object_set (revision, "long-log", long_log->str, NULL);
+		g_string_free (long_log, TRUE);
+	}
 }
 
 static GiggleRevision*
