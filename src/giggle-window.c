@@ -300,14 +300,6 @@ giggle_window_init (GiggleWindow *window)
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
-	/* append summary view */
-	priv->summary_view = giggle_view_summary_new ();
-	gtk_widget_show (priv->summary_view);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->summary_view,
-				  gtk_label_new ("Summary"));
-
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
 	gtk_widget_show (priv->history_view);
@@ -317,12 +309,23 @@ giggle_window_init (GiggleWindow *window)
 				  gtk_label_new ("History"));
 
 	/* append file view */
+	/*
 	priv->file_view = giggle_view_file_new ();
 	gtk_widget_show (priv->file_view);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->file_view,
 				  gtk_label_new ("Files"));
+	*/
+
+	/* append summary view */
+	priv->summary_view = giggle_view_summary_new ();
+	gtk_widget_show (priv->summary_view);
+
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->summary_view,
+				  gtk_label_new ("Summary"));
+
 }
 
 static void
