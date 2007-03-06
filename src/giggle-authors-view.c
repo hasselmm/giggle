@@ -31,7 +31,6 @@
 typedef struct GiggleAuthorsViewPriv GiggleAuthorsViewPriv;
 
 struct GiggleAuthorsViewPriv {
-	GtkWidget    *treeview;
 	GtkListStore *store;
 
 	GiggleGit    *git;
@@ -148,18 +147,15 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 	GtkCellRenderer       *renderer;
 
 	priv = GET_PRIV (view);
-	priv->treeview = giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view));
-
-	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 
 	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview), -1,
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))), -1,
 						    _("Author"), renderer,
 						    authors_view_cell_data_func,
 						    NULL, NULL);
 
 	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
-	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview),
+	gtk_tree_view_set_model (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))),
 				 GTK_TREE_MODEL (priv->store));
 
 	priv->git = giggle_git_get ();

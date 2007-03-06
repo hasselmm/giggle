@@ -104,6 +104,8 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
 
 	priv->treeview = gtk_tree_view_new ();
+	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
+
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
 }
 
