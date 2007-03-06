@@ -46,7 +46,7 @@ enum {
 static void authors_view_finalize                (GObject *object);
 
 
-G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GTK_TYPE_TREE_VIEW)
+G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GIGGLE_TYPE_SHORT_LIST)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_AUTHORS_VIEW, GiggleAuthorsViewPriv))
 
@@ -148,7 +148,8 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 	GtkCellRenderer       *renderer;
 
 	priv = GET_PRIV (view);
-	priv->treeview = GTK_WIDGET (view);
+	priv->treeview = gtk_tree_view_new ();
+	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (view))), priv->treeview);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 
@@ -167,6 +168,8 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 				  G_CALLBACK (authors_view_update), view);
 
 	authors_view_update (view);
+
+	g_object_set (view, "label", _("Authors:"), NULL);
 }
 
 static void

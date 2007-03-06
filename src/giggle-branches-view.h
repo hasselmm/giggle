@@ -32,8 +32,8 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_BRANCHES_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_BRANCHES_VIEW))
 #define GIGGLE_BRANCHES_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_BRANCHES_VIEW, GiggleBranchesViewClass))
 
-typedef GtkTreeView      GiggleBranchesView;
-typedef GtkTreeViewClass GiggleBranchesViewClass;
+typedef GiggleShortList      GiggleBranchesView;
+typedef GiggleShortListClass GiggleBranchesViewClass;
 
 GType              giggle_branches_view_get_type          (void);
 GtkWidget *        giggle_branches_view_new               (void);

@@ -46,7 +46,7 @@ enum {
 static void branches_view_finalize                (GObject *object);
 
 
-G_DEFINE_TYPE (GiggleBranchesView, giggle_branches_view, GTK_TYPE_TREE_VIEW)
+G_DEFINE_TYPE (GiggleBranchesView, giggle_branches_view, GIGGLE_TYPE_SHORT_LIST)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_BRANCHES_VIEW, GiggleBranchesViewPriv))
 
@@ -148,7 +148,8 @@ giggle_branches_view_init (GiggleBranchesView *view)
 	GtkCellRenderer        *renderer;
 
 	priv = GET_PRIV (view);
-	priv->treeview = GTK_WIDGET (view);
+	priv->treeview = gtk_tree_view_new ();
+	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (view))), priv->treeview);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 
@@ -167,6 +168,8 @@ giggle_branches_view_init (GiggleBranchesView *view)
 				  G_CALLBACK (branches_view_update), view);
 
 	branches_view_update (view);
+
+	g_object_set (view, "label", _("Branches:"), NULL);
 }
 
 static void

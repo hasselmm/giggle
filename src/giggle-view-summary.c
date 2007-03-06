@@ -129,21 +129,17 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
 
 	/* add branches view */
-	box = giggle_short_list_new ("Branches:");
 	priv->branches_view = giggle_branches_view_new ();
-	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (box))), priv->branches_view);
 
-	gtk_widget_show_all (box);
-	gtk_table_attach (GTK_TABLE (table), box,
+	gtk_widget_show_all (priv->branches_view);
+	gtk_table_attach (GTK_TABLE (table), priv->branches_view,
 			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add authors view */
-	box = giggle_short_list_new ("Authors:");
 	priv->authors_view = giggle_authors_view_new ();
-	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (box))), priv->authors_view);
 
-	gtk_widget_show_all (box);
-	gtk_table_attach (GTK_TABLE (table), box,
+	gtk_widget_show_all (priv->authors_view);
+	gtk_table_attach (GTK_TABLE (table), priv->authors_view,
 			  1, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add remotes view */

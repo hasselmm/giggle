@@ -32,8 +32,8 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_AUTHORS_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_AUTHORS_VIEW))
 #define GIGGLE_AUTHORS_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_AUTHORS_VIEW, GiggleAuthorsViewClass))
 
-typedef GtkTreeView      GiggleAuthorsView;
-typedef GtkTreeViewClass GiggleAuthorsViewClass;
+typedef GiggleShortList      GiggleAuthorsView;
+typedef GiggleShortListClass GiggleAuthorsViewClass;
 
 GType              giggle_authors_view_get_type          (void);
 GtkWidget *        giggle_authors_view_new               (void);

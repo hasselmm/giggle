@@ -98,6 +98,9 @@ giggle_short_list_init (GiggleShortList *self)
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
 	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
+
+	gtk_box_set_homogeneous (GTK_BOX (self), FALSE);
+	gtk_box_set_spacing (GTK_BOX (self), 6);
 }
 
 static void
@@ -147,16 +150,6 @@ dummy_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
-}
-
-GtkWidget*
-giggle_short_list_new (gchar const* label)
-{
-	return g_object_new (GIGGLE_TYPE_SHORT_LIST,
-			     "homogeneous", FALSE,
-			     "label", label,
-			     "spacing", 6,
-			     NULL);
 }
 
 GtkWidget*
