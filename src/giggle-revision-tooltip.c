@@ -97,6 +97,8 @@ giggle_revision_tooltip_init (GiggleRevisionTooltip *tooltip)
 	gtk_window_set_type_hint (GTK_WINDOW (tooltip),
 				  GDK_WINDOW_TYPE_HINT_TOOLTIP);
 
+	gtk_container_set_reallocate_redraws (GTK_CONTAINER (tooltip), TRUE);
+
 	priv->label = gtk_label_new (NULL);
 	gtk_misc_set_alignment (GTK_MISC (priv->label), 0., 0.);
 	gtk_widget_show (priv->label);
@@ -255,7 +257,6 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 
 	gtk_label_set_markup (GTK_LABEL (priv->label), str->str);
 	g_object_notify (G_OBJECT (tooltip), "revision");
-	gtk_widget_queue_resize (GTK_WIDGET (tooltip));
 
 	g_string_free (str, TRUE);
 }
