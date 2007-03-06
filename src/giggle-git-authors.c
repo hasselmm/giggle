@@ -268,8 +268,8 @@ authors_handle_output (GiggleJob   *job,
 
 	lines = g_strsplit (output, "\n", -1);
 
-	authors_by_name  = g_hash_table_new (g_str_hash, g_str_equal);
-	authors_by_email = g_hash_table_new (g_str_hash, g_str_equal);
+	authors_by_name  = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	authors_by_email = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	authors = NULL;
 	for (line = lines; line && *line; line++) {
@@ -289,10 +289,10 @@ authors_handle_output (GiggleJob   *job,
 				by_name = giggle_flexible_author_new (giggle_author_get_name (author),
 								      giggle_author_get_email (author));
 				g_hash_table_insert (authors_by_name,
-						     (gpointer)giggle_author_get_name (author),
+						     (gpointer) g_strdup (giggle_author_get_name (author)),
 						     by_name);
 				g_hash_table_insert (authors_by_email,
-						     (gpointer)giggle_author_get_email (author),
+						     (gpointer) g_strdup (giggle_author_get_email (author)),
 						     by_name);
 			} else if (!by_name) {
 				/* add the name to by_email */
@@ -301,7 +301,7 @@ authors_handle_output (GiggleJob   *job,
 				giggle_flexible_author_add_email (by_email,
 								  giggle_author_get_email (author));
 				g_hash_table_insert (authors_by_name,
-						     (gpointer)giggle_author_get_name (author),
+						     (gpointer) g_strdup (giggle_author_get_name (author)),
 						     by_email);
 			} else if (!by_email) {
 				/* add the email to by_name */
@@ -310,7 +310,7 @@ authors_handle_output (GiggleJob   *job,
 				giggle_flexible_author_add_name (by_name,
 								 giggle_author_get_name (author));
 				g_hash_table_insert (authors_by_email,
-						     (gpointer)giggle_author_get_email (author),
+						     (gpointer) g_strdup (giggle_author_get_email (author)),
 						     by_name);
 			} else if (by_name == by_email) {
 				/* just increase the counters */
