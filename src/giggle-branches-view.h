@@ -21,8 +21,7 @@
 #ifndef __GIGGLE_BRANCHES_VIEW_H__
 #define __GIGGLE_BRANCHES_VIEW_H__
 
-#include <glib-object.h>
-#include <gtk/gtk.h>
+#include "giggle-short-list.h"
 
 G_BEGIN_DECLS
 
@@ -33,20 +32,11 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_BRANCHES_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_BRANCHES_VIEW))
 #define GIGGLE_BRANCHES_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_BRANCHES_VIEW, GiggleBranchesViewClass))
 
-typedef struct _GiggleBranchesView      GiggleBranchesView;
-typedef struct _GiggleBranchesViewClass GiggleBranchesViewClass;
-
-struct _GiggleBranchesView {
-	GtkTreeView parent_instance;
-};
-
-struct _GiggleBranchesViewClass {
-	GtkTreeViewClass parent_class;
-};
+typedef GtkTreeView      GiggleBranchesView;
+typedef GtkTreeViewClass GiggleBranchesViewClass;
 
 GType              giggle_branches_view_get_type          (void);
 GtkWidget *        giggle_branches_view_new               (void);
-
 
 G_END_DECLS
 

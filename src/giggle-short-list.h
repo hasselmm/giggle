@@ -21,6 +21,7 @@
 #ifndef __GIGGLE_SHORT_LIST_H__
 #define __GIGGLE_SHORT_LIST_H__
 
+#include <gtk/gtktreeview.h>
 #include <gtk/gtkvbox.h>
 
 G_BEGIN_DECLS
