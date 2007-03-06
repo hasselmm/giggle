@@ -23,11 +23,13 @@
 #include "giggle-short-list.h"
 
 #include <gtk/gtklabel.h>
+#include <gtk/gtkscrolledwindow.h>
 
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
 	GtkWidget* label;
+	GtkWidget* scrolled_window;
 };
 
 enum {
@@ -90,6 +92,12 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_box_pack_start (GTK_BOX (self), priv->label, FALSE, FALSE, 0);
 
 	pango_attr_list_unref (attributes);
+
+	priv->scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
+	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
 }
 
 static void
@@ -149,5 +157,13 @@ giggle_short_list_new (gchar const* label)
 			     "label", label,
 			     "spacing", 6,
 			     NULL);
+}
+
+GtkWidget*
+giggle_short_list_get_swin (GiggleShortList* self)
+{
+	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
+
+	return GET_PRIV (self)->scrolled_window;
 }
 

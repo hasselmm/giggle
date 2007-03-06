@@ -131,13 +131,7 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	/* add branches view */
 	box = giggle_short_list_new ("Branches:");
 	priv->branches_view = giggle_branches_view_new ();
-
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->branches_view);
-	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
+	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (box))), priv->branches_view);
 
 	gtk_widget_show_all (box);
 	gtk_table_attach (GTK_TABLE (table), box,
@@ -146,13 +140,7 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	/* add authors view */
 	box = giggle_short_list_new ("Authors:");
 	priv->authors_view = giggle_authors_view_new ();
-
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->authors_view);
-	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
+	gtk_container_add (GTK_CONTAINER (giggle_short_list_get_swin (GIGGLE_SHORT_LIST (box))), priv->authors_view);
 
 	gtk_widget_show_all (box);
 	gtk_table_attach (GTK_TABLE (table), box,
