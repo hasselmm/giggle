@@ -38,9 +38,9 @@ static void     dummy_set_property        (GObject           *object,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
 
-G_DEFINE_TYPE (GiggleShortList, giggle_short_list, G_TYPE_OBJECT)
+G_DEFINE_TYPE (GiggleShortList, giggle_short_list, GTK_TYPE_VBOX)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DUMMY, GiggleShortListPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_SHORT_LIST, GiggleShortListPriv))
 
 static void
 giggle_short_list_class_init (GiggleShortListClass *class)
@@ -116,5 +116,14 @@ dummy_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+GtkWidget*
+giggle_short_list_new (void)
+{
+	return g_object_new (GIGGLE_TYPE_SHORT_LIST,
+			     "homogeneous", FALSE,
+			     "spacing", 6,
+			     NULL);
 }
 

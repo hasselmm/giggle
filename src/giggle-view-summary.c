@@ -22,12 +22,13 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
-#include "giggle-git.h"
-#include "giggle-description-editor.h"
-#include "giggle-view-summary.h"
-#include "giggle-branches-view.h"
 #include "giggle-authors-view.h"
+#include "giggle-branches-view.h"
+#include "giggle-description-editor.h"
+#include "giggle-git.h"
 #include "giggle-remotes-view.h"
+#include "giggle-short-list.h"
+#include "giggle-view-summary.h"
 
 typedef struct GiggleViewSummaryPriv GiggleViewSummaryPriv;
 
@@ -128,8 +129,8 @@ giggle_view_summary_init (GiggleViewSummary *view)
 	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
 
 	/* add branches view */
+	box = giggle_short_list_new ();
 	priv->branches_view = giggle_branches_view_new ();
-	box = gtk_vbox_new (FALSE, 6);
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);
@@ -149,8 +150,8 @@ giggle_view_summary_init (GiggleViewSummary *view)
 			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add authors view */
+	box = giggle_short_list_new ();
 	priv->authors_view = giggle_authors_view_new ();
-	box = gtk_vbox_new (FALSE, 6);
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);

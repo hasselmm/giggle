@@ -21,30 +21,22 @@
 #ifndef __GIGGLE_SHORT_LIST_H__
 #define __GIGGLE_SHORT_LIST_H__
 
-#include <glib-object.h>
+#include <gtk/gtkvbox.h>
 
 G_BEGIN_DECLS
 
-#define GIGGLE_TYPE_DUMMY          	  (giggle_short_list_get_type ())
-#define GIGGLE_SHORT_LIST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_DUMMY, GiggleShortList))
-#define GIGGLE_SHORT_LIST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_DUMMY, GiggleShortListClass))
-#define GIGGLE_IS_DUMMY(obj)       	  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_DUMMY))
-#define GIGGLE_IS_DUMMY_CLASS(klass)	  (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_DUMMY))
-#define GIGGLE_SHORT_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_DUMMY, GiggleShortListClass))
+#define GIGGLE_TYPE_SHORT_LIST            (giggle_short_list_get_type ())
+#define GIGGLE_SHORT_LIST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_SHORT_LIST, GiggleShortList))
+#define GIGGLE_SHORT_LIST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_SHORT_LIST, GiggleShortListClass))
+#define GIGGLE_IS_SHORT_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_SHORT_LIST))
+#define GIGGLE_IS_SHORT_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_SHORT_LIST))
+#define GIGGLE_SHORT_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_SHORT_LIST, GiggleShortListClass))
 
-typedef struct GiggleShortList      GiggleShortList;
-typedef struct GiggleShortListClass GiggleShortListClass;
-
-struct GiggleShortList {
-	GObject parent;
-};
-
-struct GiggleShortListClass {
-	GObjectClass parent_class;
-};
+typedef GtkVBox      GiggleShortList;
+typedef GtkVBoxClass GiggleShortListClass;
 
 GType		      giggle_short_list_get_type (void);
-GiggleShortList *         giggle_short_list_new      (void);
+GtkWidget *           giggle_short_list_new      (void);
 
 G_END_DECLS
 
