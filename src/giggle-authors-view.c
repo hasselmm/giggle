@@ -31,8 +31,6 @@
 typedef struct GiggleAuthorsViewPriv GiggleAuthorsViewPriv;
 
 struct GiggleAuthorsViewPriv {
-	GtkListStore *store;
-
 	GiggleGit    *git;
 	GiggleJob    *job;
 };
@@ -62,7 +60,6 @@ authors_view_job_callback (GiggleGit *git,
 {
 	GiggleAuthorsView     *view;
 	GiggleAuthorsViewPriv *priv;
-	GtkTreeIter            iter;
 	GList                 *authors;
 
 	view = GIGGLE_AUTHORS_VIEW (user_data);
@@ -81,11 +78,15 @@ authors_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
+		GtkListStore *store;
+		GtkTreeIter   iter;
+
+		store = giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view));
 		authors = giggle_git_authors_get_list (GIGGLE_GIT_AUTHORS (job));
 
 		for(; authors; authors = g_list_next (authors)) {
-			gtk_list_store_append (priv->store, &iter);
-			gtk_list_store_set (priv->store, &iter,
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
 					    GIGGLE_SHORT_LIST_COL_OBJECT, authors->data,
 					    -1);
 		}
@@ -102,7 +103,7 @@ authors_view_update (GiggleAuthorsView *view)
 
 	priv = GET_PRIV (view);
 
-	gtk_list_store_clear (priv->store);
+	gtk_list_store_clear (giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view)));
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
@@ -148,10 +149,6 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 						    authors_view_cell_data_func,
 						    NULL, NULL);
 
-	priv->store = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS, G_TYPE_OBJECT);
-	gtk_tree_view_set_model (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))),
-				 GTK_TREE_MODEL (priv->store));
-
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
 				  G_CALLBACK (authors_view_update), view);
@@ -175,7 +172,6 @@ authors_view_finalize (GObject *object)
 	}
 
 	g_object_unref (priv->git);
-	g_object_unref (priv->store);
 
 	G_OBJECT_CLASS (giggle_authors_view_parent_class)->finalize (object);
 }

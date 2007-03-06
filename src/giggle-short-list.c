@@ -28,9 +28,10 @@
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
-	GtkWidget* label;
-	GtkWidget* scrolled_window;
-	GtkWidget* treeview;
+	GtkWidget   * label;
+	GtkWidget   * scrolled_window;
+	GtkWidget   * treeview;
+	GtkListStore* liststore;
 };
 
 enum {
@@ -103,7 +104,10 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
 	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
 
-	priv->treeview = gtk_tree_view_new ();
+	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
+					      G_TYPE_OBJECT);
+	priv->treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
+	g_object_unref (priv->liststore);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
@@ -156,6 +160,14 @@ dummy_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+GtkListStore*
+giggle_short_list_get_liststore (GiggleShortList* self)
+{
+	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
+
+	return GET_PRIV (self)->liststore;
 }
 
 GtkWidget*
