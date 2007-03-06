@@ -320,7 +320,7 @@ authors_handle_output (GiggleJob   *job,
 								 giggle_author_get_name (author));
 			} else {
 				/* both are different and real flexible authors, merge them */
-				g_warning ("FIXME: implement merging");
+				g_warning ("FIXME: implement merging; ask sven@imendio.com for an implementation and give him your git repository as a test case");
 			}
 			g_object_unref (author);
 		}
