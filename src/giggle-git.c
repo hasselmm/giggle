@@ -276,7 +276,7 @@ git_verify_directory (GiggleGit    *git,
 				   local_error->message);
 			g_error_free (local_error);
 		}
-	} if (exit_code != 0) {
+	} else if (exit_code != 0) {
 		if (error) {
 			g_set_error (error, giggle_git_error_quark(), 0 /* error code */, "%s", std_err);
 		} else {
