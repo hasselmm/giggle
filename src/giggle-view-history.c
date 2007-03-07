@@ -473,3 +473,17 @@ giggle_view_history_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY, NULL);
 }
+
+void
+giggle_view_history_set_compact_mode (GiggleViewHistory *view,
+				      gboolean           compact_mode)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
+
+	priv = GET_PRIV (view);
+
+	giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (priv->file_list), compact_mode);
+	giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (priv->revision_list), compact_mode);
+}

@@ -79,6 +79,8 @@ static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_compact_mode_cb         (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
@@ -95,6 +97,13 @@ static void window_find_next                      (GtkWidget         *widget,
 static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
 
+static const GtkToggleActionEntry toggle_action_entries[] = {
+	{ "CompactMode", NULL,
+	  N_("_Compact mode"), "F7", NULL,
+	  G_CALLBACK (window_action_compact_mode_cb), FALSE
+	},
+};
+
 static const GtkActionEntry action_entries[] = {
 	{ "ProjectMenu", NULL,
 	  N_("_Project"), NULL, NULL,
@@ -102,6 +111,10 @@ static const GtkActionEntry action_entries[] = {
 	},
 	{ "EditMenu", NULL,
 	  N_("_Edit"), NULL, NULL,
+	  NULL
+	},
+	{ "ViewMenu", NULL,
+	  N_("_View"), NULL, NULL,
 	  NULL
 	},
 	{ "HelpMenu", NULL,
@@ -152,6 +165,9 @@ static const gchar *ui_layout =
 	"      <separator/>"
 	"      <menuitem action='Find'/>"
 	"    </menu>"
+	"    <menu action='ViewMenu'>"
+	"      <menuitem action='CompactMode'/>"
+	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
 	"    </menu>"
@@ -198,6 +214,10 @@ window_create_menu (GiggleWindow *window)
 				      action_entries,
 				      G_N_ELEMENTS (action_entries),
 				      window);
+	gtk_action_group_add_toggle_actions (action_group,
+					     toggle_action_entries,
+					     G_N_ELEMENTS (toggle_action_entries),
+					     window);
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 
 	gtk_window_add_accel_group (GTK_WINDOW (window),
@@ -615,6 +635,19 @@ window_action_find_cb (GtkAction    *action,
 
 	gtk_widget_show (priv->find_bar);
 	gtk_widget_grab_focus (priv->find_bar);
+}
+
+static void
+window_action_compact_mode_cb (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void

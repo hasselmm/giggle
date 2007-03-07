@@ -44,6 +44,7 @@ struct GiggleFileListPriv {
 	GiggleJob    *job;
 
 	gboolean      show_all : 1;
+	gboolean      compact_mode : 1;
 };
 
 static void       file_list_finalize           (GObject        *object);
@@ -116,6 +117,7 @@ enum {
 enum {
 	PROP_0,
 	PROP_SHOW_ALL,
+	PROP_COMPACT_MODE,
 };
 
 GtkActionEntry menu_items [] = {
@@ -147,6 +149,7 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 	object_class->finalize = file_list_finalize;
 	object_class->get_property = file_list_get_property;
 	object_class->set_property = file_list_set_property;
+
 	widget_class->button_press_event = file_list_button_press;
 
 	g_object_class_install_property (object_class,
@@ -154,6 +157,13 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 					 g_param_spec_boolean ("show-all",
 							       "Show all",
 							       "Whether to show all elements",
+							       FALSE,
+							       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_COMPACT_MODE,
+					 g_param_spec_boolean ("compact-mode",
+							       "Compact mode",
+							       "Whether to show the list in compact mode or not",
 							       FALSE,
 							       G_PARAM_READWRITE));
 
@@ -240,6 +250,12 @@ giggle_file_list_init (GiggleFileList *list)
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
+
+	gtk_rc_parse_string ("style \"file-list-compact-style\""
+			     "{"
+			     "  GtkTreeView::vertical-separator = 0"
+			     "}"
+			     "widget \"*.file-list\" style \"file-list-compact-style\"");
 }
 
 static void
@@ -278,6 +294,9 @@ file_list_get_property (GObject    *object,
 	case PROP_SHOW_ALL:
 		g_value_set_boolean (value, priv->show_all);
 		break;
+	case PROP_COMPACT_MODE:
+		g_value_set_boolean (value, priv->compact_mode);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -298,6 +317,10 @@ file_list_set_property (GObject      *object,
 	case PROP_SHOW_ALL:
 		giggle_file_list_set_show_all (GIGGLE_FILE_LIST (object),
 					       g_value_get_boolean (value));
+		break;
+	case PROP_COMPACT_MODE:
+		giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (object),
+						   g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -966,4 +989,51 @@ giggle_file_list_get_selection (GiggleFileList *list)
 	g_list_free (rows);
 
 	return g_list_reverse (files);
+}
+
+gboolean
+giggle_file_list_get_compact_mode (GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_FILE_LIST (list), FALSE);
+
+	priv = GET_PRIV (list);
+	return priv->compact_mode;
+}
+
+void
+giggle_file_list_set_compact_mode (GiggleFileList *list,
+				   gboolean        compact_mode)
+{
+	GiggleFileListPriv *priv;
+	GtkRcStyle         *rc_style;
+	gint                size;
+
+	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
+
+	priv = GET_PRIV (list);
+
+	if (compact_mode != priv->compact_mode) {
+		priv->compact_mode = (compact_mode == TRUE);
+		rc_style = gtk_widget_get_modifier_style (GTK_WIDGET (list));
+
+		if (rc_style->font_desc) {
+			/* free old font desc */
+			pango_font_description_free (rc_style->font_desc);
+			rc_style->font_desc = NULL;
+		}
+
+		if (priv->compact_mode) {
+			rc_style->font_desc = pango_font_description_copy (GTK_WIDGET (list)->style->font_desc);
+			size = pango_font_description_get_size (rc_style->font_desc);
+			pango_font_description_set_size (rc_style->font_desc,
+							 size * PANGO_SCALE_SMALL);
+		}
+
+		gtk_widget_modify_style (GTK_WIDGET (list), rc_style);
+		gtk_widget_set_name (GTK_WIDGET (list),
+				     (priv->compact_mode) ? "file-list" : NULL);
+		g_object_notify (G_OBJECT (list), "compact-mode");
+	}
 }
