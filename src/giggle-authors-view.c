@@ -36,6 +36,9 @@ struct GiggleAuthorsViewPriv {
 };
 
 static void authors_view_finalize                (GObject *object);
+static void authors_view_display_object          (GiggleShortList     *column,
+			                          GObject             *object,
+			                          GtkCellRendererText *renderer);
 
 G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -46,8 +49,11 @@ static void
 giggle_authors_view_class_init (GiggleAuthorsViewClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GiggleShortListClass *short_list_class = GIGGLE_SHORT_LIST_CLASS (class);
 
 	object_class->finalize = authors_view_finalize;
+
+	short_list_class->display_object = authors_view_display_object;
 
 	g_type_class_add_private (object_class, sizeof (GiggleAuthorsViewPriv));
 }
@@ -120,34 +126,19 @@ authors_view_update (GiggleAuthorsView *view)
 }
 
 static void
-authors_view_cell_data_func (GtkTreeViewColumn *column,
-			     GtkCellRenderer   *cell,
-			     GtkTreeModel      *model,
-			     GtkTreeIter       *iter,
-			     gpointer           data)
+authors_view_display_object (GiggleShortList     *column,
+			     GObject             *object,
+			     GtkCellRendererText *renderer)
 {
-	GiggleAuthor *author = NULL;
-
-	gtk_tree_model_get (model, iter,
-			    GIGGLE_SHORT_LIST_COL_OBJECT, &author,
-			    -1);
-	g_object_set (cell, "text", giggle_author_get_string (author), NULL);
-	g_object_unref (author);
+	g_object_set (renderer, "text", giggle_author_get_string (GIGGLE_AUTHOR (object)), NULL);
 }
 
 static void
 giggle_authors_view_init (GiggleAuthorsView *view)
 {
 	GiggleAuthorsViewPriv *priv;
-	GtkCellRenderer       *renderer;
 
 	priv = GET_PRIV (view);
-
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))), -1,
-						    _("Author"), renderer,
-						    authors_view_cell_data_func,
-						    NULL, NULL);
 
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",

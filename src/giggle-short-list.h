@@ -21,6 +21,7 @@
 #ifndef __GIGGLE_SHORT_LIST_H__
 #define __GIGGLE_SHORT_LIST_H__
 
+#include <gtk/gtkcellrenderertext.h>
 #include <gtk/gtktreeview.h>
 #include <gtk/gtkvbox.h>
 
@@ -33,12 +34,21 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_SHORT_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_SHORT_LIST))
 #define GIGGLE_SHORT_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_SHORT_LIST, GiggleShortListClass))
 
-typedef GtkVBox      GiggleShortList;
-typedef GtkVBoxClass GiggleShortListClass;
+typedef GtkVBox                     GiggleShortList;
+typedef struct GiggleShortListClass GiggleShortListClass;
 
 GType		      giggle_short_list_get_type (void);
 GtkWidget *           giggle_short_list_get_treeview (GiggleShortList* self);
 GtkListStore *        giggle_short_list_get_liststore(GiggleShortList* self);
+
+struct GiggleShortListClass {
+	GtkVBoxClass vbox_class;
+
+	/* signals */
+	void (*display_object) (GiggleShortList* self,
+				GObject        * object,
+				GtkCellRendererText* renderer);
+};
 
 enum {
 	GIGGLE_SHORT_LIST_COL_OBJECT,

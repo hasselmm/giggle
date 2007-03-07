@@ -24,6 +24,7 @@
 
 #include <gtk/gtklabel.h>
 #include <gtk/gtkscrolledwindow.h>
+#include "giggle-marshal.h"
 
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
@@ -38,6 +39,13 @@ enum {
 	PROP_0,
 	PROP_LABEL
 };
+
+enum {
+	SIGNAL_DISPLAY_OBJECT,
+	N_SIGNALS
+};
+
+static guint giggle_short_list_signals[N_SIGNALS] = {0};
 
 static void     dummy_finalize            (GObject           *object);
 static void     dummy_get_property        (GObject           *object,
@@ -70,7 +78,38 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 							      NULL,
 							      G_PARAM_WRITABLE));
 
+	giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT] =
+		g_signal_new ("display-object", GIGGLE_TYPE_SHORT_LIST,
+			      G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET (GiggleShortListClass, display_object),
+			      NULL, NULL,
+			      giggle_marshal_VOID__OBJECT_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_OBJECT,
+			      GTK_TYPE_CELL_RENDERER_TEXT);
+
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
+}
+
+static void
+short_list_cell_data_func (GtkTreeViewColumn* column,
+			   GtkCellRenderer  * renderer,
+			   GtkTreeModel     * model,
+			   GtkTreeIter      * iter,
+			   gpointer           data)
+{
+	GiggleShortList* self = data;
+	GObject        * object = NULL;
+
+	gtk_tree_model_get (model, iter,
+			    GIGGLE_SHORT_LIST_COL_OBJECT, &object,
+			    -1);
+
+	g_signal_emit (self, giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT], 0,
+		       object, renderer);
+
+	if (object) {
+		g_object_unref (object);
+	}
 }
 
 static void
@@ -79,6 +118,7 @@ giggle_short_list_init (GiggleShortList *self)
 	GiggleShortListPriv *priv;
 	PangoAttrList       *attributes;
 	PangoAttribute      *attribute;
+	GtkCellRenderer       *renderer;
 
 	priv = GET_PRIV (self);
 
@@ -109,6 +149,12 @@ giggle_short_list_init (GiggleShortList *self)
 	priv->treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
 	g_object_unref (priv->liststore);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
+
+	renderer = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview), -1,
+						    "Object", renderer,
+						    short_list_cell_data_func,
+						    self, NULL);
 
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
 }

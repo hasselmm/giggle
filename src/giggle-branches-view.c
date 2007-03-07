@@ -36,6 +36,9 @@ struct GiggleBranchesViewPriv {
 };
 
 static void branches_view_finalize                (GObject *object);
+static void branches_view_display_object          (GiggleShortList    * list,
+						   GObject            * object,
+						   GtkCellRendererText* renderer);
 
 G_DEFINE_TYPE (GiggleBranchesView, giggle_branches_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -46,8 +49,11 @@ static void
 giggle_branches_view_class_init (GiggleBranchesViewClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GiggleShortListClass *short_list_class = GIGGLE_SHORT_LIST_CLASS (class);
 
 	object_class->finalize = branches_view_finalize;
+
+	short_list_class->display_object = branches_view_display_object;
 
 	g_type_class_add_private (object_class, sizeof (GiggleBranchesViewPriv));
 }
@@ -120,34 +126,19 @@ branches_view_update (GiggleBranchesView *view)
 }
 
 static void
-branches_view_cell_data_func (GtkTreeViewColumn *column,
-			      GtkCellRenderer   *cell,
-			      GtkTreeModel      *model,
-			      GtkTreeIter       *iter,
-			      gpointer           data)
+branches_view_display_object (GiggleShortList    * list,
+			      GObject            * object,
+			      GtkCellRendererText* renderer)
 {
-	GiggleRef *ref = NULL;
-
-	gtk_tree_model_get (model, iter,
-			    GIGGLE_SHORT_LIST_COL_OBJECT, &ref,
-			    -1);
-	g_object_set (cell, "text", giggle_ref_get_name (ref), NULL);
-	g_object_unref (ref);
+	g_object_set (renderer, "text", giggle_ref_get_name (GIGGLE_REF (object)), NULL);
 }
 
 static void
 giggle_branches_view_init (GiggleBranchesView *view)
 {
 	GiggleBranchesViewPriv *priv;
-	GtkCellRenderer        *renderer;
 
 	priv = GET_PRIV (view);
-
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (giggle_short_list_get_treeview (GIGGLE_SHORT_LIST (view))), -1,
-						    _("Branch"), renderer,
-						    branches_view_cell_data_func,
-						    NULL, NULL);
 
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
