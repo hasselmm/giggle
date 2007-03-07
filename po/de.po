@@ -227,17 +227,17 @@ msgstr "Datum"
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:471
 msgid "%I:%M %p"
-msgstr ""
+msgstr "%H:%M"
 
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:484
 msgid "%a %I:%M %p"
-msgstr ""
+msgstr "%a %H:%M"
 
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:496
 msgid "%b %d %I:%M %p"
-msgstr ""
+msgstr "%b %d %H:%M"
 
 #. it's older
 #. TRANSLATORS: it's a strftime format string
