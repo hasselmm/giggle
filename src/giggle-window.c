@@ -712,6 +712,7 @@ window_action_about_cb (GtkAction    *action,
 			       "name", "Giggle",
 			       "copyright", "Copyright \xc2\xa9 2007 Imendio AB",
 			       "translator-credits", _("translator-credits"),
+			       "version", VERSION,
 			       "authors", authors,
 			       NULL);
 }
