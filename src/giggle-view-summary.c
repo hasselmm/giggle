@@ -22,12 +22,13 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
-#include "giggle-git.h"
-#include "giggle-description-editor.h"
-#include "giggle-view-summary.h"
-#include "giggle-branches-view.h"
 #include "giggle-authors-view.h"
+#include "giggle-branches-view.h"
+#include "giggle-description-editor.h"
+#include "giggle-git.h"
 #include "giggle-remotes-view.h"
+#include "giggle-short-list.h"
+#include "giggle-view-summary.h"
 
 typedef struct GiggleViewSummaryPriv GiggleViewSummaryPriv;
 
@@ -129,44 +130,16 @@ giggle_view_summary_init (GiggleViewSummary *view)
 
 	/* add branches view */
 	priv->branches_view = giggle_branches_view_new ();
-	box = gtk_vbox_new (FALSE, 6);
 
-	/* FIXME: string should not contain markup */
-	label = gtk_label_new (NULL);
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_label_set_markup (GTK_LABEL (label), _("<b>Branches:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->branches_view);
-	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
-
-	gtk_widget_show_all (box);
-	gtk_table_attach (GTK_TABLE (table), box,
+	gtk_widget_show_all (priv->branches_view);
+	gtk_table_attach (GTK_TABLE (table), priv->branches_view,
 			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add authors view */
 	priv->authors_view = giggle_authors_view_new ();
-	box = gtk_vbox_new (FALSE, 6);
 
-	/* FIXME: string should not contain markup */
-	label = gtk_label_new (NULL);
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_label_set_markup (GTK_LABEL (label), _("<b>Authors:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->authors_view);
-	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
-
-	gtk_widget_show_all (box);
-	gtk_table_attach (GTK_TABLE (table), box,
+	gtk_widget_show_all (priv->authors_view);
+	gtk_table_attach (GTK_TABLE (table), priv->authors_view,
 			  1, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	/* add remotes view */

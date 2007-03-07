@@ -31,21 +31,16 @@
 typedef struct GiggleAuthorsViewPriv GiggleAuthorsViewPriv;
 
 struct GiggleAuthorsViewPriv {
-	GtkListStore *store;
-
 	GiggleGit    *git;
 	GiggleJob    *job;
 };
 
-enum {
-	COL_AUTHOR,
-	N_COLUMNS
-};
-
 static void authors_view_finalize                (GObject *object);
+static void authors_view_display_object          (GiggleShortList     *column,
+			                          GObject             *object,
+			                          GtkCellRendererText *renderer);
 
-
-G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GTK_TYPE_TREE_VIEW)
+G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GIGGLE_TYPE_SHORT_LIST)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_AUTHORS_VIEW, GiggleAuthorsViewPriv))
 
@@ -54,8 +49,11 @@ static void
 giggle_authors_view_class_init (GiggleAuthorsViewClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GiggleShortListClass *short_list_class = GIGGLE_SHORT_LIST_CLASS (class);
 
 	object_class->finalize = authors_view_finalize;
+
+	short_list_class->display_object = authors_view_display_object;
 
 	g_type_class_add_private (object_class, sizeof (GiggleAuthorsViewPriv));
 }
@@ -68,7 +66,6 @@ authors_view_job_callback (GiggleGit *git,
 {
 	GiggleAuthorsView     *view;
 	GiggleAuthorsViewPriv *priv;
-	GtkTreeIter            iter;
 	GList                 *authors;
 
 	view = GIGGLE_AUTHORS_VIEW (user_data);
@@ -87,12 +84,16 @@ authors_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
+		GtkListStore *store;
+		GtkTreeIter   iter;
+
+		store = giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view));
 		authors = giggle_git_authors_get_list (GIGGLE_GIT_AUTHORS (job));
 
 		for(; authors; authors = g_list_next (authors)) {
-			gtk_list_store_append (priv->store, &iter);
-			gtk_list_store_set (priv->store, &iter,
-					    COL_AUTHOR, authors->data,
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+					    GIGGLE_SHORT_LIST_COL_OBJECT, authors->data,
 					    -1);
 		}
 	}
@@ -108,7 +109,7 @@ authors_view_update (GiggleAuthorsView *view)
 
 	priv = GET_PRIV (view);
 
-	gtk_list_store_clear (priv->store);
+	gtk_list_store_clear (giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view)));
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
@@ -125,46 +126,27 @@ authors_view_update (GiggleAuthorsView *view)
 }
 
 static void
-authors_view_cell_data_func (GtkTreeViewColumn *column,
-			     GtkCellRenderer   *cell,
-			     GtkTreeModel      *model,
-			     GtkTreeIter       *iter,
-			     gpointer           data)
+authors_view_display_object (GiggleShortList     *column,
+			     GObject             *object,
+			     GtkCellRendererText *renderer)
 {
-	GiggleAuthor *author = NULL;
-
-	gtk_tree_model_get (model, iter,
-			    COL_AUTHOR, &author,
-			    -1);
-	g_object_set (cell, "text", giggle_author_get_string (author), NULL);
-	g_object_unref (author);
+	g_object_set (renderer, "text", giggle_author_get_string (GIGGLE_AUTHOR (object)), NULL);
 }
 
 static void
 giggle_authors_view_init (GiggleAuthorsView *view)
 {
 	GiggleAuthorsViewPriv *priv;
-	GtkCellRenderer       *renderer;
 
 	priv = GET_PRIV (view);
-
-	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
-
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
-						    _("Author"), renderer,
-						    authors_view_cell_data_func,
-						    NULL, NULL);
-
-	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
-	gtk_tree_view_set_model (GTK_TREE_VIEW (view),
-				 GTK_TREE_MODEL (priv->store));
 
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
 				  G_CALLBACK (authors_view_update), view);
 
 	authors_view_update (view);
+
+	g_object_set (view, "label", _("Authors:"), NULL);
 }
 
 static void
@@ -181,7 +163,6 @@ authors_view_finalize (GObject *object)
 	}
 
 	g_object_unref (priv->git);
-	g_object_unref (priv->store);
 
 	G_OBJECT_CLASS (giggle_authors_view_parent_class)->finalize (object);
 }

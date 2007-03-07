@@ -18,3 +18,4 @@ intltool-merge.in
 intltool-update
 intltool-update.in
 mkinstalldirs
+.*.sw?
