@@ -339,7 +339,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->history_view,
-				  gtk_label_new ("History"));
+				  gtk_label_new (_("History")));
 
 	/* append file view */
 	/*
@@ -348,7 +348,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->file_view,
-				  gtk_label_new ("Files"));
+				  gtk_label_new (_("Files")));
 	*/
 
 	/* append summary view */
@@ -357,7 +357,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->summary_view,
-				  gtk_label_new ("Summary"));
+				  gtk_label_new (_("Summary")));
 
 }
 
