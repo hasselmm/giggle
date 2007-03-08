@@ -111,7 +111,7 @@ remotes_view_cell_data_func (GtkTreeViewColumn *column,
 	} else {
 		g_object_set (cell,
 			      "foreground", "slategray",
-			      "text", _("Double-Click to add Remote..."),
+			      "text", _("Double click to add remote..."),
 			      NULL);
 	}
 }

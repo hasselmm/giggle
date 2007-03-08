@@ -3,11 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Richard Hult <richard@imendio.com>, 2007.
 #
+# Jag är inte riktigt säker på hur mycket vi ska översätta här, det är 
+# ganska förvirrande om man översätter vissa saker eftersom det är 
+# specifika termer i git man pratar om.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Giggle 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-03-08 09:59+0100\n"
+"POT-Creation-Date: 2007-03-08 10:05+0100\n"
 "PO-Revision-Date: 2007-01-14 12:41+0200\n"
 "Last-Translator: Richard Hult <richard@imendio.com>\n"
 "Language-Team: sv <sv@li.org>\n"
@@ -191,8 +195,8 @@ msgid "There was an error getting the configuration"
 msgstr ""
 
 #: ../src/giggle-remote-editor.c:157
-msgid "Double-Click to add mapping"
-msgstr ""
+msgid "Double click to add mapping..."
+msgstr "Dubbelklicka för att lägga till mappning..."
 
 #: ../src/giggle-remote-editor.c:183
 msgid "Branches"
@@ -202,9 +206,10 @@ msgstr ""
 msgid "Unnamed"
 msgstr ""
 
+# Vet inte vad vi ska kalla "remote".
 #: ../src/giggle-remotes-view.c:114
-msgid "Double-Click to add Remote..."
-msgstr ""
+msgid "Double click to add remote..."
+msgstr "Dubbelklicka för att lägga till remote..."
 
 #: ../src/giggle-remotes-view.c:206
 msgid "Name"
