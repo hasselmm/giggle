@@ -29,7 +29,6 @@ dnl  ------------------
 
 PKG_CHECK_MODULES(GIGGLE, [
         glib-2.0 >= 2.12
-	gthread-2.0
 	gtk+-2.0 >= 2.10
 	gtksourceview-1.0 > 1.8
 	libglade-2.0 > 2.4
@@ -66,6 +65,31 @@ AC_SUBST([CONFIG_STATUS_DEPENDENCIES],['$(top_srcdir)/po/LINGUAS'])
 
 dnl -----------------------------------------------------------
 
+dnl  -----------------------
+dnl | GIT command detection |----------------------------------
+dnl  -----------------------
+
+AC_ARG_WITH([git-command],
+	    [AS_HELP_STRING([--with-git-command=PATH], [path to git command])])
+GIT_COMMAND=$with_git_command
+
+if test x"$GIT_COMMAND" = x; then
+  AC_PATH_PROG(GIT_COMMAND, git, [no])
+else
+  if ! test -x "$GIT_COMMAND"; then
+    GIT_COMMAND=no
+  fi
+fi
+
+if test "$GIT_COMMAND" = no; then
+  AC_MSG_ERROR([git command not found in path])
+else
+  AC_SUBST(GIT_COMMAND)
+  AC_DEFINE_UNQUOTED(GIT_COMMAND,"$GIT_COMMAND",[GIT command path])
+fi
+
+dnl -----------------------------------------------------------
+
 dnl This will cause the automake generated makefiles to pass the
 dnl correct flags to aclocal.
 ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
@@ -80,4 +104,5 @@ AC_OUTPUT([
 
 echo
 echo "Prefix                 : $prefix"
+echo "GIT command path       : $GIT_COMMAND"
 echo

@@ -166,7 +166,7 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 	files = priv->files;
 
 	str = g_string_new ("");
-	g_string_append_printf (str, "git diff %s %s",
+	g_string_append_printf (str, GIT_COMMAND " diff %s %s",
 				giggle_revision_get_sha (priv->rev1),
 				giggle_revision_get_sha (priv->rev2));
 

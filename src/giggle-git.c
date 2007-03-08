@@ -251,7 +251,7 @@ git_verify_directory (GiggleGit    *git,
 		      GError      **error)
 {
 	/* Do some funky stuff to verify that it's a valid GIT repo */
-	gchar   *argv[] = {"/usr/bin/git", "rev-parse", "--git-dir", NULL};
+	gchar   *argv[] = { GIT_COMMAND, "rev-parse", "--git-dir", NULL };
 	gchar   *std_out = NULL;
 	gchar   *std_err = NULL;
 	gint     exit_code = 0;
