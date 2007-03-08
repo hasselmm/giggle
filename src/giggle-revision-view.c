@@ -313,8 +313,10 @@ revision_view_update (GiggleRevisionView *view)
 	gtk_label_set_text (GTK_LABEL (priv->sha), sha);
 	g_free (sha);
 
-	strftime (str, sizeof (str), "%c", tm);
-	gtk_label_set_text (GTK_LABEL (priv->date), str);
+	if (tm) {
+		strftime (str, sizeof (str), "%c", tm);
+		gtk_label_set_text (GTK_LABEL (priv->date), str);
+	}
 }
 
 GtkWidget *

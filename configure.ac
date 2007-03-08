@@ -46,7 +46,8 @@ AC_MSG_CHECKING([for GNU extensions of strptime()])
 AC_RUN_IFELSE(AC_LANG_PROGRAM([[#include <time.h>
 const char* date = "1168635922 +0100";]],[[struct tm tm;
 char const* returned = strptime(date, "%s %z", &tm);
-if(!returned || *returned) return 1;]]),
+if(!returned || *returned) return 1;
+return 0;]]),
 	      [AC_MSG_RESULT(available)
 	      AC_DEFINE(STRPTIME_HAS_GNU, 1, [strptime() has GNU extensions %s and %z])],
 	      AC_MSG_RESULT(not available))
