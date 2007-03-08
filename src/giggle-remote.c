@@ -98,7 +98,7 @@ remote_finalize (GObject *object)
 	GiggleRemotePriv *priv;
 
 	priv = GET_PRIV (object);
-	
+
 	g_free (priv->name);
 	g_free (priv->url);
 
@@ -204,7 +204,7 @@ giggle_remote_new_from_file (gchar const *filename)
 								   *step + strlen ("Pull: "));
 			} else {
 				gchar* escaped = g_strescape (*step, NULL);
-				g_warning ("Read unexpected line at %s:%d\n\"%s\"",
+				g_warning ("Read unexpected line at %s:%zd\n\"%s\"",
 					   filename, step - lines, escaped);
 				g_free (escaped);
 			}
@@ -309,7 +309,7 @@ giggle_remote_save_to_file (GiggleRemote *self,
 	FILE             *file;
 
 	g_return_if_fail (GIGGLE_IS_REMOTE (self));
-	
+
 	file = g_fopen (filename, "w");
 
 	g_return_if_fail (file);
@@ -340,4 +340,3 @@ giggle_remote_save_to_file (GiggleRemote *self,
 	}
 	fclose (file);
 }
-

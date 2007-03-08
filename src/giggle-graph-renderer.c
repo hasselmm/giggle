@@ -62,7 +62,7 @@ static GdkColor colors[] = {
 	{ 0x0, 0x7200, 0x9f00, 0xcf00 }, /* sky blue */
 	{ 0x0, 0xad00, 0x7f00, 0xa800 }, /* plum */
 	{ 0x0, 0xef00, 0x2900, 0x2900 }, /* scarlet red */
-#if 0	
+#if 0
 	{ 0x0, 0xee00, 0xee00, 0xec00 }, /* aluminium */
 #endif
 	{ 0x0, 0x8800, 0x8a00, 0x8500 }, /* no name grey */
@@ -74,7 +74,7 @@ static GdkColor colors[] = {
 	{ 0x0, 0x3400, 0x6500, 0xa400 }, /* sky blue */
 	{ 0x0, 0x7500, 0x5000, 0x7b00 }, /* plum */
 	{ 0x0, 0xcc00, 0x0000, 0x0000 }, /* scarlet red */
-#if 0	
+#if 0
 	{ 0x0, 0xd300, 0xd700, 0xcf00 }, /* aluminium */
 #endif
 	{ 0x0, 0x5500, 0x5700, 0x5300 }, /* no name grey */
@@ -86,7 +86,7 @@ static GdkColor colors[] = {
 	{ 0x0, 0x2000, 0x4a00, 0x8700 }, /* sky blue */
 	{ 0x0, 0x5c00, 0x3500, 0x6600 }, /* plum */
 	{ 0x0, 0xa400, 0x0000, 0x0000 }, /* scarlet red */
-#if 0	
+#if 0
 	{ 0x0, 0xba00, 0xbd00, 0xb600 }, /* aluminium */
 #endif
 	{ 0x0, 0x2e00, 0x3400, 0x3600 }, /* no name grey */
@@ -287,7 +287,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 	paths_state = g_object_get_qdata (G_OBJECT (revision), revision_paths_state_quark);
 	children = giggle_revision_get_children (revision);
-	cur_pos = (gint) g_hash_table_lookup (priv->paths_info, revision);
+	cur_pos = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
 	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
 	paths = path = get_list (paths_state);
 	cairo_set_line_width (cr, LINE_WIDTH (size));
@@ -316,7 +316,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 	/* paint connections between paths */
 	while (children) {
-		pos = (gint) g_hash_table_lookup (priv->paths_info, children->data);
+		pos = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, children->data));
 		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
 
 		if (path_state->upper_color) {
