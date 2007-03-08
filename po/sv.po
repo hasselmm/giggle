@@ -250,17 +250,17 @@ msgstr "Datum"
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:536
 msgid "%I:%M %p"
-msgstr "%I:%M %p"
+msgstr "%H:%M"
 
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:549
 msgid "%a %I:%M %p"
-msgstr "%a %I:%M %p"
+msgstr "%a %H:%M"
 
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:561
 msgid "%b %d %I:%M %p"
-msgstr "%b %d %I:%M %p"
+msgstr "%b %d %H:%M"
 
 #. it's older
 #. TRANSLATORS: it's a strftime format string
@@ -288,12 +288,12 @@ msgstr "_Skillnader"
 
 #: ../src/giggle-view-file.c:187 ../src/giggle-view-history.c:362
 #: ../src/giggle-view-history.c:418
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "An error ocurred when getting the revisions list:\n"
 "%s"
 msgstr ""
-"Ett fel inträffade när diff hämtades:\n"
+"Ett fel inträffade när revisionslista hämtades:\n"
 "%s"
 
 #: ../src/giggle-view-summary.c:118
