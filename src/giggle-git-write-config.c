@@ -180,7 +180,7 @@ git_write_config_get_command_line (GiggleJob  *job,
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf ("git repo-config %s %s \"%s\"",
+	*command_line = g_strdup_printf (GIT_COMMAND " repo-config %s %s \"%s\"",
 					 (priv->global) ? "--global" : "",
 					 priv->field, priv->value);
 	return TRUE;

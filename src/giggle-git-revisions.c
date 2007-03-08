@@ -162,7 +162,7 @@ git_revisions_get_command_line (GiggleJob *job, gchar **command_line)
 
 	priv = GET_PRIV (job);
 	files = priv->files;
-	str = g_string_new ("git rev-list --all --header --topo-order --parents");
+	str = g_string_new (GIT_COMMAND " rev-list --all --header --topo-order --parents");
 
 	while (files) {
 		g_string_append_printf (str, " %s", (gchar *) files->data);

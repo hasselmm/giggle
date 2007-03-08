@@ -131,7 +131,7 @@ static gboolean
 git_read_config_get_command_line (GiggleJob  *job,
 				  gchar     **command_line)
 {
-	*command_line = g_strdup_printf ("git repo-config --list");
+	*command_line = g_strdup_printf (GIT_COMMAND " repo-config --list");
 	return TRUE;
 }
 

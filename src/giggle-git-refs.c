@@ -132,7 +132,7 @@ git_refs_get_command_line (GiggleJob *job, gchar **command_line)
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf ("git show-ref --dereference");
+	*command_line = g_strdup_printf (GIT_COMMAND " show-ref --dereference");
 	return TRUE;
 }
 
