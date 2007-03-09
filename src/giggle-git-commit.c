@@ -76,6 +76,7 @@ giggle_git_commit_class_init (GiggleGitCommitClass *class)
 					 g_param_spec_string ("log",
 							      "Log",
 							      "Log for the changeset",
+							      NULL,
 							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitCommitPriv));
@@ -159,12 +160,16 @@ git_commit_get_command_line (GiggleJob *job, gchar **command_line)
 
 	str = g_string_new (GIT_COMMAND " commit");
 
-	g_string_append_printf (" -m \"%s\"",
+	g_string_append_printf (str, " -m \"%s\"",
 				(priv->log) ? priv->log : "");
 
-	while (files) {
-		g_string_append_printf (str, " %s", (gchar *) files->data);
-		files = files->next;
+	if (!files) {
+		g_string_append_printf (str, " -a");
+	} else {
+		while (files) {
+			g_string_append_printf (str, " %s", (gchar *) files->data);
+			files = files->next;
+		}
 	}
 
 	*command_line = g_string_free (str, FALSE);
