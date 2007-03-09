@@ -304,6 +304,36 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 			    diff_view);
 }
 
+void
+giggle_diff_view_diff_current (GiggleDiffView *diff_view,
+			       GList          *files)
+{
+	GiggleDiffViewPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (diff_view));
+
+	priv = GET_PRIV (diff_view);
+
+	/* Clear the view until we get new content. */
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (diff_view)),
+		"", 0);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_diff_new ();
+	giggle_git_diff_set_files (GIGGLE_GIT_DIFF (priv->job), files);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    diff_view_job_callback,
+			    diff_view);
+}
+
 gboolean
 giggle_diff_view_get_compact_mode (GiggleDiffView *view)
 {
