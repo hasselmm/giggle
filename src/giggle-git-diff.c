@@ -54,6 +54,8 @@ G_DEFINE_TYPE (GiggleGitDiff, giggle_git_diff, GIGGLE_TYPE_JOB)
 
 enum {
 	PROP_0,
+	PROP_REV1,
+	PROP_REV2,
 	PROP_FILES,
 };
 
@@ -71,11 +73,25 @@ giggle_git_diff_class_init (GiggleGitDiffClass *class)
 	job_class->handle_output    = git_diff_handle_output;
 
 	g_object_class_install_property (object_class,
+					 PROP_REV1,
+					 g_param_spec_object ("revision1",
+							      "Revision 1",
+							      "Revision 1 to make diff on",
+							      GIGGLE_TYPE_REVISION,
+							      G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_REV2,
+					 g_param_spec_object ("revision2",
+							      "Revision 2",
+							      "Revision 2 to make diff on",
+							      GIGGLE_TYPE_REVISION,
+							      G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
 					 PROP_FILES,
 					 g_param_spec_pointer ("files",
 							       "Files",
 							       "Files list to make diff on",
-							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+							       G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitDiffPriv));
 }
@@ -83,13 +99,6 @@ giggle_git_diff_class_init (GiggleGitDiffClass *class)
 static void
 giggle_git_diff_init (GiggleGitDiff *dummy)
 {
-	GiggleGitDiffPriv *priv;
-
-	priv = GET_PRIV (dummy);
-
-	priv->rev1 = NULL;
-	priv->rev2 = NULL;
-	priv->result = NULL;
 }
 
 static void
@@ -126,6 +135,12 @@ git_diff_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_REV1:
+		g_value_set_object (value, priv->rev1);
+		break;
+	case PROP_REV2:
+		g_value_set_object (value, priv->rev2);
+		break;
 	case PROP_FILES:
 		g_value_set_pointer (value, priv->files);
 		break;
@@ -146,6 +161,12 @@ git_diff_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_REV1:
+		priv->rev1 = g_value_dup_object (value);
+		break;
+	case PROP_REV2:
+		priv->rev2 = g_value_dup_object (value);
+		break;
 	case PROP_FILES:
 		priv->files = g_value_get_pointer (value);
 		break;
@@ -165,10 +186,13 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 	priv = GET_PRIV (job);
 	files = priv->files;
 
-	str = g_string_new ("");
-	g_string_append_printf (str, GIT_COMMAND " diff %s %s",
-				giggle_revision_get_sha (priv->rev1),
-				giggle_revision_get_sha (priv->rev2));
+	str = g_string_new (GIT_COMMAND " diff");
+
+	if (priv->rev1 && priv->rev2) {
+		g_string_append_printf (str, " %s %s",
+					giggle_revision_get_sha (priv->rev1),
+					giggle_revision_get_sha (priv->rev2));
+	}
 
 	while (files) {
 		g_string_append_printf (str, " %s", (gchar *) files->data);
@@ -192,43 +216,35 @@ git_diff_handle_output (GiggleJob   *job,
 }
 
 GiggleJob *
-giggle_git_diff_new (GiggleRevision *rev1, GiggleRevision *rev2)
+giggle_git_diff_new (void)
 {
-	GiggleGitDiff     *diff;
-	GiggleGitDiffPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1), NULL);
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2), NULL);
-
-	diff = g_object_new (GIGGLE_TYPE_GIT_DIFF, NULL);
-	priv = GET_PRIV (diff);
-
-	priv->rev1 = g_object_ref (rev1);
-	priv->rev2 = g_object_ref (rev2);
-
-	return GIGGLE_JOB (diff);
+	return g_object_new (GIGGLE_TYPE_GIT_DIFF, NULL);
 }
 
-GiggleJob *
-giggle_git_diff_new_for_files (GiggleRevision *rev1,
-			       GiggleRevision *rev2,
-			       GList          *files)
+void
+giggle_git_diff_set_revisions (GiggleGitDiff  *diff,
+			       GiggleRevision *rev1,
+			       GiggleRevision *rev2)
 {
-	GiggleJob         *job;
-	GiggleGitDiffPriv *priv;
+	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
+	g_return_if_fail (GIGGLE_IS_REVISION (rev1));
+	g_return_if_fail (GIGGLE_IS_REVISION (rev2));
 
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1), NULL);
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2), NULL);
+	g_object_set (G_OBJECT (diff),
+		      "revision1", rev1,
+		      "revision2", rev2,
+		      NULL);
+}
 
-	job = g_object_new (GIGGLE_TYPE_GIT_DIFF,
-			    "files", files,
-			    NULL);
-	priv = GET_PRIV (job);
+void
+giggle_git_diff_set_files (GiggleGitDiff *diff,
+			   GList         *files)
+{
+	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
 
-	priv->rev1 = g_object_ref (rev1);
-	priv->rev2 = g_object_ref (rev2);
-
-	return job;
+	g_object_set (G_OBJECT (diff),
+		      "files", files,
+		      NULL);
 }
 
 const gchar *

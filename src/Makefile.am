@@ -43,8 +43,12 @@ giggle_SOURCES =				\
 	giggle-file-list.h			\
 	giggle-git.c                            \
 	giggle-git.h                            \
+	giggle-git-add.c			\
+	giggle-git-add.h			\
 	giggle-git-authors.c			\
 	giggle-git-authors.h			\
+	giggle-git-commit.c			\
+	giggle-git-commit.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-diff-tree.c			\

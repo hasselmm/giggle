@@ -51,7 +51,8 @@ main (int argc, char **argv)
                       "date", "2007-01-12",
                       NULL);
 
-	diff = giggle_git_diff_new (rev1, rev2);
+	diff = giggle_git_diff_new ();
+	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (diff), rev1, rev2);
 	giggle_git_run_job (git, diff, job_done_cb, NULL);
 	g_object_unref (diff);
 
