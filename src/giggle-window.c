@@ -30,6 +30,7 @@
 #include "giggle-view-history.h"
 #include "giggle-view-file.h"
 #include "giggle-searchable.h"
+#include "giggle-diff-window.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -53,6 +54,7 @@ struct GiggleWindowPriv {
 	GiggleGit           *git;
 
 	GtkWidget           *personal_details_window;
+	GtkWidget           *diff_current_window;
 };
 
 enum {
@@ -72,6 +74,8 @@ static void window_action_quit_cb                 (GtkAction         *action,
 static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_save_patch_cb           (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_diff_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_find_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
@@ -129,6 +133,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Save patch"), "<control>S", N_("Save a patch"),
 	  G_CALLBACK (window_action_save_patch_cb)
 	},
+	{ "Diff", NULL,
+	  N_("_Diff current changes"), "<control>D", N_("Diff current changes"),
+	  G_CALLBACK (window_action_diff_cb)
+	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
 	  G_CALLBACK (window_action_quit_cb)
@@ -155,6 +163,7 @@ static const gchar *ui_layout =
 /*
 	"      <menuitem action='SavePatch'/>"
 */
+	"      <menuitem action='Diff'/>"
 	"      <separator/>"
 	"      <placeholder name='RecentRepositories'/>"
 	"      <separator/>"
@@ -331,6 +340,14 @@ giggle_window_init (GiggleWindow *window)
 	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
 				      GTK_WINDOW (window));
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
+				G_CALLBACK (gtk_widget_hide), NULL);
+
+	/* diff current window */
+	priv->diff_current_window = giggle_diff_window_new ();
+
+	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
+				      GTK_WINDOW (window));
+	g_signal_connect_after (G_OBJECT (priv->diff_current_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
 	/* append history view */
@@ -606,6 +623,17 @@ window_action_save_patch_cb (GtkAction    *action,
 
 	gtk_widget_destroy (file_chooser);
 #endif
+}
+
+static void
+window_action_diff_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	gtk_widget_show (priv->diff_current_window);
 }
 
 static void
