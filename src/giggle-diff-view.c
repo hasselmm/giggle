@@ -295,7 +295,7 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 
 	priv->job = giggle_git_diff_new ();
 	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (priv->job),
-				       revision1, revision2);
+				       revision2, revision1);
 	giggle_git_diff_set_files (GIGGLE_GIT_DIFF (priv->job), files);
 
 	giggle_git_run_job (priv->git,
