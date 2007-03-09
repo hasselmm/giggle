@@ -32,11 +32,7 @@
 typedef struct GiggleDiffViewPriv GiggleDiffViewPriv;
 
 struct GiggleDiffViewPriv {
-	GiggleRevision *revision1;
-	GiggleRevision *revision2;
-
 	gboolean        compact_mode;
-
 	GiggleGit      *git;
 
 	/* last run job */
@@ -59,8 +55,6 @@ G_DEFINE_TYPE (GiggleDiffView, giggle_diff_view, GTK_TYPE_SOURCE_VIEW)
 
 enum {
 	PROP_0,
-	PROP_REV_1,
-	PROP_REV_2,
 	PROP_COMPACT_MODE
 };
 
@@ -73,22 +67,6 @@ giggle_diff_view_class_init (GiggleDiffViewClass *class)
 	object_class->set_property = diff_view_set_property;
 	object_class->get_property = diff_view_get_property;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REV_1,
-		g_param_spec_object ("revision-1",
-				     "Revision 1",
-				     "Revision 1 to diff",
-				     GIGGLE_TYPE_REVISION,
-				     G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class,
-		PROP_REV_2,
-		g_param_spec_object ("revision-2",
-				     "Revision 2",
-				     "Revision 2 to diff",
-				     GIGGLE_TYPE_REVISION,
-				     G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class,
 		PROP_COMPACT_MODE,
@@ -148,14 +126,6 @@ diff_view_finalize (GObject *object)
 
 	g_object_unref (priv->git);
 
-	if (priv->revision1) {
-		g_object_unref (priv->revision1);
-	}
-
-	if (priv->revision2) {
-		g_object_unref (priv->revision2);
-	}
-
 	G_OBJECT_CLASS (giggle_diff_view_parent_class)->finalize (object);
 }
 
@@ -170,12 +140,6 @@ diff_view_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_REV_1:
-		g_value_set_object (value, priv->revision1);
-		break;
-	case PROP_REV_2:
-		g_value_set_object (value, priv->revision2);
-		break;
 	case PROP_COMPACT_MODE:
 		g_value_set_boolean (value, priv->compact_mode);
 		break;
@@ -196,22 +160,6 @@ diff_view_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_REV_1:
-		if (priv->revision1) {
-			g_object_unref (priv->revision1);
-		}
-
-		priv->revision1 = (GiggleRevision *) g_value_dup_object (value);
-		/* FIXME: not running a new job */
-		break;
-	case PROP_REV_2:
-		if (priv->revision2) {
-			g_object_unref (priv->revision2);
-		}
-
-		priv->revision2 = (GiggleRevision *) g_value_dup_object (value);
-		/* FIXME: not running a new job */
-		break;
 	case PROP_COMPACT_MODE:
 		giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (object),
 						   g_value_get_boolean (value));
@@ -276,11 +224,6 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 	g_return_if_fail (GIGGLE_IS_REVISION (revision2));
 
 	priv = GET_PRIV (diff_view);
-
-	g_object_set (G_OBJECT (diff_view),
-		      "revision-1", revision1,
-		      "revision-2", revision2,
-		      NULL);
 
 	/* Clear the view until we get new content. */
 	gtk_text_buffer_set_text (
