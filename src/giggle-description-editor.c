@@ -58,11 +58,17 @@ description_editor_update (GiggleDescriptionEditor *editor)
 {
 	GiggleDescriptionEditorPriv *priv;
 	GtkTextBuffer               *buffer;
+	const gchar                 *description;
 
 	priv = GET_PRIV (editor);
 
+	description = giggle_git_get_description (priv->git);
+	if (!description) {
+		description = "";
+	}
+	
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview));
-	gtk_text_buffer_set_text (buffer, giggle_git_get_description (priv->git), -1);
+	gtk_text_buffer_set_text (buffer, description, -1);
 	gtk_text_buffer_set_modified (buffer, FALSE);
 }
 
