@@ -76,6 +76,10 @@ static gboolean   file_list_search_equal_func   (GtkTreeModel   *model,
 						 const gchar    *key,
 						 GtkTreeIter    *iter,
 						 gpointer        search_data);
+static gint       file_list_compare_func        (GtkTreeModel   *model,
+						 GtkTreeIter    *a,
+						 GtkTreeIter    *b,
+						 gpointer        user_data);
 
 static gboolean   file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
 							  GtkTreeIter      *iter,
@@ -192,6 +196,11 @@ giggle_file_list_init (GiggleFileList *list)
 
 	gtk_tree_model_filter_set_visible_func (GTK_TREE_MODEL_FILTER (priv->filter_model),
 						file_list_filter_func, list, NULL);
+
+	gtk_tree_sortable_set_sort_func (GTK_TREE_SORTABLE (priv->store),
+					 COL_NAME,
+					 file_list_compare_func,
+					 list, NULL);
 
 	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (priv->store),
 					      COL_NAME, GTK_SORT_ASCENDING);
@@ -625,6 +634,48 @@ file_list_search_equal_func (GtkTreeModel *model,
 	g_free (normalized_str);
 
 	return ret;
+}
+
+static gint
+file_list_compare_func (GtkTreeModel *model,
+			GtkTreeIter  *iter1,
+			GtkTreeIter  *iter2,
+			gpointer      user_data)
+{
+	GiggleGitIgnore *git_ignore1, *git_ignore2;
+	gchar           *name1, *name2;
+	gint             retval = 0;
+
+	gtk_tree_model_get (model, iter1,
+			    COL_GIT_IGNORE, &git_ignore1,
+			    COL_NAME, &name1,
+			    -1);
+	gtk_tree_model_get (model, iter2,
+			    COL_GIT_IGNORE, &git_ignore2,
+			    COL_NAME, &name2,
+			    -1);
+
+	if (git_ignore1 && !git_ignore2) {
+		retval = -1;
+	} else if (git_ignore2 && !git_ignore1) {
+		retval = 1;
+	} else {
+		retval = strcmp (name1, name2);
+	}
+
+	/* free stuff */
+	if (git_ignore1) {
+		g_object_unref (git_ignore1);
+	}
+
+	if (git_ignore2) {
+		g_object_unref (git_ignore2);
+	}
+
+	g_free (name1);
+	g_free (name2);
+
+	return retval;
 }
 
 static void
