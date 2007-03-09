@@ -26,6 +26,7 @@ typedef struct GiggleGitCommitPriv GiggleGitCommitPriv;
 
 struct GiggleGitCommitPriv {
 	GList *files;
+	gchar *log;
 };
 
 static void     git_commit_finalize            (GObject           *object);
@@ -49,6 +50,7 @@ G_DEFINE_TYPE (GiggleGitCommit, giggle_git_commit, GIGGLE_TYPE_JOB)
 enum {
 	PROP_0,
 	PROP_FILES,
+	PROP_LOG,
 };
 
 static void
@@ -69,6 +71,12 @@ giggle_git_commit_class_init (GiggleGitCommitClass *class)
 							       "Files",
 							       "List of files to commit",
 							       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_LOG,
+					 g_param_spec_string ("log",
+							      "Log",
+							      "Log for the changeset",
+							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitCommitPriv));
 }
@@ -84,6 +92,8 @@ git_commit_finalize (GObject *object)
 	GiggleGitCommitPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	g_free (priv->log);
 
 	g_list_foreach (priv->files, (GFunc) g_free, NULL);
 	g_list_free (priv->files);
@@ -105,6 +115,9 @@ git_commit_get_property (GObject    *object,
 	case PROP_FILES:
 		g_value_set_pointer (value, priv->files);
 		break;
+	case PROP_LOG:
+		g_value_set_string (value, priv->log);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -125,6 +138,9 @@ git_commit_set_property (GObject      *object,
 	case PROP_FILES:
 		priv->files = g_value_get_pointer (value);
 		break;
+	case PROP_LOG:
+		priv->log = g_value_dup_string (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -143,6 +159,9 @@ git_commit_get_command_line (GiggleJob *job, gchar **command_line)
 
 	str = g_string_new (GIT_COMMAND " commit");
 
+	g_string_append_printf (" -m \"%s\"",
+				(priv->log) ? priv->log : "");
+
 	while (files) {
 		g_string_append_printf (str, " %s", (gchar *) files->data);
 		files = files->next;
@@ -153,9 +172,11 @@ git_commit_get_command_line (GiggleJob *job, gchar **command_line)
 }
 
 GiggleJob *
-giggle_git_commit_new (void)
+giggle_git_commit_new (const gchar *log)
 {
-	return g_object_new (GIGGLE_TYPE_GIT_COMMIT, NULL);
+	return g_object_new (GIGGLE_TYPE_GIT_COMMIT,
+			     "log", log,
+			     NULL);
 }
 
 void
