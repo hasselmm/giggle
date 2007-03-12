@@ -405,7 +405,7 @@ file_list_add_element (GiggleFileList *list,
 		git_ignore = giggle_git_ignore_new (full_path);
 	} else {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
-						   "gnome-mime-text", 16, 0, NULL);;
+						   "text-x-generic", 16, 0, NULL);;
 	}
 
 	gtk_tree_store_set (priv->store, &iter,
