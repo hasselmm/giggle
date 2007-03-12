@@ -249,7 +249,7 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_widget_show (priv->list_label);
 	gtk_box_pack_start (GTK_BOX (self), priv->list_label, TRUE, TRUE, 0);
 
-	priv->more_button = gtk_button_new_with_label ("More...");
+	priv->more_button = gtk_button_new_with_label (_("Show all..."));
 	gtk_box_pack_start (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
 	g_signal_connect_swapped (priv->more_button, "clicked",
 				  G_CALLBACK (short_list_show_dialog), self);
