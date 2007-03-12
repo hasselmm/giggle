@@ -25,6 +25,7 @@
 
 #include "giggle-diff-window.h"
 #include "giggle-diff-view.h"
+#include "giggle-git-commit.h"
 #include "giggle-job.h"
 #include "giggle-git.h"
 
@@ -32,12 +33,16 @@ typedef struct GiggleDiffWindowPriv GiggleDiffWindowPriv;
 
 struct GiggleDiffWindowPriv {
 	GtkWidget *diff_view;
+	GtkWidget *commit_textview;
+
 	GiggleGit *git;
 	GiggleJob *job;
 };
 
 static void       diff_window_finalize           (GObject        *object);
 static void       diff_window_map                (GtkWidget      *widget);
+static void       diff_window_response           (GtkDialog      *dialog,
+						  gint            response);
 
 
 G_DEFINE_TYPE (GiggleDiffWindow, giggle_diff_window, GTK_TYPE_DIALOG)
@@ -49,9 +54,11 @@ giggle_diff_window_class_init (GiggleDiffWindowClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
+	GtkDialogClass *dialog_class = GTK_DIALOG_CLASS (class);
 
 	widget_class->map = diff_window_map;
 	object_class->finalize = diff_window_finalize;
+	dialog_class->response = diff_window_response;
 
 	g_type_class_add_private (object_class, sizeof (GiggleDiffWindowPriv));
 }
@@ -60,7 +67,9 @@ static void
 giggle_diff_window_init (GiggleDiffWindow *diff_window)
 {
 	GiggleDiffWindowPriv *priv;
-	GtkWidget            *scrolled_window;
+	GtkWidget            *vbox, *scrolled_window;
+	GtkWidget            *vbox2, *label;
+	gchar                *str;
 
 	priv = GET_PRIV (diff_window);
 
@@ -68,21 +77,53 @@ giggle_diff_window_init (GiggleDiffWindow *diff_window)
 
 	gtk_window_set_default_size (GTK_WINDOW (diff_window), 500, 380);
 
+	vbox = gtk_vbox_new (FALSE, 12);
+	gtk_container_set_border_width (GTK_CONTAINER (vbox), 7);
+
+	/* diff view */
 	priv->diff_view = giggle_diff_view_new ();
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 7);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
 					     GTK_SHADOW_IN);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_view);
 	gtk_widget_show_all (scrolled_window);
 
-	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (diff_window)->vbox), scrolled_window);
+	gtk_box_pack_start (GTK_BOX (vbox), scrolled_window, TRUE, TRUE, 0);
+
+	/* commit log textview */
+	vbox2 = gtk_vbox_new (FALSE, 6);
+
+	label = gtk_label_new (NULL);
+	str = g_strdup_printf ("<b>%s</b>", _("Revision log:"));
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
+	gtk_label_set_markup (GTK_LABEL (label), str);
+	g_free (str);
+
+	gtk_box_pack_start (GTK_BOX (vbox2), label, FALSE, FALSE, 0);
+
+	priv->commit_textview = gtk_text_view_new ();
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
+					     GTK_SHADOW_IN);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->commit_textview);
+	gtk_box_pack_start (GTK_BOX (vbox2), scrolled_window, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), vbox2, FALSE, FALSE, 0);
+
+	gtk_widget_show_all (vbox);
+	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (diff_window)->vbox), vbox);
 
 	g_object_set (G_OBJECT (diff_window),
 		      "has-separator", FALSE,
 		      NULL);
 
+	gtk_dialog_add_button (GTK_DIALOG (diff_window),
+			       _("Co_mmit"), GTK_RESPONSE_OK);
 	gtk_dialog_add_button (GTK_DIALOG (diff_window),
 			       GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
 }
@@ -113,9 +154,73 @@ diff_window_map (GtkWidget *widget)
 	priv = GET_PRIV (widget);
 
 	giggle_diff_view_diff_current (GIGGLE_DIFF_VIEW (priv->diff_view), NULL);
-	gtk_widget_grab_focus (priv->diff_view);
+	gtk_widget_grab_focus (priv->commit_textview);
 
 	GTK_WIDGET_CLASS (giggle_diff_window_parent_class)->map (widget);
+}
+
+static void
+diff_window_job_callback (GiggleGit *git,
+			  GiggleJob *job,
+			  GError    *error,
+			  gpointer   user_data)
+{
+	GiggleDiffWindowPriv *priv;
+
+	priv = GET_PRIV (user_data);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (NULL,
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_CLOSE,
+						 _("An error ocurred when committing:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+	} else {
+		/* FIXME: Should tell GiggleGit to update */
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
+diff_window_response (GtkDialog *dialog,
+		      gint       response)
+{
+	GiggleDiffWindowPriv *priv;
+	GtkTextBuffer        *buffer;
+	GtkTextIter           start, end;
+	gchar                *log;
+
+	if (response != GTK_RESPONSE_OK) {
+		/* do not commit */
+		return;
+	}
+
+	priv = GET_PRIV (dialog);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->commit_textview));
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	log = gtk_text_buffer_get_text (buffer, &start, &end, TRUE);
+
+	priv->job = giggle_git_commit_new (log);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    diff_window_job_callback,
+			    dialog);
 }
 
 GtkWidget *
