@@ -30,8 +30,11 @@ typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
 	GtkWidget   * label;
+#ifdef OLD_LIST
 	GtkWidget   * scrolled_window;
 	GtkWidget   * treeview;
+#else
+#endif
 	GtkListStore* liststore;
 };
 
@@ -89,7 +92,7 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
 }
-
+#ifdef OLD_LIST
 static void
 short_list_cell_data_func (GtkTreeViewColumn* column,
 			   GtkCellRenderer  * renderer,
@@ -111,14 +114,16 @@ short_list_cell_data_func (GtkTreeViewColumn* column,
 		g_object_unref (object);
 	}
 }
-
+#endif
 static void
 giggle_short_list_init (GiggleShortList *self)
 {
 	GiggleShortListPriv *priv;
 	PangoAttrList       *attributes;
 	PangoAttribute      *attribute;
-	GtkCellRenderer       *renderer;
+#ifdef OLD_LIST
+	GtkCellRenderer     *renderer;
+#endif
 
 	priv = GET_PRIV (self);
 
@@ -138,16 +143,17 @@ giggle_short_list_init (GiggleShortList *self)
 
 	pango_attr_list_unref (attributes);
 
+	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
+					      G_TYPE_OBJECT);
+
+#ifdef OLD_LIST
 	priv->scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->scrolled_window),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
 	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
 
-	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
-					      G_TYPE_OBJECT);
 	priv->treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
-	g_object_unref (priv->liststore);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
 
 	renderer = gtk_cell_renderer_text_new ();
@@ -157,6 +163,8 @@ giggle_short_list_init (GiggleShortList *self)
 						    self, NULL);
 
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
+#else
+#endif
 }
 
 static void
@@ -166,7 +174,7 @@ dummy_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 	
-	/* FIXME: Free object data */
+	g_object_unref (priv->liststore);
 
 	G_OBJECT_CLASS (giggle_short_list_parent_class)->finalize (object);
 }
@@ -214,13 +222,5 @@ giggle_short_list_get_liststore (GiggleShortList* self)
 	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
 
 	return GET_PRIV (self)->liststore;
-}
-
-GtkWidget*
-giggle_short_list_get_treeview (GiggleShortList* self)
-{
-	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
-
-	return GET_PRIV (self)->treeview;
 }
 
