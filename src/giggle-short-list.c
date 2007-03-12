@@ -22,6 +22,7 @@
 
 #include "giggle-short-list.h"
 
+#include <gtk/gtkbutton.h>
 #include <gtk/gtklabel.h>
 #include <gtk/gtkscrolledwindow.h>
 #include "giggle-marshal.h"
@@ -34,6 +35,8 @@ struct GiggleShortListPriv {
 	GtkWidget   * scrolled_window;
 	GtkWidget   * treeview;
 #else
+	GtkWidget   * list_label;
+	GtkWidget   * more_button;
 #endif
 	GtkListStore* liststore;
 };
@@ -164,6 +167,13 @@ giggle_short_list_init (GiggleShortList *self)
 
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
 #else
+	priv->list_label = gtk_label_new ("some items\nother items\n...");
+	gtk_misc_set_alignment (GTK_MISC (priv->list_label), 0.0, 0.5);
+	gtk_widget_show (priv->list_label);
+	gtk_box_pack_start (GTK_BOX (self), priv->list_label, TRUE, TRUE, 0);
+
+	priv->more_button = gtk_button_new_with_label ("More...");
+	gtk_box_pack_start (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
 #endif
 }
 
