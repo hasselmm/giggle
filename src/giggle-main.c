@@ -28,6 +28,7 @@ int
 main (int argc, char **argv)
 {
 	GtkWidget *window;
+	gchar     *dir;
 	
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -43,6 +44,19 @@ main (int argc, char **argv)
 			  "destroy",
 			  G_CALLBACK (gtk_main_quit),
 			  NULL);
+
+	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
+	dir = g_strdup (g_getenv ("GIT_DIR"));
+	if (!dir || !*dir) {
+		g_free (dir);
+		dir = g_get_current_dir ();
+	}
+	g_unsetenv ("GIT_DIR");
+
+	if (giggle_git_test_dir (dir)) {
+		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
+	}
+	g_free (dir);
 
 	gtk_widget_show (window);
 

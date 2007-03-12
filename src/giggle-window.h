@@ -44,9 +44,11 @@ struct GiggleWindowClass {
 	GtkWindowClass parent_class;
 };
 
-GType		   giggle_window_get_type (void);
-GtkWidget         *giggle_window_new      (void);
-GiggleGit *        giggle_window_get_git  (GiggleWindow *self);
+GType		   giggle_window_get_type      (void);
+GtkWidget         *giggle_window_new           (void);
+GiggleGit *        giggle_window_get_git       (GiggleWindow *self);
+void               giggle_window_set_directory (GiggleWindow *self,
+						gchar const  *dir);
 
 G_END_DECLS
 

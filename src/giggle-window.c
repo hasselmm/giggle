@@ -223,8 +223,8 @@ window_create_menu (GiggleWindow *window)
 	window_recent_repositories_update (window);
 }
 
-static gboolean
-window_set_directory (GiggleWindow *window,
+void
+giggle_window_set_directory (GiggleWindow *window,
 		      const gchar  *directory)
 {
 	GiggleWindowPriv *priv;
@@ -244,18 +244,13 @@ window_set_directory (GiggleWindow *window,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-
-		return FALSE;
 	}
-
-	return TRUE;
 }
 
 static void
 giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	gchar            *dir;
 
 	priv = GET_PRIV (window);
 
@@ -282,17 +277,6 @@ giggle_window_init (GiggleWindow *window)
 
 	g_signal_connect (priv->main_notebook, "switch-page",
 			  G_CALLBACK (window_notebook_switch_page_cb), window);
-
-	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
-	dir = g_strdup (g_getenv ("GIT_DIR"));
-	if (!dir || !*dir) {
-		g_free (dir);
-		dir = g_get_current_dir ();
-	}
-	g_unsetenv ("GIT_DIR");
-
-	window_set_directory (window, dir);
-	g_free (dir);
 
 	/* setup find bar */
 	priv->find_bar = egg_find_bar_new ();
@@ -397,7 +381,7 @@ window_recent_repository_activate (GtkAction    *action,
 	priv = GET_PRIV (window);
 
 	directory = g_object_get_data (G_OBJECT (action), "recent-action-path");
-	window_set_directory (window, directory);
+	giggle_window_set_directory (window, directory);
 }
 
 static void
@@ -536,7 +520,7 @@ window_action_open_cb (GtkAction    *action,
 
 	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
 		directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
-		window_set_directory (window, directory);
+		giggle_window_set_directory (window, directory);
 	}
 
 	gtk_widget_destroy (file_chooser);
