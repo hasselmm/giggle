@@ -81,6 +81,8 @@ void             giggle_git_run_job          (GiggleGit             *git,
 void             giggle_git_cancel_job       (GiggleGit          *git,
 					      GiggleJob          *job);
 
+gboolean         giggle_git_test_dir         (gchar const  * dir);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_GIT_H__ */

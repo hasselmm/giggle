@@ -58,8 +58,7 @@ static void     git_set_property        (GObject           *object,
 					 guint              param_id,
 					 const GValue      *value,
 					 GParamSpec        *pspec);
-static gboolean git_verify_directory    (GiggleGit         *git,
-					 const gchar       *directory,
+static gboolean git_verify_directory    (const gchar       *directory,
 					 gchar            **git_dir,
 					 GError           **error);
 static void     git_job_data_free       (GitJobData        *data);
@@ -245,8 +244,7 @@ giggle_git_error_quark (void)
 }
 
 static gboolean 
-git_verify_directory (GiggleGit    *git,
-		      const gchar  *directory,
+git_verify_directory (const gchar  *directory,
 		      gchar       **git_dir,
 		      GError      **error)
 {
@@ -307,6 +305,12 @@ git_verify_directory (GiggleGit    *git,
 	g_free(std_err);
 
 	return verified;
+}
+
+gboolean
+giggle_git_test_dir (gchar const* dir)
+{
+	return git_verify_directory (dir, NULL, NULL);
 }
 
 static void
@@ -509,7 +513,7 @@ giggle_git_set_directory (GiggleGit    *git,
 
 	priv = GET_PRIV (git);
 
-	if (!git_verify_directory (git, directory, &tmp_dir, error)) {
+	if (!git_verify_directory (directory, &tmp_dir, error)) {
 		return FALSE;
 	}
 
