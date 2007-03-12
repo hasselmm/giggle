@@ -22,9 +22,12 @@
 
 #include "giggle-short-list.h"
 
+#include <glib/gi18n.h>
 #include <gtk/gtkbutton.h>
+#include <gtk/gtkdialog.h>
 #include <gtk/gtklabel.h>
 #include <gtk/gtkscrolledwindow.h>
+#include <gtk/gtkstock.h>
 #include "giggle-marshal.h"
 
 typedef struct GiggleShortListPriv GiggleShortListPriv;
@@ -94,7 +97,7 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
 }
-#ifdef OLD_LIST
+
 static void
 short_list_cell_data_func (GtkTreeViewColumn* column,
 			   GtkCellRenderer  * renderer,
@@ -104,19 +107,62 @@ short_list_cell_data_func (GtkTreeViewColumn* column,
 {
 	GiggleShortList* self = data;
 	GObject        * object = NULL;
+	gchar          * label = NULL;
 
 	gtk_tree_model_get (model, iter,
 			    GIGGLE_SHORT_LIST_COL_OBJECT, &object,
 			    -1);
 
 	g_signal_emit (self, giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT], 0,
-		       object, renderer);
+		       object, &label);
+
+	g_object_set (renderer, "text", label, NULL);
+	g_free (label);
 
 	if (object) {
 		g_object_unref (object);
 	}
 }
-#else
+
+static void
+short_list_show_dialog (GiggleShortList* self)
+{
+	GtkCellRenderer     *renderer;
+	GtkWidget           *dialog;
+	GtkWidget           *scrolled;
+	GtkWidget           *treeview;
+
+	GiggleShortListPriv *priv;
+
+	priv = GET_PRIV (self);
+
+	dialog = gtk_dialog_new_with_buttons (_("Details"),
+					      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))),
+					      GTK_DIALOG_NO_SEPARATOR,
+					      GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE,
+					      NULL);
+
+	scrolled = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
+	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolled, TRUE, TRUE, 0);
+
+	treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
+	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview), FALSE);
+
+	renderer = gtk_cell_renderer_text_new ();
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (treeview), -1,
+						    "Object", renderer,
+						    short_list_cell_data_func,
+						    self, NULL);
+
+	gtk_container_add (GTK_CONTAINER (scrolled), treeview);
+	gtk_widget_show_all (scrolled);
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+}
+
 static gboolean
 short_list_update_label_idle (GiggleShortList* self)
 {
@@ -152,6 +198,12 @@ short_list_update_label_idle (GiggleShortList* self)
 
 	gtk_label_set_text (GTK_LABEL (priv->list_label), string->str);
 	g_string_free (string, TRUE);
+
+	if (gtk_tree_model_iter_n_children (GTK_TREE_MODEL (priv->liststore), NULL) > 5) {
+		gtk_widget_show (priv->more_button);
+	} else {
+		gtk_widget_hide (priv->more_button);
+	}
 	return FALSE;
 }
 
@@ -163,16 +215,13 @@ short_list_update_label (GiggleShortList* self)
 			 g_object_ref (self),
 			 g_object_unref);
 }
-#endif
+
 static void
 giggle_short_list_init (GiggleShortList *self)
 {
 	GiggleShortListPriv *priv;
 	PangoAttrList       *attributes;
 	PangoAttribute      *attribute;
-#ifdef OLD_LIST
-	GtkCellRenderer     *renderer;
-#endif
 
 	priv = GET_PRIV (self);
 
@@ -195,24 +244,6 @@ giggle_short_list_init (GiggleShortList *self)
 	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
 					      G_TYPE_OBJECT);
 
-#ifdef OLD_LIST
-	priv->scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->scrolled_window), GTK_SHADOW_IN);
-	gtk_box_pack_start (GTK_BOX (self), priv->scrolled_window, TRUE, TRUE, 0);
-
-	priv->treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
-	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (priv->treeview), FALSE);
-
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (priv->treeview), -1,
-						    "Object", renderer,
-						    short_list_cell_data_func,
-						    self, NULL);
-
-	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
-#else
 	priv->list_label = gtk_label_new ("some items\nother items\n...");
 	gtk_misc_set_alignment (GTK_MISC (priv->list_label), 0.0, 0.0);
 	gtk_widget_show (priv->list_label);
@@ -220,6 +251,8 @@ giggle_short_list_init (GiggleShortList *self)
 
 	priv->more_button = gtk_button_new_with_label ("More...");
 	gtk_box_pack_start (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
+	g_signal_connect_swapped (priv->more_button, "clicked",
+				  G_CALLBACK (short_list_show_dialog), self);
 
 	g_signal_connect_swapped (priv->liststore, "row-changed",
 				  G_CALLBACK (short_list_update_label), self);
@@ -229,7 +262,6 @@ giggle_short_list_init (GiggleShortList *self)
 				  G_CALLBACK (short_list_update_label), self);
 	g_signal_connect_swapped (priv->liststore, "rows-reordered",
 				  G_CALLBACK (short_list_update_label), self);
-#endif
 }
 
 static void
