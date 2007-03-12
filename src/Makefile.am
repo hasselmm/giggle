@@ -33,6 +33,8 @@ giggle_SOURCES =				\
 	giggle-diff-view.h			\
 	giggle-diff-tree-view.c			\
 	giggle-diff-tree-view.h			\
+	giggle-diff-window.c			\
+	giggle-diff-window.h			\
 	giggle-dispatcher.c             	\
 	giggle-dispatcher.h             	\
 	giggle-dummy.c                  	\
@@ -43,8 +45,12 @@ giggle_SOURCES =				\
 	giggle-file-list.h			\
 	giggle-git.c                            \
 	giggle-git.h                            \
+	giggle-git-add.c			\
+	giggle-git-add.h			\
 	giggle-git-authors.c			\
 	giggle-git-authors.h			\
+	giggle-git-commit.c			\
+	giggle-git-commit.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-diff-tree.c			\

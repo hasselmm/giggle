@@ -32,9 +32,7 @@
 typedef struct GiggleDiffViewPriv GiggleDiffViewPriv;
 
 struct GiggleDiffViewPriv {
-	GiggleRevision *revision1;
-	GiggleRevision *revision2;
-
+	gboolean        compact_mode;
 	GiggleGit      *git;
 
 	/* last run job */
@@ -57,8 +55,7 @@ G_DEFINE_TYPE (GiggleDiffView, giggle_diff_view, GTK_TYPE_SOURCE_VIEW)
 
 enum {
 	PROP_0,
-	PROP_REV_1,
-	PROP_REV_2,
+	PROP_COMPACT_MODE
 };
 
 static void
@@ -70,20 +67,14 @@ giggle_diff_view_class_init (GiggleDiffViewClass *class)
 	object_class->set_property = diff_view_set_property;
 	object_class->get_property = diff_view_get_property;
 
-	g_object_class_install_property (object_class,
-					 PROP_REV_1,
-					 g_param_spec_object ("revision-1",
-							      "Revision 1",
-							      "Revision 1 to diff",
-							      GIGGLE_TYPE_REVISION,
-							      G_PARAM_READWRITE));
-	g_object_class_install_property (object_class,
-					 PROP_REV_2,
-					 g_param_spec_object ("revision-2",
-							      "Revision 2",
-							      "Revision 2 to diff",
-							      GIGGLE_TYPE_REVISION,
-							      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class,
+		PROP_COMPACT_MODE,
+		g_param_spec_boolean ("compact-mode",
+				      "Compact mode",
+				      "Whether to show the diff in compact mode or not",
+				      FALSE,
+				      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleDiffViewPriv));
 }
@@ -135,14 +126,6 @@ diff_view_finalize (GObject *object)
 
 	g_object_unref (priv->git);
 
-	if (priv->revision1) {
-		g_object_unref (priv->revision1);
-	}
-
-	if (priv->revision2) {
-		g_object_unref (priv->revision2);
-	}
-
 	G_OBJECT_CLASS (giggle_diff_view_parent_class)->finalize (object);
 }
 
@@ -157,11 +140,8 @@ diff_view_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_REV_1:
-		g_value_set_object (value, priv->revision1);
-		break;
-	case PROP_REV_2:
-		g_value_set_object (value, priv->revision2);
+	case PROP_COMPACT_MODE:
+		g_value_set_boolean (value, priv->compact_mode);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -180,21 +160,9 @@ diff_view_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_REV_1:
-		if (priv->revision1) {
-			g_object_unref (priv->revision1);
-		}
-
-		priv->revision1 = (GiggleRevision *) g_value_dup_object (value);
-		/* FIXME: not running a new job */
-		break;
-	case PROP_REV_2:
-		if (priv->revision2) {
-			g_object_unref (priv->revision2);
-		}
-
-		priv->revision2 = (GiggleRevision *) g_value_dup_object (value);
-		/* FIXME: not running a new job */
+	case PROP_COMPACT_MODE:
+		giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (object),
+						   g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -257,10 +225,37 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 
 	priv = GET_PRIV (diff_view);
 
-	g_object_set (G_OBJECT (diff_view),
-		      "revision-1", revision1,
-		      "revision-2", revision2,
-		      NULL);
+	/* Clear the view until we get new content. */
+	gtk_text_buffer_set_text (
+		gtk_text_view_get_buffer (GTK_TEXT_VIEW (diff_view)),
+		"", 0);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_diff_new ();
+	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (priv->job),
+				       revision2, revision1);
+	giggle_git_diff_set_files (GIGGLE_GIT_DIFF (priv->job), files);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    diff_view_job_callback,
+			    diff_view);
+}
+
+void
+giggle_diff_view_diff_current (GiggleDiffView *diff_view,
+			       GList          *files)
+{
+	GiggleDiffViewPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (diff_view));
+
+	priv = GET_PRIV (diff_view);
 
 	/* Clear the view until we get new content. */
 	gtk_text_buffer_set_text (
@@ -273,10 +268,59 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 		priv->job = NULL;
 	}
 
-	priv->job = giggle_git_diff_new_for_files (revision2, revision1, files);
+	priv->job = giggle_git_diff_new ();
+	giggle_git_diff_set_files (GIGGLE_GIT_DIFF (priv->job), files);
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
 			    diff_view_job_callback,
 			    diff_view);
+}
+
+gboolean
+giggle_diff_view_get_compact_mode (GiggleDiffView *view)
+{
+	GiggleDiffViewPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_DIFF_VIEW (view), FALSE);
+
+	priv = GET_PRIV (view);
+
+	return priv->compact_mode;
+}
+
+void
+giggle_diff_view_set_compact_mode (GiggleDiffView *view,
+				   gboolean        compact_mode)
+{
+	GiggleDiffViewPriv   *priv;
+	PangoFontDescription *font_desc;
+	gint                  size;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (view));
+
+	priv = GET_PRIV (view);
+
+	if (compact_mode != priv->compact_mode) {
+		priv->compact_mode = (compact_mode == TRUE);
+
+		if (!compact_mode) {
+			/* Reset to default font to get the default size. */
+			gtk_widget_modify_font (GTK_WIDGET (view), NULL);
+
+			/* Then set the right font. */
+			font_desc = pango_font_description_from_string ("monospace");
+			gtk_widget_modify_font (GTK_WIDGET (view), font_desc);
+			pango_font_description_free (font_desc);
+		} else {
+			/* Get the existing font_desc, and change the size. */
+			font_desc = pango_font_description_copy (GTK_WIDGET (view)->style->font_desc);
+			size = pango_font_description_get_size (font_desc);
+			pango_font_description_set_size (font_desc, size * PANGO_SCALE_SMALL);
+			gtk_widget_modify_font (GTK_WIDGET (view), font_desc);
+			pango_font_description_free (font_desc);
+		}
+
+		g_object_notify (G_OBJECT (view), "compact-mode");
+	}
 }

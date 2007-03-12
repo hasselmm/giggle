@@ -154,7 +154,7 @@ remote_editor_tree_cell_data_func (GtkTreeViewColumn *tree_column,
 	} else {
 		g_object_set (cell,
 			      "foreground", "slategray",
-			      "text", _("Double-Click to add mapping"),
+			      "text", _("Double click to add mapping..."),
 			      NULL);
 	}
 }

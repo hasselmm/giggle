@@ -55,7 +55,13 @@ void               giggle_diff_view_set_revisions     (GiggleDiffView *diff_view
 						       GiggleRevision *revision1,
 						       GiggleRevision *revision2,
 						       GList          *files);
+void               giggle_diff_view_diff_current      (GiggleDiffView *diff_view,
+						       GList          *files);
 
+gboolean           giggle_diff_view_get_compact_mode  (GiggleDiffView *view);
+
+void               giggle_diff_view_set_compact_mode  (GiggleDiffView *view,
+						       gboolean        compact_mode);
 
 G_END_DECLS
 

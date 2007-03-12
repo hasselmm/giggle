@@ -162,7 +162,7 @@ git_revisions_get_command_line (GiggleJob *job, gchar **command_line)
 
 	priv = GET_PRIV (job);
 	files = priv->files;
-	str = g_string_new ("git rev-list --all --header --topo-order --parents");
+	str = g_string_new (GIT_COMMAND " rev-list --all --header --topo-order --parents");
 
 	while (files) {
 		g_string_append_printf (str, " %s", (gchar *) files->data);
@@ -206,8 +206,11 @@ git_revisions_get_time (const gchar *date)
 {
 	const gchar *returned;
 	struct tm   *tm = NULL;
+	time_t       time;
 
+	/* shut up gcc */
 	returned = NULL;
+	time = 0;
 
 #if STRPTIME_HAS_GNU
 	tm = g_new0 (struct tm, 1);
@@ -218,7 +221,11 @@ git_revisions_get_time (const gchar *date)
 		return NULL;
 	}
 #else
-	/* FIXME: This case is not implemented */
+	tm = g_new0 (struct tm, 1);
+
+	/* FIXME: looks awful */
+	sscanf (date, "%ld", &time);
+	localtime_r (&time, tm);
 #endif
 	return tm;
 }

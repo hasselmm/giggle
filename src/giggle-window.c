@@ -30,6 +30,7 @@
 #include "giggle-view-history.h"
 #include "giggle-view-file.h"
 #include "giggle-searchable.h"
+#include "giggle-diff-window.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -53,6 +54,7 @@ struct GiggleWindowPriv {
 	GiggleGit           *git;
 
 	GtkWidget           *personal_details_window;
+	GtkWidget           *diff_current_window;
 };
 
 enum {
@@ -73,11 +75,15 @@ static void window_action_open_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_save_patch_cb           (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_diff_cb                 (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_find_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_compact_mode_cb         (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
@@ -95,6 +101,13 @@ static void window_find_next                      (GtkWidget         *widget,
 static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
 
+static const GtkToggleActionEntry toggle_action_entries[] = {
+	{ "CompactMode", NULL,
+	  N_("_Compact mode"), "F7", NULL,
+	  G_CALLBACK (window_action_compact_mode_cb), FALSE
+	},
+};
+
 static const GtkActionEntry action_entries[] = {
 	{ "ProjectMenu", NULL,
 	  N_("_Project"), NULL, NULL,
@@ -102,6 +115,10 @@ static const GtkActionEntry action_entries[] = {
 	},
 	{ "EditMenu", NULL,
 	  N_("_Edit"), NULL, NULL,
+	  NULL
+	},
+	{ "ViewMenu", NULL,
+	  N_("_View"), NULL, NULL,
 	  NULL
 	},
 	{ "HelpMenu", NULL,
@@ -115,6 +132,10 @@ static const GtkActionEntry action_entries[] = {
 	{ "SavePatch", GTK_STOCK_SAVE,
 	  N_("_Save patch"), "<control>S", N_("Save a patch"),
 	  G_CALLBACK (window_action_save_patch_cb)
+	},
+	{ "Diff", NULL,
+	  N_("_Diff current changes"), "<control>D", N_("Diff current changes"),
+	  G_CALLBACK (window_action_diff_cb)
 	},
 	{ "Quit", GTK_STOCK_QUIT,
 	  N_("_Quit"), "<control>Q", N_("Quit the application"),
@@ -142,6 +163,7 @@ static const gchar *ui_layout =
 /*
 	"      <menuitem action='SavePatch'/>"
 */
+	"      <menuitem action='Diff'/>"
 	"      <separator/>"
 	"      <placeholder name='RecentRepositories'/>"
 	"      <separator/>"
@@ -151,6 +173,9 @@ static const gchar *ui_layout =
 	"      <menuitem action='PersonalDetails'/>"
 	"      <separator/>"
 	"      <menuitem action='Find'/>"
+	"    </menu>"
+	"    <menu action='ViewMenu'>"
+	"      <menuitem action='CompactMode'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -198,6 +223,10 @@ window_create_menu (GiggleWindow *window)
 				      action_entries,
 				      G_N_ELEMENTS (action_entries),
 				      window);
+	gtk_action_group_add_toggle_actions (action_group,
+					     toggle_action_entries,
+					     G_N_ELEMENTS (toggle_action_entries),
+					     window);
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 
 	gtk_window_add_accel_group (GTK_WINDOW (window),
@@ -297,13 +326,21 @@ giggle_window_init (GiggleWindow *window)
 	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
+	/* diff current window */
+	priv->diff_current_window = giggle_diff_window_new ();
+
+	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
+				      GTK_WINDOW (window));
+	g_signal_connect_after (G_OBJECT (priv->diff_current_window), "response",
+				G_CALLBACK (gtk_widget_hide), NULL);
+
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
 	gtk_widget_show (priv->history_view);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->history_view,
-				  gtk_label_new ("History"));
+				  gtk_label_new (_("History")));
 
 	/* append file view */
 	/*
@@ -312,7 +349,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->file_view,
-				  gtk_label_new ("Files"));
+				  gtk_label_new (_("Files")));
 	*/
 
 	/* append summary view */
@@ -321,7 +358,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->summary_view,
-				  gtk_label_new ("Summary"));
+				  gtk_label_new (_("Summary")));
 
 }
 
@@ -573,6 +610,17 @@ window_action_save_patch_cb (GtkAction    *action,
 }
 
 static void
+window_action_diff_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	gtk_widget_show (priv->diff_current_window);
+}
+
+static void
 window_notebook_switch_page_cb (GtkNotebook     *notebook,
 				GtkNotebookPage *page,
 				guint            page_num,
@@ -599,6 +647,19 @@ window_action_find_cb (GtkAction    *action,
 
 	gtk_widget_show (priv->find_bar);
 	gtk_widget_grab_focus (priv->find_bar);
+}
+
+static void
+window_action_compact_mode_cb (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void
@@ -651,10 +712,20 @@ static void
 window_action_about_cb (GtkAction    *action,
 			GiggleWindow *window)
 {
+	const gchar *authors[] = {
+		"Sven Herzberg",
+		"Mikael Hallendal",
+		"Richard Hult",
+		"Carlos Garnacho",
+		NULL
+	};
+
 	gtk_show_about_dialog (GTK_WINDOW (window),
 			       "name", "Giggle",
-			       "copyright", "Copyright 2007 Imendio AB",
+			       "copyright", "Copyright \xc2\xa9 2007 Imendio AB",
 			       "translator-credits", _("translator-credits"),
+			       "version", VERSION,
+			       "authors", authors,
 			       NULL);
 }
 

@@ -26,7 +26,7 @@
 #include "giggle-sysdeps.h"
 #include "giggle-dispatcher.h"
 
-#define d(x) x
+#define d(x)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DISPATCHER, GiggleDispatcherPriv))
 

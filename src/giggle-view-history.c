@@ -134,6 +134,9 @@ giggle_view_history_init (GiggleViewHistory *view)
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
+	/* FIXME: fixed sizes suck */
+	gtk_widget_set_size_request (scrolled_window, 200, -1);
+
 	priv->diff_tree_view = giggle_diff_tree_view_new ();
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_tree_view);
 	gtk_paned_pack2 (GTK_PANED (priv->revision_hpaned), scrolled_window, FALSE, FALSE);
@@ -141,7 +144,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	vbox = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox);
-	gtk_paned_pack1 (GTK_PANED (priv->revision_hpaned), vbox, FALSE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->revision_hpaned), vbox, TRUE, FALSE);
 
 	/* file view */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -176,6 +179,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	priv->revision_view_expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
 	priv->revision_view = giggle_revision_view_new ();
 	gtk_container_add (GTK_CONTAINER (priv->revision_view_expander), priv->revision_view);
+	gtk_expander_set_expanded (GTK_EXPANDER (priv->revision_view_expander), TRUE);
 	gtk_widget_show_all (priv->revision_view_expander);
 
 	gtk_box_pack_start (GTK_BOX (vbox), priv->revision_view_expander, FALSE, TRUE, 0);
@@ -192,6 +196,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	gtk_container_add (GTK_CONTAINER (priv->diff_view_sw), priv->diff_view);
 	gtk_container_add (GTK_CONTAINER (priv->diff_view_expander), priv->diff_view_sw);
+	gtk_expander_set_expanded (GTK_EXPANDER (priv->diff_view_expander), TRUE);
 	gtk_widget_show_all (priv->diff_view_expander);
 
 	gtk_box_pack_start (GTK_BOX (vbox), priv->diff_view_expander, TRUE, TRUE, 0);
@@ -472,4 +477,19 @@ GtkWidget *
 giggle_view_history_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY, NULL);
+}
+
+void
+giggle_view_history_set_compact_mode (GiggleViewHistory *view,
+				      gboolean           compact_mode)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
+
+	priv = GET_PRIV (view);
+
+	giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (priv->file_list), compact_mode);
+	giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (priv->revision_list), compact_mode);
+	giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (priv->diff_view), compact_mode);
 }

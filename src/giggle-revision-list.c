@@ -42,6 +42,7 @@ struct GiggleRevisionListPriv {
 	GtkWidget         *revision_tooltip;
 
 	gboolean           show_graph : 1;
+	gboolean           compact_mode : 1;
 };
 
 enum {
@@ -52,6 +53,7 @@ enum {
 enum {
 	PROP_0,
 	PROP_SHOW_GRAPH,
+	PROP_COMPACT_MODE,
 };
 
 enum {
@@ -75,6 +77,8 @@ static gboolean revision_list_motion_notify       (GtkWidget      *widget,
 						   GdkEventMotion *event);
 static gboolean revision_list_leave_notify        (GtkWidget        *widget,
 						   GdkEventCrossing *event);
+static void revision_list_style_set               (GtkWidget        *widget,
+						   GtkStyle         *prev_style);
 
 static void revision_list_cell_data_emblem_func   (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
@@ -123,6 +127,7 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 
 	widget_class->motion_notify_event = revision_list_motion_notify;
 	widget_class->leave_notify_event = revision_list_leave_notify;
+	widget_class->style_set = revision_list_style_set;
 
 	g_object_class_install_property (
 		object_class,
@@ -130,6 +135,14 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 		g_param_spec_boolean ("show-graph",
 				      "Show graph",
 				      "Whether to show the revisions graph",
+				      FALSE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class,
+		PROP_COMPACT_MODE,
+		g_param_spec_boolean ("compact-mode",
+				      "Compact mode",
+				      "Whether to show the list in compact mode or not",
 				      FALSE,
 				      G_PARAM_READWRITE));
 
@@ -241,6 +254,12 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	priv->revision_tooltip = giggle_revision_tooltip_new ();
 	g_object_ref_sink (priv->revision_tooltip);
+
+	gtk_rc_parse_string ("style \"revision-list-compact-style\""
+			     "{"
+			     "  GtkTreeView::vertical-separator = 0"
+			     "}"
+			     "widget \"*.revision-list\" style \"revision-list-compact-style\"");
 }
 
 static void
@@ -272,6 +291,9 @@ revision_list_get_property (GObject    *object,
 	case PROP_SHOW_GRAPH:
 		g_value_set_boolean (value, priv->show_graph);
 		break;
+	case PROP_COMPACT_MODE:
+		g_value_set_boolean (value, priv->compact_mode);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -292,6 +314,10 @@ revision_list_set_property (GObject      *object,
 	case PROP_SHOW_GRAPH:
 		giggle_revision_list_set_show_graph (GIGGLE_REVISION_LIST (object),
 						     g_value_get_boolean (value));
+		break;
+	case PROP_COMPACT_MODE:
+		giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (object),
+						       g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -374,6 +400,33 @@ revision_list_leave_notify (GtkWidget        *widget,
 
 	GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->leave_notify_event (widget, event);
 	return FALSE;
+}
+
+static void
+revision_list_update_compact_mode (GiggleRevisionList *list)
+{
+#if 0
+	PangoFontDescription   *font_desc;
+	GiggleRevisionListPriv *priv;
+	gint                    size;
+
+	priv = GET_PRIV (list);
+
+	if (priv->compact_mode) {
+		font_desc = GTK_WIDGET (list)->style->font_desc;
+		size = pango_font_description_get_size (font_desc);
+		pango_font_description_set_size (font_desc, size * PANGO_SCALE_SMALL);
+	}
+#endif
+}
+
+static void
+revision_list_style_set (GtkWidget *widget,
+			 GtkStyle  *prev_style)
+{
+	revision_list_update_compact_mode (GIGGLE_REVISION_LIST (widget));
+
+	(GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->style_set) (widget, prev_style);
 }
 
 static void
@@ -732,7 +785,7 @@ giggle_revision_list_set_model (GiggleRevisionList *list,
 }
 
 gboolean
-giggle_revision_get_show_graph (GiggleRevisionList *list)
+giggle_revision_list_get_show_graph (GiggleRevisionList *list)
 {
 	GiggleRevisionListPriv *priv;
 
@@ -755,4 +808,51 @@ giggle_revision_list_set_show_graph (GiggleRevisionList *list,
 	priv->show_graph = (show_graph == TRUE);
 	gtk_tree_view_column_set_visible (priv->graph_column, priv->show_graph);
 	g_object_notify (G_OBJECT (list), "show-graph");
+}
+
+gboolean
+giggle_revision_list_get_compact_mode (GiggleRevisionList *list)
+{
+	GiggleRevisionListPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), FALSE);
+
+	priv = GET_PRIV (list);
+	return priv->compact_mode;
+}
+
+void
+giggle_revision_list_set_compact_mode (GiggleRevisionList *list,
+				       gboolean            compact_mode)
+{
+	GiggleRevisionListPriv *priv;
+	GtkRcStyle             *rc_style;
+	gint                    size;
+
+	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
+
+	priv = GET_PRIV (list);
+
+	if (compact_mode != priv->compact_mode) {
+		priv->compact_mode = (compact_mode == TRUE);
+		rc_style = gtk_widget_get_modifier_style (GTK_WIDGET (list));
+
+		if (rc_style->font_desc) {
+			/* free old font desc */
+			pango_font_description_free (rc_style->font_desc);
+			rc_style->font_desc = NULL;
+		}
+
+		if (priv->compact_mode) {
+			rc_style->font_desc = pango_font_description_copy (GTK_WIDGET (list)->style->font_desc);
+			size = pango_font_description_get_size (rc_style->font_desc);
+			pango_font_description_set_size (rc_style->font_desc,
+							 size * PANGO_SCALE_SMALL);
+		}
+
+		gtk_widget_modify_style (GTK_WIDGET (list), rc_style);
+		gtk_widget_set_name (GTK_WIDGET (list),
+				     (priv->compact_mode) ? "revision-list" : NULL);
+		g_object_notify (G_OBJECT (list), "compact-mode");
+	}
 }

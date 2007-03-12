@@ -224,7 +224,7 @@ static gboolean
 authors_get_command_line (GiggleJob *job,
 			  gchar    **command_line)
 {
-	*command_line = g_strdup ("git log");
+	*command_line = g_strdup (GIT_COMMAND " log");
 	return TRUE;
 }
 
