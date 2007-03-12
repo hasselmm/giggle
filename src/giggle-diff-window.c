@@ -35,6 +35,8 @@ struct GiggleDiffWindowPriv {
 	GtkWidget *diff_view;
 	GtkWidget *commit_textview;
 
+	GList     *files;
+
 	GiggleGit *git;
 	GiggleJob *job;
 };
@@ -143,17 +145,35 @@ diff_window_finalize (GObject *object)
 
 	g_object_unref (priv->git);
 
+	g_list_foreach (priv->files, (GFunc) g_free, NULL);
+	g_list_free (priv->files);
+
 	G_OBJECT_CLASS (giggle_diff_window_parent_class)->finalize (object);
+}
+
+static GList *
+diff_window_copy_list (GList *list)
+{
+	GList *copy = NULL;
+
+	while (list) {
+		copy = g_list_prepend (copy, g_strdup ((gchar *) list->data));
+		list = list->next;
+	}
+
+	return g_list_reverse (copy);
 }
 
 static void
 diff_window_map (GtkWidget *widget)
 {
 	GiggleDiffWindowPriv *priv;
+	GList                *files;
 
 	priv = GET_PRIV (widget);
 
-	giggle_diff_view_diff_current (GIGGLE_DIFF_VIEW (priv->diff_view), NULL);
+	files = diff_window_copy_list (priv->files);
+	giggle_diff_view_diff_current (GIGGLE_DIFF_VIEW (priv->diff_view), files);
 	gtk_widget_grab_focus (priv->commit_textview);
 
 	GTK_WIDGET_CLASS (giggle_diff_window_parent_class)->map (widget);
@@ -197,6 +217,7 @@ diff_window_response (GtkDialog *dialog,
 	GtkTextBuffer        *buffer;
 	GtkTextIter           start, end;
 	gchar                *log;
+	GList                *files;
 
 	if (response != GTK_RESPONSE_OK) {
 		/* do not commit */
@@ -214,8 +235,10 @@ diff_window_response (GtkDialog *dialog,
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->commit_textview));
 	gtk_text_buffer_get_bounds (buffer, &start, &end);
 	log = gtk_text_buffer_get_text (buffer, &start, &end, TRUE);
+	files = diff_window_copy_list (priv->files);
 
 	priv->job = giggle_git_commit_new (log);
+	giggle_git_commit_set_files (GIGGLE_GIT_COMMIT (priv->job), files);
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
@@ -227,4 +250,22 @@ GtkWidget *
 giggle_diff_window_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_DIFF_WINDOW, NULL);
+}
+
+void
+giggle_diff_window_set_files (GiggleDiffWindow *window,
+			      GList            *files)
+{
+	GiggleDiffWindowPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_WINDOW (window));
+
+	priv = GET_PRIV (window);
+
+	if (priv->files) {
+		g_list_foreach (priv->files, (GFunc) g_free, NULL);
+		g_list_free (priv->files);
+	}
+
+	priv->files = files;
 }

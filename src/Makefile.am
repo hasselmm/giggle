@@ -138,10 +138,14 @@ test_dispatcher_LDADD =                         \
 
 test_file_list_SOURCES =			\
 	$(BUILT_SOURCES)			\
+	giggle-diff-view.c			\
+	giggle-diff-window.c			\
 	giggle-dispatcher.c			\
 	giggle-error.c				\
 	giggle-sysdeps.c			\
 	giggle-git.c				\
+	giggle-git-commit.c			\
+	giggle-git-diff.c			\
 	giggle-git-diff-tree.c			\
 	giggle-git-diff-tree.h			\
 	giggle-job.c				\

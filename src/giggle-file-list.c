@@ -25,6 +25,7 @@
 
 #include "giggle-git.h"
 #include "giggle-file-list.h"
+#include "giggle-diff-window.h"
 #include "giggle-git-ignore.h"
 #include "giggle-git-diff-tree.h"
 #include "giggle-revision.h"
@@ -42,6 +43,8 @@ struct GiggleFileListPriv {
 	GtkUIManager *ui_manager;
 
 	GiggleJob    *job;
+
+	GtkWidget    *diff_window;
 
 	gboolean      show_all : 1;
 	gboolean      compact_mode : 1;
@@ -86,6 +89,8 @@ static gboolean   file_list_get_name_and_ignore_for_iter (GiggleFileList   *list
 							  gchar           **name,
 							  GiggleGitIgnore **git_ignore);
 
+static void       file_list_diff_file           (GtkWidget        *widget,
+						 GiggleFileList   *list);
 static void       file_list_add_file            (GtkWidget        *widget,
 						 GiggleFileList   *list);
 static void       file_list_remove_file         (GtkWidget        *widget,
@@ -125,6 +130,7 @@ enum {
 };
 
 GtkActionEntry menu_items [] = {
+	{ "Diff",   NULL,             N_("_Diff"),                   NULL, NULL, G_CALLBACK (file_list_diff_file) },
 	{ "Add",    GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_add_file) },
 	{ "Remove", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_remove_file) },
 };
@@ -136,6 +142,8 @@ GtkToggleActionEntry toggle_menu_items [] = {
 const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
+	"    <menuitem action='Diff'/>"
+	"    <separator/>"
 	"    <menuitem action='Add'/>"
 	"    <menuitem action='Remove'/>"
 	"    <separator/>"
@@ -265,6 +273,12 @@ giggle_file_list_init (GiggleFileList *list)
 			     "  GtkTreeView::vertical-separator = 0"
 			     "}"
 			     "widget \"*.file-list\" style \"file-list-compact-style\"");
+
+	/* create diff window */
+	priv->diff_window = giggle_diff_window_new ();
+
+	g_signal_connect_after (G_OBJECT (priv->diff_window), "response",
+				G_CALLBACK (gtk_widget_hide), NULL);
 }
 
 static void
@@ -405,6 +419,25 @@ file_list_directory_changed (GObject    *object,
 
 	gtk_tree_store_clear (priv->store);
 	file_list_populate (list);
+}
+
+static void
+file_list_diff_file (GtkWidget      *widget,
+		     GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkWidget          *toplevel;
+	GList              *files;
+
+	priv = GET_PRIV (list);
+
+	files = giggle_file_list_get_selection (list);
+	giggle_diff_window_set_files (GIGGLE_DIFF_WINDOW (priv->diff_window), files);
+
+	toplevel = gtk_widget_get_toplevel (GTK_WIDGET (list));
+	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_window),
+				      GTK_WINDOW (toplevel));
+	gtk_widget_show (priv->diff_window);
 }
 
 static void
