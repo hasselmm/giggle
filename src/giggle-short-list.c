@@ -88,10 +88,9 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 		g_signal_new ("display-object", GIGGLE_TYPE_SHORT_LIST,
 			      G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET (GiggleShortListClass, display_object),
 			      NULL, NULL,
-			      giggle_marshal_VOID__OBJECT_OBJECT,
-			      G_TYPE_NONE, 2,
-			      G_TYPE_OBJECT,
-			      GTK_TYPE_CELL_RENDERER_TEXT);
+			      giggle_marshal_STRING__OBJECT,
+			      G_TYPE_STRING, 1,
+			      G_TYPE_OBJECT);
 
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
 }
@@ -116,6 +115,53 @@ short_list_cell_data_func (GtkTreeViewColumn* column,
 	if (object) {
 		g_object_unref (object);
 	}
+}
+#else
+static gboolean
+short_list_update_label_idle (GiggleShortList* self)
+{
+	GString    * string;
+	GtkTreeIter  iter;
+	gint         i;
+	GiggleShortListPriv *priv;
+
+	priv = GET_PRIV (self);
+
+	string = g_string_new ("");
+
+	for (i = 0; i < 5; i++) {
+		GObject* object = NULL;
+		gchar* label = NULL;
+		if (!gtk_tree_model_iter_nth_child (GTK_TREE_MODEL (priv->liststore), &iter, NULL, i)) {
+			break;
+		}
+
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->liststore), &iter,
+				    GIGGLE_SHORT_LIST_COL_OBJECT, &object,
+				    -1);
+
+		g_signal_emit (self, giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT], 0,
+			       object, &label);
+		g_string_append_printf (string, (i > 0) ? "\n%s" : "%s", label);
+		g_free (label);
+
+		if (object) {
+			g_object_unref (object);
+		}
+	}
+
+	gtk_label_set_text (GTK_LABEL (priv->list_label), string->str);
+	g_string_free (string, TRUE);
+	return FALSE;
+}
+
+static void
+short_list_update_label (GiggleShortList* self)
+{
+	g_idle_add_full (G_PRIORITY_LOW,
+			 (GSourceFunc)short_list_update_label_idle,
+			 g_object_ref (self),
+			 g_object_unref);
 }
 #endif
 static void
@@ -168,12 +214,21 @@ giggle_short_list_init (GiggleShortList *self)
 	gtk_container_add (GTK_CONTAINER (priv->scrolled_window), priv->treeview);
 #else
 	priv->list_label = gtk_label_new ("some items\nother items\n...");
-	gtk_misc_set_alignment (GTK_MISC (priv->list_label), 0.0, 0.5);
+	gtk_misc_set_alignment (GTK_MISC (priv->list_label), 0.0, 0.0);
 	gtk_widget_show (priv->list_label);
 	gtk_box_pack_start (GTK_BOX (self), priv->list_label, TRUE, TRUE, 0);
 
 	priv->more_button = gtk_button_new_with_label ("More...");
 	gtk_box_pack_start (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
+
+	g_signal_connect_swapped (priv->liststore, "row-changed",
+				  G_CALLBACK (short_list_update_label), self);
+	g_signal_connect_swapped (priv->liststore, "row-deleted",
+				  G_CALLBACK (short_list_update_label), self);
+	g_signal_connect_swapped (priv->liststore, "row-inserted",
+				  G_CALLBACK (short_list_update_label), self);
+	g_signal_connect_swapped (priv->liststore, "rows-reordered",
+				  G_CALLBACK (short_list_update_label), self);
 #endif
 }
 

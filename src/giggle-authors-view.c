@@ -35,10 +35,9 @@ struct GiggleAuthorsViewPriv {
 	GiggleJob    *job;
 };
 
-static void authors_view_finalize                (GObject *object);
-static void authors_view_display_object          (GiggleShortList     *column,
-			                          GObject             *object,
-			                          GtkCellRendererText *renderer);
+static void   authors_view_finalize                (GObject *object);
+static gchar* authors_view_display_object          (GiggleShortList     *column,
+			                            GObject             *object);
 
 G_DEFINE_TYPE (GiggleAuthorsView, giggle_authors_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -125,12 +124,11 @@ authors_view_update (GiggleAuthorsView *view)
 			    view);
 }
 
-static void
+static gchar*
 authors_view_display_object (GiggleShortList     *column,
-			     GObject             *object,
-			     GtkCellRendererText *renderer)
+			     GObject             *object)
 {
-	g_object_set (renderer, "text", giggle_author_get_string (GIGGLE_AUTHOR (object)), NULL);
+	return g_strdup (giggle_author_get_string (GIGGLE_AUTHOR (object)));
 }
 
 static void

@@ -35,10 +35,9 @@ struct GiggleBranchesViewPriv {
 	GiggleJob    *job;
 };
 
-static void branches_view_finalize                (GObject *object);
-static void branches_view_display_object          (GiggleShortList    * list,
-						   GObject            * object,
-						   GtkCellRendererText* renderer);
+static void   branches_view_finalize                (GObject *object);
+static gchar* branches_view_display_object          (GiggleShortList    * list,
+						     GObject            * object);
 
 G_DEFINE_TYPE (GiggleBranchesView, giggle_branches_view, GIGGLE_TYPE_SHORT_LIST)
 
@@ -125,12 +124,11 @@ branches_view_update (GiggleBranchesView *view)
 			    view);
 }
 
-static void
+static gchar*
 branches_view_display_object (GiggleShortList    * list,
-			      GObject            * object,
-			      GtkCellRendererText* renderer)
+			      GObject            * object)
 {
-	g_object_set (renderer, "text", giggle_ref_get_name (GIGGLE_REF (object)), NULL);
+	return g_strdup (giggle_ref_get_name (GIGGLE_REF (object)));
 }
 
 static void

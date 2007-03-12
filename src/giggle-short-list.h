@@ -44,9 +44,8 @@ struct GiggleShortListClass {
 	GtkVBoxClass vbox_class;
 
 	/* signals */
-	void (*display_object) (GiggleShortList* self,
-				GObject        * object,
-				GtkCellRendererText* renderer);
+	gchar* (*display_object) (GiggleShortList* self,
+				  GObject        * object);
 };
 
 enum {
