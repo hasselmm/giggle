@@ -57,6 +57,8 @@ giggle_SOURCES =				\
 	giggle-git-diff-tree.h			\
 	giggle-git-ignore.c			\
 	giggle-git-ignore.h			\
+	giggle-git-list-files.c			\
+	giggle-git-lits-files.h			\
 	giggle-git-read-config.c		\
 	giggle-git-read-config.h		\
 	giggle-git-refs.c			\
@@ -145,9 +147,11 @@ test_file_list_SOURCES =			\
 	giggle-sysdeps.c			\
 	giggle-git.c				\
 	giggle-git-commit.c			\
+	giggle-git-add.c			\
 	giggle-git-diff.c			\
 	giggle-git-diff-tree.c			\
 	giggle-git-diff-tree.h			\
+	giggle-git-list-files.c			\
 	giggle-job.c				\
 	giggle-file-list.c			\
 	giggle-git-ignore.c			\
