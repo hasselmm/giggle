@@ -202,7 +202,8 @@ diff_window_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
-		/* FIXME: Should tell GiggleGit to update */
+		/* Tell GiggleGit listeners to update */
+		g_object_notify (G_OBJECT (priv->git), "git-dir");
 	}
 
 	g_object_unref (priv->job);
