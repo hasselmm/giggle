@@ -93,6 +93,7 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	priv->git = giggle_git_get ();
 
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (diff_view), FALSE);
+	gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (diff_view), FALSE);
 
 	font_desc = pango_font_description_from_string ("monospace");
 	gtk_widget_modify_font (GTK_WIDGET (diff_view), font_desc);
