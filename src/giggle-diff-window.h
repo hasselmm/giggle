@@ -47,6 +47,8 @@ struct GiggleDiffWindowClass {
 GType              giggle_diff_window_get_type          (void);
 GtkWidget *        giggle_diff_window_new               (void);
 
+void               giggle_diff_window_set_files         (GiggleDiffWindow *window,
+							 GList            *files);
 
 G_END_DECLS
 
