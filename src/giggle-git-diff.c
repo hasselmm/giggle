@@ -172,7 +172,7 @@ git_diff_set_property (GObject      *object,
 #if GLIB_MAJOR_VERSION > 2 || GLIB_MINOR_VERSION > 12
 		priv->rev2 = g_value_dup_object (value);
 #else
-		priv->rev1 = GIGGLE_REVISION (g_value_dup_object (value));
+		priv->rev2 = GIGGLE_REVISION (g_value_dup_object (value));
 #endif
 		break;
 	case PROP_FILES:
