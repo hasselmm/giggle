@@ -119,7 +119,7 @@ personal_details_configuration_changed_cb (GiggleConfiguration *configuration,
 		return;
 	}
 
-	g_object_get (G_OBJECT (window), "transient-for", &parent, NULL);
+	g_object_get (window, "transient-for", &parent, NULL);
 	dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
 					 GTK_DIALOG_MODAL,
 					 GTK_MESSAGE_ERROR,
@@ -170,7 +170,7 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 	if (!success) {
 		GtkWidget *dialog, *parent;
 
-		g_object_get (G_OBJECT (window), "transient-for", &parent, NULL);
+		g_object_get (window, "transient-for", &parent, NULL);
 		gtk_widget_hide (GTK_WIDGET (window));
 
 		dialog = gtk_message_dialog_new (GTK_WINDOW (parent),

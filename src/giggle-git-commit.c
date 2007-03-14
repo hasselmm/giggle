@@ -195,7 +195,7 @@ giggle_git_commit_set_files (GiggleGitCommit *commit,
 {
 	g_return_if_fail (GIGGLE_IS_GIT_COMMIT (commit));
 
-	g_object_set (G_OBJECT (commit),
+	g_object_set (commit,
 		      "files", files,
 		      NULL);
 }

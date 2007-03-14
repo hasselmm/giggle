@@ -120,9 +120,9 @@ giggle_description_editor_init (GiggleDescriptionEditor *editor)
 	gtk_box_set_spacing (GTK_BOX (editor), 6);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (description_editor_update), editor);
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::description",
+	g_signal_connect_swapped (priv->git, "notify::description",
 				  G_CALLBACK (description_editor_update), editor);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -138,7 +138,7 @@ giggle_description_editor_init (GiggleDescriptionEditor *editor)
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->textview);
 
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->textview));
-	g_signal_connect_swapped (G_OBJECT (buffer), "modified-changed",
+	g_signal_connect_swapped (buffer, "modified-changed",
 				  G_CALLBACK (description_editor_modified_changed_cb), editor);
 
 	buttonbox = gtk_hbutton_box_new ();
@@ -150,14 +150,14 @@ giggle_description_editor_init (GiggleDescriptionEditor *editor)
 	gtk_widget_show (priv->save);
 	gtk_widget_set_sensitive (priv->save, FALSE);
 	gtk_box_pack_start (GTK_BOX (buttonbox), priv->save, FALSE, FALSE, 0);
-	g_signal_connect_swapped (G_OBJECT (priv->save), "clicked",
+	g_signal_connect_swapped (priv->save, "clicked",
 				  G_CALLBACK (description_editor_save), editor);
 
 	priv->restore = gtk_button_new_from_stock (GTK_STOCK_REVERT_TO_SAVED);
 	gtk_widget_show (priv->restore);
 	gtk_widget_set_sensitive (priv->restore, FALSE);
 	gtk_box_pack_start (GTK_BOX (buttonbox), priv->restore, FALSE, FALSE, 0);
-	g_signal_connect_swapped (G_OBJECT (priv->restore), "clicked",
+	g_signal_connect_swapped (priv->restore, "clicked",
 				  G_CALLBACK (description_editor_update), editor);
 
 	description_editor_update (editor);

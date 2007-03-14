@@ -139,7 +139,7 @@ giggle_branches_view_init (GiggleBranchesView *view)
 	priv = GET_PRIV (view);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (branches_view_update), view);
 
 	branches_view_update (view);

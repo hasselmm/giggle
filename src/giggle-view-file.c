@@ -104,7 +104,7 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	priv->file_list = giggle_file_list_new ();
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->file_list));
-	g_signal_connect (G_OBJECT (selection), "changed",
+	g_signal_connect (selection, "changed",
 			  G_CALLBACK (view_file_selection_changed_cb), view);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->file_list);
@@ -119,7 +119,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
 	priv->revision_list = giggle_revision_list_new ();
-	g_signal_connect (G_OBJECT (priv->revision_list), "selection-changed",
+	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_file_revision_list_selection_changed_cb), view);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);

@@ -454,7 +454,7 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 						   "gtk-info", 16, 0, NULL);
 	}
 
-	g_object_set (G_OBJECT (cell),
+	g_object_set (cell,
 		      "pixbuf", pixbuf,
 		      NULL);
 

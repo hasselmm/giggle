@@ -238,7 +238,7 @@ giggle_git_diff_set_revisions (GiggleGitDiff  *diff,
 	g_return_if_fail (GIGGLE_IS_REVISION (rev1));
 	g_return_if_fail (GIGGLE_IS_REVISION (rev2));
 
-	g_object_set (G_OBJECT (diff),
+	g_object_set (diff,
 		      "revision1", rev1,
 		      "revision2", rev2,
 		      NULL);
@@ -250,7 +250,7 @@ giggle_git_diff_set_files (GiggleGitDiff *diff,
 {
 	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
 
-	g_object_set (G_OBJECT (diff),
+	g_object_set (diff,
 		      "files", files,
 		      NULL);
 }

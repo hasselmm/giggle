@@ -163,7 +163,7 @@ giggle_git_add_set_files (GiggleGitAdd *add,
 {
 	g_return_if_fail (GIGGLE_IS_GIT_ADD (add));
 
-	g_object_set (G_OBJECT (add),
+	g_object_set (add,
 		      "files", files,
 		      NULL);
 }

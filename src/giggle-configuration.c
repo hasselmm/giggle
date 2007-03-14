@@ -244,7 +244,7 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	/* FIXME: valid for the parameters that we manage currently,
 	 * but should be figured out per parameter.
 	 */
-	g_object_set (G_OBJECT (job), "global", TRUE, NULL);
+	g_object_set (job, "global", TRUE, NULL);
 
 	task = g_new0 (GiggleConfigurationTask, 1);
 	task->func = func;
