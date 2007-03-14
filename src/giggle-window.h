@@ -42,6 +42,7 @@ struct GiggleWindow {
 
 struct GiggleWindowClass {
 	GtkWindowClass parent_class;
+	void (*quitting) (GiggleWindow *window);
 };
 
 GType		   giggle_window_get_type      (void);

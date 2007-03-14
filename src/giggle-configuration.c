@@ -30,6 +30,8 @@
 static const gchar *fields[] = {
 	"user.name",
 	"user.email",
+	"giggle.main-window-geometry",
+	"giggle.compact-mode",
 	NULL
 };
 
@@ -151,7 +153,9 @@ configuration_write_callback (GiggleGit *git,
 	task = (GiggleConfigurationTask *) user_data;
 
 	success = (error == NULL);
-	(task->func) (task->configuration, success, task->data);
+	if (task->func) {
+		(task->func) (task->configuration, success, task->data);
+	}
 
 	g_signal_emit (task->configuration, signals[CHANGED], 0);
 }

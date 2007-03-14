@@ -1,4 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* vim: ts=8 sw=8 noet */
 /*
  * Copyright (C) 2007 Imendio AB
  *
@@ -22,6 +23,7 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "giggle-window.h"
 #include "giggle-git.h"
@@ -31,6 +33,7 @@
 #include "giggle-view-file.h"
 #include "giggle-searchable.h"
 #include "giggle-diff-window.h"
+#include "giggle-configuration.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -55,12 +58,21 @@ struct GiggleWindowPriv {
 
 	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
+
+	GiggleConfiguration *configuration;
 };
 
 enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
+
+enum {
+	QUITTING,
+	LAST_SIGNAL
+};
+
+static guint signals [LAST_SIGNAL] = { 0, };
 
 
 static void window_finalize                       (GObject           *object);
@@ -100,6 +112,9 @@ static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
+
+static void window_quitting                       (GiggleWindow      *window);
+
 
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
@@ -191,14 +206,25 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define RECENT_FILES_GROUP "giggle"
 #define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
 #define FIND_PATH "/ui/MainMenubar/EditMenu/Find"
+#define COMPACT_MODE "/ui/MainMenubar/ViewMenu/CompactMode"
 #define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = window_finalize;
+	class->quitting = window_quitting;
+
+	signals[QUITTING] =
+		g_signal_new ("quitting",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleWindowClass, quitting),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -276,6 +302,118 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
+static guint config_writes_remaining = 0;
+
+static void
+on_configuration_data_set (GiggleConfiguration *configuration,
+			   gboolean             success,
+			   gpointer             user_data)
+{
+	if (!success) {
+		g_warning ("Unable to set configuration data");
+	}
+	if ((--config_writes_remaining == 0) && user_data) {
+		g_return_if_fail (GIGGLE_IS_WINDOW (user_data));
+		GiggleWindow *window = GIGGLE_WINDOW (user_data);
+		g_signal_emit (window, signals[QUITTING], 0);
+	}
+}
+
+static void
+save_state_and_exit (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean compact;
+	gint w, h, x, y;
+	gchar buf[25];
+
+	priv = GET_PRIV (window);
+	g_assert (priv);
+
+	gtk_window_get_size (GTK_WINDOW (window), &w, &h);
+	gtk_window_get_position (GTK_WINDOW (window), &x, &y);
+
+	/* Because of the asynchronous nature of GiggleConfiguration writes, we
+	 * can't actually exit at the end of this function, although that is the
+	 * goal.  Instead, we delegate the 'quitting' to the set_field callback
+	 * functions
+	 */
+	config_writes_remaining++;
+	g_snprintf (buf, 25, "%dx%d+%d+%d", w, h, x, y);
+	giggle_configuration_set_field (priv->configuration,
+				       CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf,
+				       on_configuration_data_set, NULL);
+
+	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
+	config_writes_remaining++;
+	giggle_configuration_set_field (priv->configuration,
+				       CONFIG_FIELD_COMPACT_MODE,
+				       compact ? "true" : "false",
+				       on_configuration_data_set,
+				       window);
+}
+
+static void
+window_quitting (GiggleWindow *window)
+{
+	gtk_main_quit ();
+}
+
+static gboolean
+window_delete_event_cb (GtkWidget *widget,
+			GdkEvent  *event,
+			gpointer   user_data)
+{
+	save_state_and_exit (GIGGLE_WINDOW (widget));
+	return TRUE;
+}
+
+static void
+window_bind_state (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkAction *action;
+	const char *geom_str, *compact_str;
+	gboolean compact = FALSE, found_geometry = FALSE;
+
+	priv = GET_PRIV (window);
+	g_assert (priv->configuration);
+
+	compact_str = giggle_configuration_get_field (priv->configuration, CONFIG_FIELD_COMPACT_MODE);
+	if (compact_str) {
+		compact = strcmp (compact_str, "true") == 0;
+	}
+	/* set the toggle menu item to indicate the current compact setting */
+	action = gtk_ui_manager_get_action (priv->ui_manager, COMPACT_MODE);
+	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), compact);
+	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), compact);
+
+	geom_str = giggle_configuration_get_field (priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
+	if (geom_str) {
+		found_geometry = gtk_window_parse_geometry (GTK_WINDOW (window), geom_str);
+	}
+
+	if (!found_geometry) {
+		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
+	}
+
+	gtk_widget_show (GTK_WIDGET (window));
+
+	/* set up a callback to save the new UI state on application exit */
+	g_signal_connect (GTK_WINDOW (window), "delete-event",
+			  G_CALLBACK (window_delete_event_cb), NULL);
+}
+
+static void on_configuration_updated (GiggleConfiguration *configuration,
+				      gboolean             success,
+				      gpointer             user_data)
+{
+	if (success) {
+		GiggleWindow* win = GIGGLE_WINDOW (user_data);
+		window_bind_state (win);
+	}
+}
+
 static void
 giggle_window_init (GiggleWindow *window)
 {
@@ -284,6 +422,7 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_get ();
+	priv->configuration = giggle_configuration_new ();
 
 	g_signal_connect (priv->git,
 			  "notify::directory",
@@ -360,6 +499,7 @@ giggle_window_init (GiggleWindow *window)
 				  priv->summary_view,
 				  gtk_label_new (_("Summary")));
 
+	giggle_configuration_update (priv->configuration, on_configuration_updated, window);
 }
 
 static void
@@ -530,7 +670,7 @@ static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-	gtk_main_quit ();
+    save_state_and_exit (window);
 }
 
 static void

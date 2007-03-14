@@ -54,6 +54,8 @@ struct GiggleViewHistoryPriv {
 
 	GiggleGit *git;
 	GiggleJob *job;
+
+	gboolean   compact_mode;
 };
 
 static void     view_history_finalize              (GObject *object);
@@ -110,6 +112,8 @@ giggle_view_history_init (GiggleViewHistory *view)
 	GtkWidget             *scrolled_window;
 
 	priv = GET_PRIV (view);
+
+	priv->compact_mode = FALSE;
 
 	gtk_widget_push_composite_child ();
 
@@ -492,4 +496,16 @@ giggle_view_history_set_compact_mode (GiggleViewHistory *view,
 	giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (priv->file_list), compact_mode);
 	giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (priv->revision_list), compact_mode);
 	giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (priv->diff_view), compact_mode);
+	priv->compact_mode = compact_mode;
+}
+
+gboolean
+giggle_view_history_get_compact_mode  (GiggleViewHistory *view)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_HISTORY (view), FALSE);
+
+	priv = GET_PRIV (view);
+	return priv->compact_mode;
 }
