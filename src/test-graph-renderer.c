@@ -112,7 +112,7 @@ main (int argc, char *argv[])
 	window = create_main_window ();
 	gtk_widget_show_all (window);
 
-	g_signal_connect (G_OBJECT (window), "delete-event",
+	g_signal_connect (window, "delete-event",
 			  G_CALLBACK (gtk_main_quit), NULL);
 	gtk_main ();
 	return 0;

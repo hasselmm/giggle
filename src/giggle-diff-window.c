@@ -120,7 +120,7 @@ giggle_diff_window_init (GiggleDiffWindow *diff_window)
 	gtk_widget_show_all (vbox);
 	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (diff_window)->vbox), vbox);
 
-	g_object_set (G_OBJECT (diff_window),
+	g_object_set (diff_window,
 		      "has-separator", FALSE,
 		      NULL);
 

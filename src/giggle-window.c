@@ -473,11 +473,11 @@ giggle_window_init (GiggleWindow *window)
 	priv->find_bar = egg_find_bar_new ();
 	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
 
-	g_signal_connect (G_OBJECT (priv->find_bar), "close",
+	g_signal_connect (priv->find_bar, "close",
 			  G_CALLBACK (gtk_widget_hide), NULL);
-	g_signal_connect (G_OBJECT (priv->find_bar), "next",
+	g_signal_connect (priv->find_bar, "next",
 			  G_CALLBACK (window_find_next), window);
-	g_signal_connect (G_OBJECT (priv->find_bar), "previous",
+	g_signal_connect (priv->find_bar, "previous",
 			  G_CALLBACK (window_find_previous), window);
 
 	/* personal details window */
@@ -485,7 +485,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
 				      GTK_WINDOW (window));
-	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
+	g_signal_connect_after (priv->personal_details_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
 	/* diff current window */
@@ -493,7 +493,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
 				      GTK_WINDOW (window));
-	g_signal_connect_after (G_OBJECT (priv->diff_current_window), "response",
+	g_signal_connect_after (priv->diff_current_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
 	/* append history view */

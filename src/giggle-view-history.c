@@ -198,9 +198,9 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
 	priv->revision_list = giggle_revision_list_new ();
-	g_signal_connect (G_OBJECT (priv->revision_list), "selection-changed",
+	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_history_revision_list_selection_changed_cb), view);
-	g_signal_connect (G_OBJECT (priv->revision_list), "key-press-event",
+	g_signal_connect (priv->revision_list, "key-press-event",
 			  G_CALLBACK (view_history_revision_list_key_press_cb), view);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
@@ -238,7 +238,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	/* git interaction */
 	priv->git = giggle_git_get ();
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (view_history_update_revisions), view);
 	view_history_update_revisions (view);
 }
@@ -314,7 +314,7 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 
 		value = CLAMP (value, adj->lower, adj->upper - adj->page_size);
 
-		g_object_set (G_OBJECT (adj), "value", value, NULL);
+		g_object_set (adj, "value", value, NULL);
 
 		return TRUE;
 	}

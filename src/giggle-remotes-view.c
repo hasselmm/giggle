@@ -222,7 +222,7 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 				 GTK_TREE_MODEL (priv->store));
 
 	priv->git = giggle_git_get ();
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::remotes",
+	g_signal_connect_swapped (priv->git, "notify::remotes",
 				  G_CALLBACK (remotes_view_update), view);
 
 	remotes_view_update (view);

@@ -197,9 +197,9 @@ giggle_file_list_init (GiggleFileList *list)
 	priv = GET_PRIV (list);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect (G_OBJECT (priv->git), "notify::project-dir",
+	g_signal_connect (priv->git, "notify::project-dir",
 			  G_CALLBACK (file_list_directory_changed), list);
-	g_signal_connect_swapped (G_OBJECT (priv->git), "notify::git-dir",
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (file_list_managed_files_changed), list);
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
@@ -276,7 +276,7 @@ giggle_file_list_init (GiggleFileList *list)
 	/* create diff window */
 	priv->diff_window = giggle_diff_window_new ();
 
-	g_signal_connect_after (G_OBJECT (priv->diff_window), "response",
+	g_signal_connect_after (priv->diff_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 }
 
@@ -1030,9 +1030,9 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 	if (GTK_IS_CELL_RENDERER_TEXT (renderer)) {
 		state = (value) ? GTK_STATE_NORMAL : GTK_STATE_INSENSITIVE;
 		color = GTK_WIDGET (list)->style->text [state];
-		g_object_set (G_OBJECT (renderer), "foreground-gdk", &color, NULL);
+		g_object_set (renderer, "foreground-gdk", &color, NULL);
 	} else {
-		g_object_set (G_OBJECT (renderer), "sensitive", value, NULL);
+		g_object_set (renderer, "sensitive", value, NULL);
 	}
 
 	if (git_ignore) {
