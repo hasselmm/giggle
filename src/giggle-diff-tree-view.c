@@ -42,7 +42,16 @@ enum {
 	N_COLUMNS
 };
 
-static void diff_tree_view_finalize                (GObject *object);
+enum {
+	PATH_SELECTED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0, };
+
+static void      diff_tree_view_finalize           (GObject        *object);
+static gboolean  diff_tree_view_button_press       (GtkWidget      *widget,
+						    GdkEventButton *event);
 
 
 G_DEFINE_TYPE (GiggleDiffTreeView, giggle_diff_tree_view, GTK_TYPE_TREE_VIEW)
@@ -53,9 +62,21 @@ G_DEFINE_TYPE (GiggleDiffTreeView, giggle_diff_tree_view, GTK_TYPE_TREE_VIEW)
 static void
 giggle_diff_tree_view_class_init (GiggleDiffTreeViewClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = diff_tree_view_finalize;
+	widget_class->button_press_event = diff_tree_view_button_press;
+
+	signals[PATH_SELECTED] =
+		g_signal_new ("path-selected",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleDiffTreeViewClass, path_selected),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__STRING,
+			      G_TYPE_NONE,
+			      1, G_TYPE_STRING);
 
 	g_type_class_add_private (object_class, sizeof (GiggleDiffTreeViewPriv));
 }
@@ -146,6 +167,28 @@ diff_tree_view_finalize (GObject *object)
 	G_OBJECT_CLASS (giggle_diff_tree_view_parent_class)->finalize (object);
 }
 
+static gboolean
+diff_tree_view_button_press (GtkWidget      *widget,
+			     GdkEventButton *event)
+{
+	gchar *path;
+
+	GTK_WIDGET_CLASS (giggle_diff_tree_view_parent_class)->button_press_event (widget, event);
+
+	if (event->button == 1 &&
+	    event->type == GDK_2BUTTON_PRESS) {
+		path = giggle_diff_tree_view_get_selection (GIGGLE_DIFF_TREE_VIEW (widget));
+
+		if (path) {
+			g_signal_emit (widget, signals[PATH_SELECTED], 0, path);
+		}
+
+		g_free (path);
+	}
+
+	return FALSE;
+}
+
 GtkWidget *
 giggle_diff_tree_view_new (void)
 {
@@ -180,3 +223,23 @@ giggle_diff_tree_view_set_revisions (GiggleDiffTreeView *view,
 			    view);
 }
 
+gchar *
+giggle_diff_tree_view_get_selection (GiggleDiffTreeView *view)
+{
+	GtkTreeSelection       *selection;
+	GtkTreeModel           *model;
+	GtkTreeIter             iter;
+	gchar                  *file = NULL;
+
+	g_return_val_if_fail (GIGGLE_IS_DIFF_TREE_VIEW (view), NULL);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (view));
+
+	if (gtk_tree_selection_get_selected (selection, &model, &iter)) {
+		gtk_tree_model_get (model, &iter,
+				    COL_PATH, &file,
+				    -1);
+	}
+
+	return file;
+}

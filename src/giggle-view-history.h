@@ -53,6 +53,7 @@ void               giggle_view_history_set_compact_mode  (GiggleViewHistory *vie
 							  gboolean           compact_mode);
 gboolean           giggle_view_history_get_compact_mode  (GiggleViewHistory *view);
 
+
 G_END_DECLS
 
 #endif /* __GIGGLE_VIEW_HISTORY_H__ */

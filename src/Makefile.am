@@ -69,6 +69,8 @@ giggle_SOURCES =				\
 	giggle-git-write-config.h		\
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
+	giggle-history.c			\
+	giggle-history.h			\
 	giggle-job.c                            \
 	giggle-job.h                            \
 	giggle-personal-details-window.c	\
