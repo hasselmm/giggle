@@ -180,7 +180,7 @@ diff_tree_view_button_press (GtkWidget      *widget,
 		path = giggle_diff_tree_view_get_selection (GIGGLE_DIFF_TREE_VIEW (widget));
 
 		if (path) {
-			g_signal_emit (widget, signals[PATH_SELECTED], 0);
+			g_signal_emit (widget, signals[PATH_SELECTED], 0, path);
 		}
 
 		g_free (path);

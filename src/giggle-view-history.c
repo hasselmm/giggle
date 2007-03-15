@@ -34,6 +34,7 @@
 #include "giggle-diff-view.h"
 #include "giggle-diff-tree-view.h"
 #include "giggle-searchable.h"
+#include "giggle-history.h"
 
 typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
@@ -55,12 +56,17 @@ struct GiggleViewHistoryPriv {
 	GiggleGit *git;
 	GiggleJob *job;
 
-	gboolean   compact_mode;
+	GList     *history; /* reversed list of history elems */
+	GList     *current_history_elem;
+
+	gboolean   compact_mode : 1;
 };
 
 static void     view_history_finalize              (GObject *object);
 
 static void     giggle_view_history_searchable_init             (GiggleSearchableIface *iface);
+static void     giggle_view_history_history_init                (GiggleHistoryIface    *iface);
+
 static void     view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 								 GiggleRevision     *revision1,
 								 GiggleRevision     *revision2,
@@ -75,10 +81,21 @@ static gboolean view_history_search                             (GiggleSearchabl
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
+static void     view_history_diff_tree_path_selected            (GiggleDiffTreeView *diff_tree_view,
+								 const gchar        *path,
+								 GiggleViewHistory  *view);
+
+static void     view_history_go_back                            (GiggleHistory      *history);
+static gboolean view_history_can_go_back                        (GiggleHistory      *history);
+static void     view_history_go_forward                         (GiggleHistory      *history);
+static gboolean view_history_can_go_forward                     (GiggleHistory      *history);
+
 
 G_DEFINE_TYPE_WITH_CODE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
-						giggle_view_history_searchable_init))
+						giggle_view_history_searchable_init)
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_HISTORY,
+						giggle_view_history_history_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_HISTORY, GiggleViewHistoryPriv))
 
@@ -102,6 +119,15 @@ static void
 giggle_view_history_searchable_init (GiggleSearchableIface *iface)
 {
 	iface->search = view_history_search;
+}
+
+static void
+giggle_view_history_history_init (GiggleHistoryIface *iface)
+{
+	iface->go_back = view_history_go_back;
+	iface->can_go_back = view_history_can_go_back;
+	iface->go_forward = view_history_go_forward;
+	iface->can_go_forward = view_history_can_go_forward;
 }
 
 static void
@@ -145,6 +171,9 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_tree_view);
 	gtk_paned_pack2 (GTK_PANED (priv->revision_hpaned), scrolled_window, FALSE, FALSE);
 	gtk_widget_show_all (scrolled_window);
+
+	g_signal_connect (priv->diff_tree_view, "path-selected",
+			  G_CALLBACK (view_history_diff_tree_path_selected), view);
 
 	vbox = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox);
@@ -227,7 +256,12 @@ view_history_finalize (GObject *object)
 		priv->job = NULL;
 	}
 
+	g_list_foreach (priv->history, (GFunc) g_free, NULL);
+	g_list_free (priv->history);
+
 	g_object_unref (priv->git);
+
+	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
 }
 
 static void
@@ -237,15 +271,21 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 						 GiggleViewHistory  *view)
 {
 	GiggleViewHistoryPriv *priv;
+	GList                 *files;
 
 	priv = GET_PRIV (view);
+	files = NULL;
 
 	giggle_revision_view_set_revision (
 		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
 
 	if (revision1 && revision2) {
+		if (priv->current_history_elem) {
+			files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
+		}
+
 		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
-						revision1, revision2, NULL);
+						revision1, revision2, files);
 		giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
 						     revision1, revision2);
 	}
@@ -451,6 +491,8 @@ view_history_get_revisions_cb (GiggleGit    *git,
 				    priv->job,
 				    view_history_get_branches_cb,
 				    view);
+
+		giggle_history_changed (GIGGLE_HISTORY (view));
 	}
 }
 
@@ -458,6 +500,7 @@ static void
 view_history_update_revisions (GiggleViewHistory  *view)
 {
 	GiggleViewHistoryPriv *priv;
+	GList                 *files;
 
 	priv = GET_PRIV (view);
 
@@ -469,12 +512,50 @@ view_history_update_revisions (GiggleViewHistory  *view)
 		priv->job = NULL;
 	}
 
-	priv->job = giggle_git_revisions_new ();
+	if (priv->current_history_elem) {
+		/* we just want one file */
+		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
+		priv->job = giggle_git_revisions_new_for_files (files);
+	} else {
+		priv->job = giggle_git_revisions_new ();
+	}
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
 			    view_history_get_revisions_cb,
 			    view);
+}
+
+static void
+view_history_diff_tree_path_selected (GiggleDiffTreeView *diff_tree_view,
+				      const gchar        *path,
+				      GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv *priv;
+	GList                 *list = NULL;
+
+	priv = GET_PRIV (view);
+
+	if (priv->current_history_elem) {
+		list = priv->current_history_elem;
+
+		if (list->prev) {
+			/* unlink from the first elements */
+			list->prev->next = NULL;
+			list->prev = NULL;
+
+			g_list_foreach (priv->history, (GFunc) g_free, NULL);
+			g_list_free (priv->history);
+		}
+	} else {
+		g_list_foreach (priv->history, (GFunc) g_free, NULL);
+		g_list_free (priv->history);
+	}
+
+	list = g_list_prepend (list, g_strdup (path));
+	priv->history = priv->current_history_elem = list;
+
+	view_history_update_revisions (view);
 }
 
 GtkWidget *
@@ -508,4 +589,63 @@ giggle_view_history_get_compact_mode  (GiggleViewHistory *view)
 
 	priv = GET_PRIV (view);
 	return priv->compact_mode;
+}
+
+static void
+view_history_go_back (GiggleHistory *history)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (history);
+
+	if (priv->current_history_elem) {
+		priv->current_history_elem = priv->current_history_elem->next;
+		giggle_history_changed (history);
+		view_history_update_revisions (GIGGLE_VIEW_HISTORY (history));
+	}
+}
+
+static gboolean
+view_history_can_go_back (GiggleHistory *history)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (history);
+
+	return (priv->current_history_elem != NULL ||
+		g_list_length (priv->history) > 2);
+}
+
+static void
+view_history_go_forward (GiggleHistory *history)
+{
+	GiggleViewHistoryPriv *priv;
+	gboolean               changed = FALSE;
+
+	priv = GET_PRIV (history);
+
+	if (!priv->current_history_elem) {
+		/* go to the last one in list (first in history) */
+		priv->current_history_elem = g_list_last (priv->history);
+		changed = TRUE;
+	} else if (priv->current_history_elem != priv->history) {
+		priv->current_history_elem = priv->current_history_elem->prev;
+		changed = TRUE;
+	}
+
+	if (changed) {
+		view_history_update_revisions (GIGGLE_VIEW_HISTORY (history));
+		giggle_history_changed (history);
+	}
+}
+
+static gboolean
+view_history_can_go_forward (GiggleHistory *history)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (history);
+
+	return (priv->current_history_elem != priv->history ||
+		g_list_length (priv->history) > 2);
 }

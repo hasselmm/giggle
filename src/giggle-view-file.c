@@ -160,6 +160,8 @@ view_file_finalize (GObject *object)
 	GiggleViewFilePriv *priv;
 
 	priv = GET_PRIV (object);
+
+	G_OBJECT_CLASS (giggle_view_file_parent_class)->finalize (object);
 }
 
 static void
