@@ -276,6 +276,8 @@ giggle_file_list_init (GiggleFileList *list)
 	/* create diff window */
 	priv->diff_window = giggle_diff_window_new ();
 
+	g_signal_connect (priv->diff_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 	g_signal_connect_after (priv->diff_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 }
