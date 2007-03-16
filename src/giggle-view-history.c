@@ -344,6 +344,9 @@ view_history_search (GiggleSearchable      *searchable,
 		 * revision description, expand it
 		 */
 		gtk_expander_set_expanded (GTK_EXPANDER (priv->revision_view_expander), TRUE);
+	} else if (giggle_searchable_search (GIGGLE_SEARCHABLE (priv->diff_view),
+					     search_term, direction, full_search)) {
+		gtk_expander_set_expanded (GTK_EXPANDER (priv->diff_view_expander), TRUE);
 	}
 
 	return TRUE;
