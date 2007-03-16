@@ -1,5 +1,6 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* vim: ts=8 sw=8 noet */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- *
+ * vim: ts=8 sw=8 noet
+ */
 /*
  * Copyright (C) 2007 Imendio AB
  *
@@ -485,6 +486,8 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
 				      GTK_WINDOW (window));
+	g_signal_connect (priv->personal_details_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 	g_signal_connect_after (priv->personal_details_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
@@ -493,6 +496,8 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
 				      GTK_WINDOW (window));
+	g_signal_connect (priv->diff_current_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 	g_signal_connect_after (priv->diff_current_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 

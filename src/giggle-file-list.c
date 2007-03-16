@@ -87,7 +87,7 @@ static gint       file_list_compare_func        (GtkTreeModel   *model,
 						 GtkTreeIter    *b,
 						 gpointer        user_data);
 
-static gboolean   file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
+static gboolean   file_list_get_path_and_ignore_for_iter (GiggleFileList   *list,
 							  GtkTreeIter      *iter,
 							  gchar           **name,
 							  GiggleGitIgnore **git_ignore);
@@ -276,6 +276,8 @@ giggle_file_list_init (GiggleFileList *list)
 	/* create diff window */
 	priv->diff_window = giggle_diff_window_new ();
 
+	g_signal_connect (priv->diff_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 	g_signal_connect_after (priv->diff_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 }
@@ -357,7 +359,7 @@ file_list_button_press (GtkWidget      *widget,
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
 	gboolean            add, ignore, unignore;
-	gchar              *name;
+	gchar              *path;
 	GiggleGitIgnore    *git_ignore;
 	GtkAction          *action;
 	GtkTreeSelection   *selection;
@@ -382,15 +384,15 @@ file_list_button_press (GtkWidget      *widget,
 					    COL_MANAGED, &add,
 					    -1);
 
-			if (file_list_get_name_and_ignore_for_iter (list, &iter, &name, &git_ignore)) {
-				if (giggle_git_ignore_name_matches (git_ignore, name)) {
+			if (file_list_get_path_and_ignore_for_iter (list, &iter, &path, &git_ignore)) {
+				if (giggle_git_ignore_path_matches (git_ignore, path)) {
 					unignore = TRUE;
 				} else {
 					ignore = TRUE;
 				}
 
 				g_object_unref (git_ignore);
-				g_free (name);
+				g_free (path);
 			}
 		}
 
@@ -712,7 +714,7 @@ file_list_add_file (GtkWidget        *widget,
 static gboolean
 file_list_get_ignore_file (GtkTreeModel *model,
 			   GtkTreeIter  *file_iter,
-			   const gchar  *name)
+			   const gchar  *path)
 {
 	GiggleGitIgnore *git_ignore;
 	GtkTreeIter      iter, parent;
@@ -726,7 +728,7 @@ file_list_get_ignore_file (GtkTreeModel *model,
 				    -1);
 
 		if (git_ignore) {
-			matches = giggle_git_ignore_name_matches (git_ignore, name);
+			matches = giggle_git_ignore_path_matches (git_ignore, path);
 			g_object_unref (git_ignore);
 		}
 
@@ -744,35 +746,35 @@ file_list_filter_func (GtkTreeModel   *model,
 {
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
-	gchar              *name;
+	gchar              *path;
 	gboolean            retval = TRUE;
 
 	list = GIGGLE_FILE_LIST (user_data);
 	priv = GET_PRIV (list);
 
 	gtk_tree_model_get (model, iter,
-			    COL_NAME, &name,
+			    COL_REL_PATH, &path,
 			    -1);
-	if (!name) {
+	if (!path) {
 		return FALSE;
 	}
 
 	/* we never want to show these files */
-	if (strcmp (name, ".git") == 0 ||
-	    strcmp (name, ".gitignore") == 0 ||
-	    (!priv->show_all && file_list_get_ignore_file (model, iter, name))) {
+	if (g_str_has_suffix (path, ".git") ||
+	    g_str_has_suffix (path, ".gitignore") ||
+	    (!priv->show_all && file_list_get_ignore_file (model, iter, path))) {
 		retval = FALSE;
 	}
 
-	g_free (name);
+	g_free (path);
 
 	return retval;
 }
 
 static gboolean
-file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
+file_list_get_path_and_ignore_for_iter (GiggleFileList   *list,
 					GtkTreeIter      *iter,
-					gchar           **name,
+					gchar           **path,
 					GiggleGitIgnore **git_ignore)
 {
 	GiggleFileListPriv *priv;
@@ -781,14 +783,14 @@ file_list_get_name_and_ignore_for_iter (GiggleFileList   *list,
 	priv = GET_PRIV (list);
 
 	if (!gtk_tree_model_iter_parent (priv->filter_model, &parent, iter)) {
-		*name = NULL;
+		*path = NULL;
 		*git_ignore = NULL;
 
 		return FALSE;
 	}
 
 	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
-			    COL_NAME, name,
+			    COL_REL_PATH, path,
 			    -1);
 	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
 			    COL_GIT_IGNORE, git_ignore,
@@ -894,13 +896,13 @@ file_list_ignore_file_foreach (GtkTreeModel *model,
 	GiggleGitIgnore *git_ignore;
 	gchar           *name;
 
-	if (!file_list_get_name_and_ignore_for_iter (GIGGLE_FILE_LIST (data),
+	if (!file_list_get_path_and_ignore_for_iter (GIGGLE_FILE_LIST (data),
 						     iter, &name, &git_ignore)) {
 		return;
 	}
 
 	if (git_ignore) {
-		giggle_git_ignore_add_glob (git_ignore, name);
+		giggle_git_ignore_add_glob_for_path (git_ignore, name);
 		g_object_unref (git_ignore);
 	}
 
@@ -923,22 +925,22 @@ file_list_ignore_file (GtkWidget      *widget,
 
 static void
 file_list_unignore_file_foreach (GtkTreeModel *model,
-				 GtkTreePath  *path,
+				 GtkTreePath  *tree_path,
 				 GtkTreeIter  *iter,
 				 gpointer      data)
 {
 	GiggleFileList  *list;
 	GiggleGitIgnore *git_ignore;
-	gchar           *name;
+	gchar           *path;
 
 	list = GIGGLE_FILE_LIST (data);
 
-	if (!file_list_get_name_and_ignore_for_iter (list, iter, &name, &git_ignore)) {
+	if (!file_list_get_path_and_ignore_for_iter (list, iter, &path, &git_ignore)) {
 		return;
 	}
 
 	if (git_ignore) {
-		if (!giggle_git_ignore_remove_glob_for_name (git_ignore, name, TRUE)) {
+		if (!giggle_git_ignore_remove_glob_for_path (git_ignore, path, TRUE)) {
 			GtkWidget *dialog, *toplevel;
 
 			toplevel = gtk_widget_get_toplevel (GTK_WIDGET (list));
@@ -953,7 +955,7 @@ file_list_unignore_file_foreach (GtkTreeModel *model,
 								    "that may be hiding other files, delete it?"));
 
 			if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_YES) {
-				giggle_git_ignore_remove_glob_for_name (git_ignore, name, FALSE);
+				giggle_git_ignore_remove_glob_for_path (git_ignore, path, FALSE);
 			}
 
 			gtk_widget_destroy (dialog);
@@ -962,7 +964,7 @@ file_list_unignore_file_foreach (GtkTreeModel *model,
 		g_object_unref (git_ignore);
 	}
 
-	g_free (name);
+	g_free (path);
 }
 
 static void
@@ -1001,7 +1003,7 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
 	GiggleGitIgnore    *git_ignore = NULL;
-	gchar              *name = NULL;
+	gchar              *path = NULL;
 	gboolean            value = TRUE;
 	GtkTreeIter         parent;
 	GtkStateType        state;
@@ -1011,8 +1013,8 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 	priv = GET_PRIV (list);
 
 	if (priv->show_all) {
-		if (file_list_get_name_and_ignore_for_iter (list, iter, &name, &git_ignore)) {
-			value = ! giggle_git_ignore_name_matches (git_ignore, name);
+		if (file_list_get_path_and_ignore_for_iter (list, iter, &path, &git_ignore)) {
+			value = ! giggle_git_ignore_path_matches (git_ignore, path);
 		} else {
 			/* we don't want the project root being set insensitive */
 			value = ! gtk_tree_model_iter_parent (tree_model, &parent, iter);
@@ -1038,7 +1040,7 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 	if (git_ignore) {
 		g_object_unref (git_ignore);
 	}
-	g_free (name);
+	g_free (path);
 }
 
 GtkWidget *
