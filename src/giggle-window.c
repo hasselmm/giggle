@@ -855,7 +855,7 @@ window_find (GtkWidget             *widget,
 
 	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
 	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-				  search_string, direction);
+				  search_string, direction, FALSE);
 }
 
 static void

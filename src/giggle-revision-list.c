@@ -23,6 +23,9 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
+#include "giggle-git.h"
+#include "giggle-job.h"
+#include "giggle-git-diff.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-revision-tooltip.h"
 #include "giggle-revision-list.h"
@@ -41,8 +44,22 @@ struct GiggleRevisionListPriv {
 
 	GtkWidget         *revision_tooltip;
 
+	GiggleGit         *git;
+	GiggleJob         *job;
+
+	/* used for search inside diffs */
+	GMainLoop         *main_loop;
+
 	gboolean           show_graph : 1;
 	gboolean           compact_mode : 1;
+};
+
+typedef struct RevisionSearchData RevisionSearchData;
+
+struct RevisionSearchData {
+	GMainLoop   *main_loop;
+	const gchar *search_term;
+	gboolean     match;
 };
 
 enum {
@@ -105,7 +122,8 @@ static void revision_list_selection_changed_cb    (GtkTreeSelection  *selection,
 
 static gboolean revision_list_search              (GiggleSearchable      *searchable,
 						   const gchar           *search_term,
-						   GiggleSearchDirection  direction);
+						   GiggleSearchDirection  direction,
+						   gboolean               full_search);
 
 
 G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
@@ -176,6 +194,8 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	priv = GET_PRIV (revision_list);
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
+	priv->git = giggle_git_get ();
+	priv->main_loop = g_main_loop_new (NULL, FALSE);
 
 	priv->graph_column = gtk_tree_view_column_new ();
 	g_object_ref_sink (priv->graph_column);
@@ -273,6 +293,8 @@ revision_list_finalize (GObject *object)
 	g_object_unref (priv->emblem_renderer);
 	g_object_unref (priv->graph_renderer);
 	g_object_unref (priv->revision_tooltip);
+
+	g_main_loop_quit (priv->main_loop);
 
 	G_OBJECT_CLASS (giggle_revision_list_parent_class)->finalize (object);
 }
@@ -676,19 +698,100 @@ revision_property_matches (GiggleRevision *revision,
 	return match;
 }
 
-static gboolean
-revision_matches (GiggleRevision *revision,
-		  const gchar    *search_term)
+static void
+diff_matches_cb (GiggleGit *git,
+		 GiggleJob *job,
+		 GError    *error,
+		 gpointer   user_data)
 {
-	return (revision_property_matches (revision, "author", search_term) ||
-		revision_property_matches (revision, "long-log", search_term) ||
-		revision_property_matches (revision, "sha", search_term));
+	RevisionSearchData *data;
+	const gchar        *diff_str;
+
+	data = (RevisionSearchData *) user_data;
+
+	if (error) {
+		data->match = FALSE;
+	} else {
+		diff_str = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job));
+		data->match = (strstr (diff_str, data->search_term) != NULL);
+	}
+
+	g_main_loop_quit (data->main_loop);
+}
+
+static gboolean
+revision_diff_matches (GiggleRevisionList *list,
+		       GiggleRevision     *revision,
+		       const gchar        *search_term)
+{
+	GiggleRevisionListPriv *priv;
+	GiggleRevision         *parent;
+	GList                  *parents;
+	RevisionSearchData     *data;
+	gboolean                match;
+
+	priv = GET_PRIV (list);
+	parents = giggle_revision_get_parents (revision);
+
+	if (!parents) {
+		return FALSE;
+	}
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	parent = parents->data;
+	priv->job = giggle_git_diff_new ();
+	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (priv->job),
+				       parent, revision);
+
+	data = g_slice_new0 (RevisionSearchData);
+	data->main_loop = g_main_loop_ref (priv->main_loop);
+	data->search_term = search_term;
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    diff_matches_cb,
+			    data);
+
+	/* wait here */
+	g_main_loop_run (data->main_loop);
+
+	/* At this point the match job has already returned */
+	g_main_loop_unref (data->main_loop);
+	match = data->match;
+	g_slice_free (RevisionSearchData, data);
+
+	return match;
+}
+
+static gboolean
+revision_matches (GiggleRevisionList *list,
+		  GiggleRevision     *revision,
+		  const gchar        *search_term,
+		  gboolean            full_search)
+{
+	gboolean match = FALSE;
+
+	match = (revision_property_matches (revision, "author", search_term) ||
+		 revision_property_matches (revision, "long-log", search_term) ||
+		 revision_property_matches (revision, "sha", search_term));
+
+	if (!match && full_search) {
+		match = revision_diff_matches (list, revision, search_term);
+	}
+
+	return match;
 }
 
 static gboolean
 revision_list_search (GiggleSearchable      *searchable,
 		      const gchar           *search_term,
-		      GiggleSearchDirection  direction)
+		      GiggleSearchDirection  direction,
+		      gboolean               full_search)
 {
 	GtkTreeModel     *model;
 	GtkTreeSelection *selection;
@@ -725,7 +828,9 @@ revision_list_search (GiggleSearchable      *searchable,
 		}
 
 		gtk_tree_model_get (model, &iter, 0, &revision, -1);
-		found = revision_matches (revision, search_term);
+		found = revision_matches (GIGGLE_REVISION_LIST (searchable),
+					  revision, search_term, full_search);
+
 		g_object_unref (revision);
 
 		if (!found) {

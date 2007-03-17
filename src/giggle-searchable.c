@@ -51,7 +51,8 @@ giggle_searchable_get_type (void)
 gboolean
 giggle_searchable_search (GiggleSearchable      *searchable,
 			  const gchar           *search_term,
-			  GiggleSearchDirection  direction)
+			  GiggleSearchDirection  direction,
+			  gboolean               full_search)
 {
 	GiggleSearchableIface *iface;
 
@@ -62,7 +63,7 @@ giggle_searchable_search (GiggleSearchable      *searchable,
 	iface = GIGGLE_SEARCHABLE_GET_IFACE (searchable);
 
 	if (iface->search) {
-		return (* iface->search) (searchable, search_term, direction);
+		return (* iface->search) (searchable, search_term, direction, full_search);
 	}
 
 	return FALSE;

@@ -165,6 +165,7 @@ test_file_list_SOURCES =			\
 	giggle-remote-branch.h			\
 	giggle-revision.c			\
 	giggle-revision.h			\
+	giggle-searchable.c			\
 	test-file-list.c
 
 test_file_list_LDADD =				\

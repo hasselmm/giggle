@@ -77,7 +77,8 @@ static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionL
 
 static gboolean view_history_search                             (GiggleSearchable      *searchable,
 								 const gchar           *search_term,
-								 GiggleSearchDirection  direction);
+								 GiggleSearchDirection  direction,
+								 gboolean               full_search);
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
@@ -325,23 +326,27 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 static gboolean
 view_history_search (GiggleSearchable      *searchable,
 		     const gchar           *search_term,
-		     GiggleSearchDirection  direction)
+		     GiggleSearchDirection  direction,
+		     gboolean               full_search)
 {
 	GiggleViewHistoryPriv *priv;
 
 	priv = GET_PRIV (searchable);
 
 	if (!giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_list),
-				       search_term, direction)) {
+				       search_term, direction, full_search)) {
 		return FALSE;
 	}
 
 	if (giggle_searchable_search (GIGGLE_SEARCHABLE (priv->revision_view),
-				      search_term, direction)) {
+				      search_term, direction, full_search)) {
 		/* search term is contained in the
 		 * revision description, expand it
 		 */
 		gtk_expander_set_expanded (GTK_EXPANDER (priv->revision_view_expander), TRUE);
+	} else if (giggle_searchable_search (GIGGLE_SEARCHABLE (priv->diff_view),
+					     search_term, direction, full_search)) {
+		gtk_expander_set_expanded (GTK_EXPANDER (priv->diff_view_expander), TRUE);
 	}
 
 	return TRUE;
