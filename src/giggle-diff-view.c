@@ -28,6 +28,7 @@
 #include "giggle-job.h"
 #include "giggle-git.h"
 #include "giggle-git-diff.h"
+#include "giggle-searchable.h"
 
 typedef struct GiggleDiffViewPriv GiggleDiffViewPriv;
 
@@ -35,9 +36,14 @@ struct GiggleDiffViewPriv {
 	gboolean        compact_mode;
 	GiggleGit      *git;
 
+	GtkTextMark    *search_mark;
+	gchar          *search_term;
+
 	/* last run job */
 	GiggleJob      *job;
 };
+
+static void       giggle_diff_view_searchable_init (GiggleSearchableIface *iface);
 
 static void       diff_view_finalize           (GObject        *object);
 static void       diff_view_get_property       (GObject        *object,
@@ -49,7 +55,15 @@ static void       diff_view_set_property       (GObject        *object,
 						const GValue   *value,
 						GParamSpec     *pspec);
 
-G_DEFINE_TYPE (GiggleDiffView, giggle_diff_view, GTK_TYPE_SOURCE_VIEW)
+static gboolean   diff_view_search             (GiggleSearchable      *searchable,
+						const gchar           *search_term,
+						GiggleSearchDirection  direction,
+						gboolean               full_search);
+
+G_DEFINE_TYPE_WITH_CODE (GiggleDiffView, giggle_diff_view, GTK_TYPE_SOURCE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
+						giggle_diff_view_searchable_init))
+			 
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DIFF_VIEW, GiggleDiffViewPriv))
 
@@ -80,6 +94,12 @@ giggle_diff_view_class_init (GiggleDiffViewClass *class)
 }
 
 static void
+giggle_diff_view_searchable_init (GiggleSearchableIface *iface)
+{
+	iface->search = diff_view_search;
+}
+
+static void
 giggle_diff_view_init (GiggleDiffView *diff_view)
 {
 	GiggleDiffViewPriv        *priv;
@@ -87,12 +107,14 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	GtkTextBuffer             *buffer;
 	GtkSourceLanguage         *language;
 	GtkSourceLanguagesManager *manager;
+	GtkTextIter                iter;
 
 	priv = GET_PRIV (diff_view);
 
 	priv->git = giggle_git_get ();
 
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (diff_view), FALSE);
+	gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (diff_view), FALSE);
 
 	font_desc = pango_font_description_from_string ("monospace");
 	gtk_widget_modify_font (GTK_WIDGET (diff_view), font_desc);
@@ -106,6 +128,11 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 		buffer = GTK_TEXT_BUFFER (gtk_source_buffer_new_with_language (language));
 		gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
 		gtk_text_view_set_buffer (GTK_TEXT_VIEW (diff_view), buffer);
+
+		gtk_text_buffer_get_start_iter (buffer, &iter);
+		priv->search_mark = gtk_text_buffer_create_mark (buffer,
+								 "search-mark",
+								 &iter, FALSE);
 	}
 
 	g_object_unref (manager);
@@ -124,6 +151,7 @@ diff_view_finalize (GObject *object)
 		priv->job = NULL;
 	}
 
+	g_free (priv->search_term);
 	g_object_unref (priv->git);
 
 	G_OBJECT_CLASS (giggle_diff_view_parent_class)->finalize (object);
@@ -170,6 +198,44 @@ diff_view_set_property (GObject      *object,
 	}
 }
 
+static gboolean
+diff_view_do_search (GiggleDiffView *view,
+		     const gchar    *search_term)
+{
+	/* FIXME: there is similar code in GiggleRevisionView */
+	GiggleDiffViewPriv *priv;
+	GtkTextBuffer      *buffer;
+	GtkTextIter         start_iter, end_iter;
+	gchar              *log;
+	const gchar        *p;
+	glong               offset, len;
+	gboolean            match = FALSE;
+
+	priv = GET_PRIV (view);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	gtk_text_buffer_get_bounds (buffer, &start_iter, &end_iter);
+	log = gtk_text_buffer_get_text (buffer, &start_iter, &end_iter, FALSE);
+
+	if ((p = strstr (log, search_term)) != NULL) {
+		match = TRUE;
+		offset = g_utf8_pointer_to_offset (log, p);
+		len = g_utf8_strlen (search_term, -1);
+
+		gtk_text_buffer_get_iter_at_offset (buffer, &start_iter, (gint) offset);
+		gtk_text_buffer_get_iter_at_offset (buffer, &end_iter, (gint) offset + len);
+
+		gtk_text_buffer_select_range (buffer, &start_iter, &end_iter);
+
+		gtk_text_buffer_move_mark (buffer, priv->search_mark, &start_iter);
+		gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (view), priv->search_mark,
+					      0.0, FALSE, 0.5, 0.5);
+	}
+
+	g_free (log);
+	return match;
+}
+
 static void
 diff_view_job_callback (GiggleGit *git,
 			GiggleJob *job,
@@ -199,10 +265,40 @@ diff_view_job_callback (GiggleGit *git,
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
 			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
 			-1);
+
+		if (priv->search_term) {
+			diff_view_do_search (view, priv->search_term);
+			g_free (priv->search_term);
+			priv->search_term = NULL;
+		}
 	}
 
 	g_object_unref (priv->job);
 	priv->job = NULL;
+}
+
+static gboolean
+diff_view_search (GiggleSearchable      *searchable,
+		  const gchar           *search_term,
+		  GiggleSearchDirection  direction,
+		  gboolean               full_search)
+{
+	GiggleDiffViewPriv *priv;
+
+	priv = GET_PRIV (searchable);
+
+	if (priv->job) {
+		/* There's a job running, we want it to
+		 * search after the job has finished,
+		 * it's not what I'd call interactive, but
+		 * good enough for the searching purposes
+		 * of this object.
+		 */
+		priv->search_term = g_strdup (search_term);
+		return TRUE;
+	} else {
+		return diff_view_do_search (GIGGLE_DIFF_VIEW (searchable), search_term);
+	}
 }
 
 GtkWidget *

@@ -1,4 +1,6 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- *
+ * vim: ts=8 sw=8 noet
+ */
 /*
  * Copyright (C) 2007 Imendio AB
  *
@@ -22,6 +24,7 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "giggle-window.h"
 #include "giggle-git.h"
@@ -31,6 +34,8 @@
 #include "giggle-view-file.h"
 #include "giggle-searchable.h"
 #include "giggle-diff-window.h"
+#include "giggle-configuration.h"
+#include "giggle-history.h"
 #include "eggfindbar.h"
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
@@ -44,23 +49,33 @@ struct GiggleWindowPriv {
 	GtkWidget           *history_view;
 	GtkWidget           *file_view;
 
-	/* Menu */
+	/* Menu & toolbar */
 	GtkUIManager        *ui_manager;
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
 
 	GtkWidget           *find_bar;
+	GtkToolItem         *full_search;
 
 	GiggleGit           *git;
 
 	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
+
+	GiggleConfiguration *configuration;
 };
 
 enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
+
+enum {
+	QUITTING,
+	LAST_SIGNAL
+};
+
+static guint signals [LAST_SIGNAL] = { 0, };
 
 
 static void window_finalize                       (GObject           *object);
@@ -85,6 +100,10 @@ static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_compact_mode_cb         (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_history_go_back         (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_history_go_forward      (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
@@ -96,10 +115,17 @@ static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
 						   guint              page_num,
 						   GiggleWindow      *window);
 
+static void window_cancel_find                    (GtkWidget         *widget,
+						   GiggleWindow      *window);
 static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
+
+static void window_quitting                       (GiggleWindow      *window);
+
+static void window_update_toolbar_buttons         (GiggleWindow      *window);
+
 
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
@@ -152,7 +178,17 @@ static const GtkActionEntry action_entries[] = {
 	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
 	  G_CALLBACK (window_action_about_cb)
-	}
+	},
+
+	/* Toolbar items */
+	{ "BackHistory", GTK_STOCK_GO_BACK,
+	  N_("_Back"), NULL, NULL,
+	  G_CALLBACK (window_action_history_go_back)
+	},
+	{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
+	  N_("_Forward"), NULL, NULL,
+	  G_CALLBACK (window_action_history_go_forward)
+	},
 };
 
 static const gchar *ui_layout =
@@ -181,6 +217,10 @@ static const gchar *ui_layout =
 	"      <menuitem action='About'/>"
 	"    </menu>"
 	"  </menubar>"
+	"  <toolbar name='MainToolbar'>"
+	"    <toolitem action='BackHistory'/>"
+	"    <toolitem action='ForwardHistory'/>"
+	"  </toolbar>"
 	"</ui>";
 
 
@@ -191,14 +231,27 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define RECENT_FILES_GROUP "giggle"
 #define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
 #define FIND_PATH "/ui/MainMenubar/EditMenu/Find"
+#define COMPACT_MODE "/ui/MainMenubar/ViewMenu/CompactMode"
 #define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
+#define BACK_HISTORY_PATH "/ui/MainToolbar/BackHistory"
+#define FORWARD_HISTORY_PATH "/ui/MainToolbar/ForwardHistory"
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = window_finalize;
+	class->quitting = window_quitting;
+
+	signals[QUITTING] =
+		g_signal_new ("quitting",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleWindowClass, quitting),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -252,6 +305,38 @@ window_create_menu (GiggleWindow *window)
 	window_recent_repositories_update (window);
 }
 
+static void
+window_create_find_bar (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkToolItem      *separator;
+
+	priv = GET_PRIV (window);
+
+	priv->find_bar = egg_find_bar_new ();
+
+	separator = gtk_separator_tool_item_new ();
+	gtk_widget_show (GTK_WIDGET (separator));
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), separator, -1);
+
+	priv->full_search = gtk_toggle_tool_button_new ();
+	gtk_tool_button_set_label (GTK_TOOL_BUTTON (priv->full_search), _("Search inside _diffs"));
+	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (priv->full_search), TRUE);
+	gtk_tool_item_set_is_important (priv->full_search, TRUE);
+	gtk_widget_show (GTK_WIDGET (priv->full_search));
+
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), priv->full_search, -1);
+
+	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
+
+	g_signal_connect (priv->find_bar, "close",
+			  G_CALLBACK (window_cancel_find), window);
+	g_signal_connect (priv->find_bar, "next",
+			  G_CALLBACK (window_find_next), window);
+	g_signal_connect (priv->find_bar, "previous",
+			  G_CALLBACK (window_find_previous), window);
+}
+
 void
 giggle_window_set_directory (GiggleWindow *window,
 		      const gchar  *directory)
@@ -276,6 +361,118 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
+static guint config_writes_remaining = 0;
+
+static void
+on_configuration_data_set (GiggleConfiguration *configuration,
+			   gboolean             success,
+			   gpointer             user_data)
+{
+	if (!success) {
+		g_warning ("Unable to set configuration data");
+	}
+	if ((--config_writes_remaining == 0) && user_data) {
+		g_return_if_fail (GIGGLE_IS_WINDOW (user_data));
+		GiggleWindow *window = GIGGLE_WINDOW (user_data);
+		g_signal_emit (window, signals[QUITTING], 0);
+	}
+}
+
+static void
+save_state_and_exit (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean compact;
+	gint w, h, x, y;
+	gchar buf[25];
+
+	priv = GET_PRIV (window);
+	g_assert (priv);
+
+	gtk_window_get_size (GTK_WINDOW (window), &w, &h);
+	gtk_window_get_position (GTK_WINDOW (window), &x, &y);
+
+	/* Because of the asynchronous nature of GiggleConfiguration writes, we
+	 * can't actually exit at the end of this function, although that is the
+	 * goal.  Instead, we delegate the 'quitting' to the set_field callback
+	 * functions
+	 */
+	config_writes_remaining++;
+	g_snprintf (buf, 25, "%dx%d+%d+%d", w, h, x, y);
+	giggle_configuration_set_field (priv->configuration,
+				       CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf,
+				       on_configuration_data_set, NULL);
+
+	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
+	config_writes_remaining++;
+	giggle_configuration_set_field (priv->configuration,
+				       CONFIG_FIELD_COMPACT_MODE,
+				       compact ? "true" : "false",
+				       on_configuration_data_set,
+				       window);
+}
+
+static void
+window_quitting (GiggleWindow *window)
+{
+	gtk_main_quit ();
+}
+
+static gboolean
+window_delete_event_cb (GtkWidget *widget,
+			GdkEvent  *event,
+			gpointer   user_data)
+{
+	save_state_and_exit (GIGGLE_WINDOW (widget));
+	return TRUE;
+}
+
+static void
+window_bind_state (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkAction *action;
+	const char *geom_str, *compact_str;
+	gboolean compact = FALSE, found_geometry = FALSE;
+
+	priv = GET_PRIV (window);
+	g_assert (priv->configuration);
+
+	compact_str = giggle_configuration_get_field (priv->configuration, CONFIG_FIELD_COMPACT_MODE);
+	if (compact_str) {
+		compact = strcmp (compact_str, "true") == 0;
+	}
+	/* set the toggle menu item to indicate the current compact setting */
+	action = gtk_ui_manager_get_action (priv->ui_manager, COMPACT_MODE);
+	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), compact);
+	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), compact);
+
+	geom_str = giggle_configuration_get_field (priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
+	if (geom_str) {
+		found_geometry = gtk_window_parse_geometry (GTK_WINDOW (window), geom_str);
+	}
+
+	if (!found_geometry) {
+		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
+	}
+
+	gtk_widget_show (GTK_WIDGET (window));
+
+	/* set up a callback to save the new UI state on application exit */
+	g_signal_connect (GTK_WINDOW (window), "delete-event",
+			  G_CALLBACK (window_delete_event_cb), NULL);
+}
+
+static void on_configuration_updated (GiggleConfiguration *configuration,
+				      gboolean             success,
+				      gpointer             user_data)
+{
+	if (success) {
+		GiggleWindow* win = GIGGLE_WINDOW (user_data);
+		window_bind_state (win);
+	}
+}
+
 static void
 giggle_window_init (GiggleWindow *window)
 {
@@ -284,6 +481,7 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_get ();
+	priv->configuration = giggle_configuration_new ();
 
 	g_signal_connect (priv->git,
 			  "notify::directory",
@@ -304,26 +502,20 @@ giggle_window_init (GiggleWindow *window)
 	gtk_widget_show (priv->main_notebook);
 	gtk_box_pack_start_defaults (GTK_BOX (priv->content_vbox), priv->main_notebook);
 
-	g_signal_connect (priv->main_notebook, "switch-page",
-			  G_CALLBACK (window_notebook_switch_page_cb), window);
+	g_signal_connect_after (priv->main_notebook, "switch-page",
+				G_CALLBACK (window_notebook_switch_page_cb), window);
 
 	/* setup find bar */
-	priv->find_bar = egg_find_bar_new ();
-	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
-
-	g_signal_connect (G_OBJECT (priv->find_bar), "close",
-			  G_CALLBACK (gtk_widget_hide), NULL);
-	g_signal_connect (G_OBJECT (priv->find_bar), "next",
-			  G_CALLBACK (window_find_next), window);
-	g_signal_connect (G_OBJECT (priv->find_bar), "previous",
-			  G_CALLBACK (window_find_previous), window);
+	window_create_find_bar (window);
 
 	/* personal details window */
 	priv->personal_details_window = giggle_personal_details_window_new ();
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
 				      GTK_WINDOW (window));
-	g_signal_connect_after (G_OBJECT (priv->personal_details_window), "response",
+	g_signal_connect (priv->personal_details_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+	g_signal_connect_after (priv->personal_details_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
 	/* diff current window */
@@ -331,12 +523,17 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
 				      GTK_WINDOW (window));
-	g_signal_connect_after (G_OBJECT (priv->diff_current_window), "response",
+	g_signal_connect (priv->diff_current_window, "delete-event",
+			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+	g_signal_connect_after (priv->diff_current_window, "response",
 				G_CALLBACK (gtk_widget_hide), NULL);
 
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
 	gtk_widget_show (priv->history_view);
+
+	g_signal_connect_swapped (priv->history_view, "history-changed",
+				  G_CALLBACK (window_update_toolbar_buttons), window);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
 				  priv->history_view,
@@ -360,6 +557,7 @@ giggle_window_init (GiggleWindow *window)
 				  priv->summary_view,
 				  gtk_label_new (_("Summary")));
 
+	giggle_configuration_update (priv->configuration, on_configuration_updated, window);
 }
 
 static void
@@ -530,7 +728,7 @@ static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-	gtk_main_quit ();
+    save_state_and_exit (window);
 }
 
 static void
@@ -633,8 +831,12 @@ window_notebook_switch_page_cb (GtkNotebook     *notebook,
 	priv = GET_PRIV (window);
 	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
 
+	/* Update find */
 	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
 	gtk_action_set_sensitive (action, GIGGLE_IS_SEARCHABLE (page_widget));
+
+	/* Update history search */
+	window_update_toolbar_buttons (window);
 }
 
 static void
@@ -663,6 +865,24 @@ window_action_compact_mode_cb (GtkAction    *action,
 }
 
 static void
+window_cancel_find (GtkWidget    *widget,
+		    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	guint             page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
+	gtk_widget_hide (widget);
+}
+
+static void
 window_find (GtkWidget             *widget,
 	     GiggleWindow          *window,
 	     GiggleSearchDirection  direction)
@@ -671,6 +891,7 @@ window_find (GtkWidget             *widget,
 	GtkWidget        *page;
 	guint             page_num;
 	const gchar      *search_string;
+	gboolean          full_search;
 
 	priv = GET_PRIV (window);
 	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
@@ -678,9 +899,11 @@ window_find (GtkWidget             *widget,
 
 	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
 
+	full_search = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+
 	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
 	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-				  search_string, direction);
+				  search_string, direction, full_search);
 }
 
 static void
@@ -744,6 +967,62 @@ window_directory_changed_cb (GiggleGit    *git,
 	title = g_strdup_printf ("%s - Giggle", directory);
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
+}
+
+static void
+window_update_toolbar_buttons (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkAction        *action;
+	GtkWidget        *page_widget;
+	gboolean          back, forward;
+	gint              page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+	back = forward = FALSE;
+
+	if (GIGGLE_IS_HISTORY (page_widget)) {
+		back = giggle_history_can_go_back (GIGGLE_HISTORY (page_widget));
+		forward = giggle_history_can_go_forward (GIGGLE_HISTORY (page_widget));
+	}
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, BACK_HISTORY_PATH);
+	gtk_action_set_sensitive (action, back);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, FORWARD_HISTORY_PATH);
+	gtk_action_set_sensitive (action, forward);
+}
+
+static void
+window_action_history_go_back (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	gint              page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	giggle_history_go_back (GIGGLE_HISTORY (page));
+}
+
+static void
+window_action_history_go_forward (GtkAction    *action,
+				  GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	gint              page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	giggle_history_go_forward (GIGGLE_HISTORY (page));
 }
 
 GtkWidget *

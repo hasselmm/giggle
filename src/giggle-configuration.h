@@ -55,6 +55,8 @@ struct GiggleConfigurationClass {
 enum GiggleConfigurationField {
 	CONFIG_FIELD_NAME,
 	CONFIG_FIELD_EMAIL,
+	CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
+	CONFIG_FIELD_COMPACT_MODE
 };
 
 

@@ -154,14 +154,19 @@ git_commit_get_command_line (GiggleJob *job, gchar **command_line)
 	GiggleGitCommitPriv *priv;
 	GString             *str;
 	GList               *files;
+	gchar               *escaped;
 
 	priv = GET_PRIV (job);
 	files = priv->files;
-
 	str = g_string_new (GIT_COMMAND " commit");
 
-	g_string_append_printf (str, " -m \"%s\"",
-				(priv->log) ? priv->log : "");
+	if (priv->log) {
+		escaped = g_strescape (priv->log, "\b\f\n\r\t\\");
+	} else {
+		escaped = g_strdup ("");
+	}
+
+	g_string_append_printf (str, " -m \"%s\"", escaped);
 
 	if (!files) {
 		g_string_append_printf (str, " -a");
@@ -190,7 +195,7 @@ giggle_git_commit_set_files (GiggleGitCommit *commit,
 {
 	g_return_if_fail (GIGGLE_IS_GIT_COMMIT (commit));
 
-	g_object_set (G_OBJECT (commit),
+	g_object_set (commit,
 		      "files", files,
 		      NULL);
 }

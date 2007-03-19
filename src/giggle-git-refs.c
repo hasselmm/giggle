@@ -152,6 +152,11 @@ git_refs_add_ref (GiggleJob   *job,
 		g_object_set (ref, "sha", data[0], NULL);
 		priv->branches = g_list_prepend (priv->branches, ref);
 	} else if (g_str_has_prefix (data[1], "refs/tags/")) {
+		if (g_str_has_suffix (data[1], "^{}")) {
+			/* it's a tag dereference, remove the suffix */
+			(g_strrstr (data[1], "^{}")) [0] = '\0';
+		}
+
 		ref = giggle_ref_new (data[1] + strlen ("refs/tags/"));
 		g_object_set (ref, "sha", data[0], NULL);
 		priv->tags = g_list_prepend (priv->tags, ref);

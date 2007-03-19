@@ -57,6 +57,8 @@ giggle_SOURCES =				\
 	giggle-git-diff-tree.h			\
 	giggle-git-ignore.c			\
 	giggle-git-ignore.h			\
+	giggle-git-list-files.c			\
+	giggle-git-lits-files.h			\
 	giggle-git-read-config.c		\
 	giggle-git-read-config.h		\
 	giggle-git-refs.c			\
@@ -67,6 +69,8 @@ giggle_SOURCES =				\
 	giggle-git-write-config.h		\
 	giggle-graph-renderer.c         	\
         giggle-graph-renderer.h	        	\
+	giggle-history.c			\
+	giggle-history.h			\
 	giggle-job.c                            \
 	giggle-job.h                            \
 	giggle-personal-details-window.c	\
@@ -138,12 +142,18 @@ test_dispatcher_LDADD =                         \
 
 test_file_list_SOURCES =			\
 	$(BUILT_SOURCES)			\
+	giggle-diff-view.c			\
+	giggle-diff-window.c			\
 	giggle-dispatcher.c			\
 	giggle-error.c				\
 	giggle-sysdeps.c			\
 	giggle-git.c				\
+	giggle-git-commit.c			\
+	giggle-git-add.c			\
+	giggle-git-diff.c			\
 	giggle-git-diff-tree.c			\
 	giggle-git-diff-tree.h			\
+	giggle-git-list-files.c			\
 	giggle-job.c				\
 	giggle-file-list.c			\
 	giggle-git-ignore.c			\
@@ -155,6 +165,7 @@ test_file_list_SOURCES =			\
 	giggle-remote-branch.h			\
 	giggle-revision.c			\
 	giggle-revision.h			\
+	giggle-searchable.c			\
 	test-file-list.c
 
 test_file_list_LDADD =				\

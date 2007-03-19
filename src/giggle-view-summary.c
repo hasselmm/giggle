@@ -164,7 +164,7 @@ giggle_view_summary_init (GiggleViewSummary *view)
 			  0, 2, 1, 2, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
 	priv->git = giggle_git_get ();
-	g_signal_connect (G_OBJECT (priv->git), "notify::directory",
+	g_signal_connect (priv->git, "notify::directory",
 			  G_CALLBACK (view_summary_project_changed_cb), view);
 
 	/* initialize for the first time */

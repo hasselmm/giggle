@@ -31,6 +31,7 @@ typedef struct GiggleGitIgnorePriv GiggleGitIgnorePriv;
 struct GiggleGitIgnorePriv {
 	GiggleGit *git;
 	gchar     *directory_path;
+	gchar     *relative_path;
 
 	GPtrArray *globs;
 	GPtrArray *global_globs; /* .git/info/exclude */
@@ -99,6 +100,7 @@ git_ignore_finalize (GObject *object)
 
 	g_object_unref (priv->git);
 	g_free (priv->directory_path);
+	g_free (priv->relative_path);
 
 	if (priv->globs) {
 		g_ptr_array_foreach (priv->globs, (GFunc) g_free, NULL);
@@ -188,6 +190,7 @@ git_ignore_constructor (GType                  type,
 	GObject             *object;
 	GiggleGitIgnorePriv *priv;
 	gchar               *path;
+	const gchar         *project_path;
 
 	object = (* G_OBJECT_CLASS (giggle_git_ignore_parent_class)->constructor) (type,
 										   n_construct_properties,
@@ -202,6 +205,14 @@ git_ignore_constructor (GType                  type,
 				 "info", "exclude", NULL);
 	priv->global_globs = git_ignore_read_file (path);
 	g_free (path);
+
+	project_path = giggle_git_get_directory (priv->git);
+
+	if (strcmp (priv->directory_path, project_path) != 0) {
+		priv->relative_path = g_strdup (priv->directory_path
+						+ strlen (giggle_git_get_directory (priv->git))
+						+ 1 /* dir separator */);
+	}
 
 	return object;
 }
@@ -236,10 +247,83 @@ giggle_git_ignore_new (const gchar *directory_path)
 			     NULL);
 }
 
-static gboolean
-git_ignore_name_matches (const gchar *name,
-			 GPtrArray   *array)
+static const gchar *
+git_ignore_get_basename (const gchar *path)
 {
+	const gchar *basename;
+
+	basename = strrchr (path, G_DIR_SEPARATOR);
+
+	if (!basename) {
+		basename = path;
+	} else {
+		/* avoid dir separator */
+		basename++;
+	}
+
+	return basename;
+}
+
+static gboolean
+git_ignore_path_matches_glob (const gchar *path,
+			      const gchar *glob,
+			      const gchar *relative_path)
+{
+	const gchar *filename;
+	gchar       *str = NULL;
+	gboolean     match;
+
+	/* Match examples:
+	 *	Glob	String
+	 * 	====	======
+	 *	aaa	aaa	= match
+	 *	/aaa	aaa	= match
+	 *	aaa	b/aaa	= match
+	 *	b/aaa	b/aaa	= match
+	 *	/b/aaa	b/aaa	= match
+	 *
+	 *	aaa	b/aaa/c	= NO match
+	 *	/aaa	b/aaa	= NO match
+	 *	b/aaa	aaa	= NO match
+	 *	b/aaa	c/b/aaa	= NO match
+	 *	/b/aaa	c/b/aaa	= NO match
+	 */
+
+	if (strchr (glob, G_DIR_SEPARATOR)) {
+		/* contains a dir separator, git wants these
+		 * entries to match completely occurrences
+		 * from the current dir.
+		 */
+
+		if (relative_path) {
+			str = g_build_filename (relative_path, glob, NULL);
+			glob = str;
+		}
+
+		if (glob[0] == G_DIR_SEPARATOR) {
+			glob++;
+		}
+
+		match = (fnmatch (glob, path, FNM_PATHNAME) == 0);
+		g_free (str);
+	} else {
+		/* doesn't contain any dir separator, git will
+		 * match these entries with any filename in any
+		 * subdir
+		 */
+		filename = git_ignore_get_basename (path);
+		match = (fnmatch (glob, filename, FNM_PATHNAME) == 0);
+	}
+
+	return match;
+}
+
+static gboolean
+git_ignore_path_matches (const gchar *path,
+			 GPtrArray   *array,
+			 const gchar *relative_path)
+{
+	gboolean     match = FALSE;
 	gint         n_glob = 0;
 	const gchar *glob;
 
@@ -247,21 +331,19 @@ git_ignore_name_matches (const gchar *name,
 		return FALSE;
 	}
 
-	while (n_glob < array->len) {
+	while (!match && n_glob < array->len) {
 		glob = g_ptr_array_index (array, n_glob);
 		n_glob++;
 
-		if (fnmatch (glob, name, 0) == 0) {
-			return TRUE;
-		}
+		match = git_ignore_path_matches_glob (path, glob, relative_path);
 	}
 
-	return FALSE;
+	return match;
 }
 
 gboolean
-giggle_git_ignore_name_matches (GiggleGitIgnore *git_ignore,
-				const gchar     *name)
+giggle_git_ignore_path_matches (GiggleGitIgnore *git_ignore,
+				const gchar     *path)
 {
 	GiggleGitIgnorePriv *priv;
 
@@ -269,11 +351,11 @@ giggle_git_ignore_name_matches (GiggleGitIgnore *git_ignore,
 
 	priv = GET_PRIV (git_ignore);
 
-	if (git_ignore_name_matches (name, priv->globs)) {
+	if (git_ignore_path_matches (path, priv->globs, priv->relative_path)) {
 		return TRUE;
 	}
 
-	if (git_ignore_name_matches (name, priv->global_globs)) {
+	if (git_ignore_path_matches (path, priv->global_globs, NULL)) {
 		return TRUE;
 	}
 
@@ -295,26 +377,49 @@ giggle_git_ignore_add_glob (GiggleGitIgnore *git_ignore,
 	git_ignore_save_file (git_ignore);
 }
 
+void
+giggle_git_ignore_add_glob_for_path (GiggleGitIgnore *git_ignore,
+				     const gchar     *path)
+{
+	GiggleGitIgnorePriv *priv;
+	const gchar         *glob;
+
+	g_return_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore));
+	g_return_if_fail (path != NULL);
+
+	priv = GET_PRIV (git_ignore);
+
+	/* FIXME: we add here just the filename, which will
+	 * also ignore matching filenames for subdirectories,
+	 * do we want it more fine grained?
+	 */
+	glob = git_ignore_get_basename (path);
+	giggle_git_ignore_add_glob (git_ignore, glob);
+}
+
 gboolean
-giggle_git_ignore_remove_glob_for_name (GiggleGitIgnore *git_ignore,
-					const gchar     *name,
+giggle_git_ignore_remove_glob_for_path (GiggleGitIgnore *git_ignore,
+					const gchar     *path,
 					gboolean         perfect_match)
 {
 	GiggleGitIgnorePriv *priv;
 	const gchar         *glob;
 	gint                 i = 0;
 	gboolean             removed = FALSE;
+	const gchar         *filename;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT_IGNORE (git_ignore), FALSE);
-	g_return_val_if_fail (name != NULL, FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
 
 	priv = GET_PRIV (git_ignore);
 
 	while (i < priv->globs->len) {
 		glob = g_ptr_array_index (priv->globs, i);
+		filename = git_ignore_get_basename (path);
 
-		if ((perfect_match && strcmp (glob, name) == 0) ||
-		    (!perfect_match && fnmatch (glob, name, 0) == 0)) {
+		if ((perfect_match && strcmp (glob, filename) == 0) ||
+		    (!perfect_match &&
+		     git_ignore_path_matches_glob (path, glob, priv->relative_path))) {
 			g_ptr_array_remove_index (priv->globs, i);
 			removed = TRUE;
 		} else {

@@ -297,7 +297,8 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 		pos = GPOINTER_TO_INT (path->data);
 		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
 
-		if (path_state->lower_color) {
+		if (path_state->lower_color &&
+		    (pos != cur_pos || giggle_revision_get_parents (revision))) {
 			gdk_cairo_set_source_color (cr, path_state->lower_color);
 			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + h);

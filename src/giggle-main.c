@@ -39,11 +39,6 @@ main (int argc, char **argv)
 	g_set_application_name ("Giggle");
 
 	window = giggle_window_new ();
-	gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
-	g_signal_connect (window,
-			  "destroy",
-			  G_CALLBACK (gtk_main_quit),
-			  NULL);
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
@@ -58,7 +53,7 @@ main (int argc, char **argv)
 	}
 	g_free (dir);
 
-	gtk_widget_show (window);
+	/* window will show itself when it reads its initial size configuration */
 
 	gtk_main ();
 

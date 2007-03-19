@@ -44,6 +44,7 @@ struct _GiggleDiffTreeView {
 
 struct _GiggleDiffTreeViewClass {
 	GtkTreeViewClass parent_class;
+	void (* path_selected) (GiggleDiffTreeView *view, const gchar *path);
 };
 
 GType              giggle_diff_tree_view_get_type          (void);
@@ -52,6 +53,8 @@ GtkWidget *        giggle_diff_tree_view_new               (void);
 void               giggle_diff_tree_view_set_revisions     (GiggleDiffTreeView *view,
 							    GiggleRevision     *from,
 							    GiggleRevision     *to);
+
+gchar *            giggle_diff_tree_view_get_selection     (GiggleDiffTreeView *view);
 
 G_END_DECLS
 

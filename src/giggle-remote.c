@@ -204,7 +204,7 @@ giggle_remote_new_from_file (gchar const *filename)
 								   *step + strlen ("Pull: "));
 			} else {
 				gchar* escaped = g_strescape (*step, NULL);
-				g_warning ("Read unexpected line at %s:%zd\n\"%s\"",
+				g_warning ("Read unexpected line at %s:%td\n\"%s\"",
 					   filename, step - lines, escaped);
 				g_free (escaped);
 			}

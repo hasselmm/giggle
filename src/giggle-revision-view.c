@@ -53,7 +53,8 @@ static void       revision_view_set_property       (GObject        *object,
 
 static gboolean   revision_view_search             (GiggleSearchable      *searchable,
 						    const gchar           *search_term,
-						    GiggleSearchDirection  direction);
+						    GiggleSearchDirection  direction,
+						    gboolean               full_search);
 
 static void       revision_view_update             (GiggleRevisionView *view);
 
@@ -105,7 +106,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 
 	priv = GET_PRIV (revision_view);
 
-	g_object_set (G_OBJECT (revision_view),
+	g_object_set (revision_view,
 		      "column-spacing", 12,
 		      "row-spacing", 6,
 		      NULL);
@@ -241,7 +242,8 @@ revision_view_set_property (GObject      *object,
 static gboolean
 revision_view_search (GiggleSearchable      *searchable,
 		      const gchar           *search_term,
-		      GiggleSearchDirection  direction)
+		      GiggleSearchDirection  direction,
+		      gboolean               full_search)
 {
 	GiggleRevisionViewPriv *priv;
 	const gchar            *str, *p;
@@ -300,7 +302,7 @@ revision_view_update (GiggleRevisionView *view)
 	gchar                   str[256];
 
 	priv = GET_PRIV (view);
-	g_object_get (G_OBJECT (priv->revision),
+	g_object_get (priv->revision,
 		      "sha", &sha, 
 		      "long-log", &log,
 		      "date", &tm,
