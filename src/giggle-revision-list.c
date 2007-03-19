@@ -52,14 +52,16 @@ struct GiggleRevisionListPriv {
 
 	gboolean           show_graph : 1;
 	gboolean           compact_mode : 1;
+	gboolean           cancelled : 1;
 };
 
 typedef struct RevisionSearchData RevisionSearchData;
 
 struct RevisionSearchData {
-	GMainLoop   *main_loop;
-	const gchar *search_term;
-	gboolean     match;
+	GMainLoop          *main_loop;
+	const gchar        *search_term;
+	gboolean            match;
+	GiggleRevisionList *list;
 };
 
 enum {
@@ -124,6 +126,7 @@ static gboolean revision_list_search              (GiggleSearchable      *search
 						   const gchar           *search_term,
 						   GiggleSearchDirection  direction,
 						   gboolean               full_search);
+static void revision_list_cancel_search           (GiggleSearchable      *searchable);
 
 
 G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
@@ -181,6 +184,7 @@ static void
 giggle_revision_list_searchable_init (GiggleSearchableIface *iface)
 {
 	iface->search = revision_list_search;
+	iface->cancel = revision_list_cancel_search;
 }
 
 static void
@@ -704,10 +708,12 @@ diff_matches_cb (GiggleGit *git,
 		 GError    *error,
 		 gpointer   user_data)
 {
-	RevisionSearchData *data;
-	const gchar        *diff_str;
+	RevisionSearchData     *data;
+	GiggleRevisionListPriv *priv;
+	const gchar            *diff_str;
 
 	data = (RevisionSearchData *) user_data;
+	priv = GET_PRIV (data->list);
 
 	if (error) {
 		data->match = FALSE;
@@ -715,6 +721,9 @@ diff_matches_cb (GiggleGit *git,
 		diff_str = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job));
 		data->match = (strstr (diff_str, data->search_term) != NULL);
 	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
 
 	g_main_loop_quit (data->main_loop);
 }
@@ -751,6 +760,7 @@ revision_diff_matches (GiggleRevisionList *list,
 	data = g_slice_new0 (RevisionSearchData);
 	data->main_loop = g_main_loop_ref (priv->main_loop);
 	data->search_term = search_term;
+	data->list = list;
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
@@ -793,17 +803,21 @@ revision_list_search (GiggleSearchable      *searchable,
 		      GiggleSearchDirection  direction,
 		      gboolean               full_search)
 {
-	GtkTreeModel     *model;
-	GtkTreeSelection *selection;
-	GList            *list;
-	GtkTreeIter       iter;
-	gboolean          valid, found;
-	GiggleRevision   *revision;
-	GtkTreePath      *path;
+	GiggleRevisionListPriv *priv;
+	GtkTreeModel           *model;
+	GtkTreeSelection       *selection;
+	GList                  *list;
+	GtkTreeIter             iter;
+	gboolean                valid, found;
+	GiggleRevision         *revision;
+	GtkTreePath            *path;
+
+	priv = GET_PRIV (searchable);
 
 	found = FALSE;
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (searchable));
 	list = gtk_tree_selection_get_selected_rows (selection, &model);
+	priv->cancelled = FALSE;
 
 	/* Find the first/current element */
 	if (list) {
@@ -820,7 +834,7 @@ revision_list_search (GiggleSearchable      *searchable,
 		valid = TRUE;
 	}
 
-	while (valid && !found) {
+	while (valid && !found && !priv->cancelled) {
 		valid = gtk_tree_model_get_iter (model, &iter, path);
 
 		if (!valid) {
@@ -833,7 +847,7 @@ revision_list_search (GiggleSearchable      *searchable,
 
 		g_object_unref (revision);
 
-		if (!found) {
+		if (!found && !priv->cancelled) {
 			if (direction == GIGGLE_SEARCH_DIRECTION_NEXT) {
 				gtk_tree_path_next (path);
 			} else {
@@ -842,7 +856,7 @@ revision_list_search (GiggleSearchable      *searchable,
 		}
 	}
 
-	if (found) {
+	if (found && !priv->cancelled) {
 		gtk_tree_selection_unselect_all (selection);
 		gtk_tree_selection_select_iter (selection, &iter);
 
@@ -855,7 +869,30 @@ revision_list_search (GiggleSearchable      *searchable,
 	g_list_foreach (list, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (list);
 
-	return found;
+	return (found && !priv->cancelled);
+}
+
+static void
+revision_list_cancel_search (GiggleSearchable *searchable)
+{
+	GiggleRevisionListPriv *priv;
+
+	priv = GET_PRIV (searchable);
+
+	if (!priv->cancelled) {
+		priv->cancelled = TRUE;
+
+		if (priv->job) {
+			/* cancel the current search inside diffs job */
+			giggle_git_cancel_job (priv->git, priv->job);
+			g_object_unref (priv->job);
+			priv->job = NULL;
+		}
+
+		if (g_main_loop_is_running (priv->main_loop)) {
+			g_main_loop_quit (priv->main_loop);
+		}
+	}
 }
 
 GtkWidget*

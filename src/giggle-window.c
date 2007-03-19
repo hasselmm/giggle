@@ -115,6 +115,8 @@ static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
 						   guint              page_num,
 						   GiggleWindow      *window);
 
+static void window_cancel_find                    (GtkWidget         *widget,
+						   GiggleWindow      *window);
 static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
@@ -328,7 +330,7 @@ window_create_find_bar (GiggleWindow *window)
 	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
 
 	g_signal_connect (priv->find_bar, "close",
-			  G_CALLBACK (gtk_widget_hide), NULL);
+			  G_CALLBACK (window_cancel_find), window);
 	g_signal_connect (priv->find_bar, "next",
 			  G_CALLBACK (window_find_next), window);
 	g_signal_connect (priv->find_bar, "previous",
@@ -860,6 +862,24 @@ window_action_compact_mode_cb (GtkAction    *action,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
+}
+
+static void
+window_cancel_find (GtkWidget    *widget,
+		    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	guint             page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
+	gtk_widget_hide (widget);
 }
 
 static void
