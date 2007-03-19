@@ -68,3 +68,17 @@ giggle_searchable_search (GiggleSearchable      *searchable,
 
 	return FALSE;
 }
+
+void
+giggle_searchable_cancel (GiggleSearchable *searchable)
+{
+	GiggleSearchableIface *iface;
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (searchable));
+
+	iface = GIGGLE_SEARCHABLE_GET_IFACE (searchable);
+
+	if (iface->cancel) {
+		(* iface->cancel) (searchable);
+	}
+}

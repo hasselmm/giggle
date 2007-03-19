@@ -55,6 +55,7 @@ struct GiggleWindowPriv {
 	GtkActionGroup      *recent_action_group;
 
 	GtkWidget           *find_bar;
+	GtkToolItem         *full_search;
 
 	GiggleGit           *git;
 
@@ -114,6 +115,8 @@ static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
 						   guint              page_num,
 						   GiggleWindow      *window);
 
+static void window_cancel_find                    (GtkWidget         *widget,
+						   GiggleWindow      *window);
 static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
@@ -302,6 +305,38 @@ window_create_menu (GiggleWindow *window)
 	window_recent_repositories_update (window);
 }
 
+static void
+window_create_find_bar (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkToolItem      *separator;
+
+	priv = GET_PRIV (window);
+
+	priv->find_bar = egg_find_bar_new ();
+
+	separator = gtk_separator_tool_item_new ();
+	gtk_widget_show (GTK_WIDGET (separator));
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), separator, -1);
+
+	priv->full_search = gtk_toggle_tool_button_new ();
+	gtk_tool_button_set_label (GTK_TOOL_BUTTON (priv->full_search), _("Search inside _diffs"));
+	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (priv->full_search), TRUE);
+	gtk_tool_item_set_is_important (priv->full_search, TRUE);
+	gtk_widget_show (GTK_WIDGET (priv->full_search));
+
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), priv->full_search, -1);
+
+	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
+
+	g_signal_connect (priv->find_bar, "close",
+			  G_CALLBACK (window_cancel_find), window);
+	g_signal_connect (priv->find_bar, "next",
+			  G_CALLBACK (window_find_next), window);
+	g_signal_connect (priv->find_bar, "previous",
+			  G_CALLBACK (window_find_previous), window);
+}
+
 void
 giggle_window_set_directory (GiggleWindow *window,
 		      const gchar  *directory)
@@ -471,15 +506,7 @@ giggle_window_init (GiggleWindow *window)
 				G_CALLBACK (window_notebook_switch_page_cb), window);
 
 	/* setup find bar */
-	priv->find_bar = egg_find_bar_new ();
-	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
-
-	g_signal_connect (priv->find_bar, "close",
-			  G_CALLBACK (gtk_widget_hide), NULL);
-	g_signal_connect (priv->find_bar, "next",
-			  G_CALLBACK (window_find_next), window);
-	g_signal_connect (priv->find_bar, "previous",
-			  G_CALLBACK (window_find_previous), window);
+	window_create_find_bar (window);
 
 	/* personal details window */
 	priv->personal_details_window = giggle_personal_details_window_new ();
@@ -838,6 +865,24 @@ window_action_compact_mode_cb (GtkAction    *action,
 }
 
 static void
+window_cancel_find (GtkWidget    *widget,
+		    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	guint             page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
+	gtk_widget_hide (widget);
+}
+
+static void
 window_find (GtkWidget             *widget,
 	     GiggleWindow          *window,
 	     GiggleSearchDirection  direction)
@@ -846,6 +891,7 @@ window_find (GtkWidget             *widget,
 	GtkWidget        *page;
 	guint             page_num;
 	const gchar      *search_string;
+	gboolean          full_search;
 
 	priv = GET_PRIV (window);
 	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
@@ -853,9 +899,11 @@ window_find (GtkWidget             *widget,
 
 	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
 
+	full_search = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+
 	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
 	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-				  search_string, direction, FALSE);
+				  search_string, direction, full_search);
 }
 
 static void

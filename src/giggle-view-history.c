@@ -79,6 +79,7 @@ static gboolean view_history_search                             (GiggleSearchabl
 								 const gchar           *search_term,
 								 GiggleSearchDirection  direction,
 								 gboolean               full_search);
+static void     view_history_cancel_search                      (GiggleSearchable      *searchable);
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
@@ -120,6 +121,7 @@ static void
 giggle_view_history_searchable_init (GiggleSearchableIface *iface)
 {
 	iface->search = view_history_search;
+	iface->cancel = view_history_cancel_search;
 }
 
 static void
@@ -350,6 +352,16 @@ view_history_search (GiggleSearchable      *searchable,
 	}
 
 	return TRUE;
+}
+
+static void
+view_history_cancel_search (GiggleSearchable *searchable)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (searchable);
+
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (priv->revision_list));
 }
 
 typedef void (AddRefFunc) (GiggleRevision*, GiggleRef*);

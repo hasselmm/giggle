@@ -359,22 +359,36 @@ file_list_button_press (GtkWidget      *widget,
 	GiggleFileList     *list;
 	GiggleFileListPriv *priv;
 	gboolean            add, ignore, unignore;
-	gchar              *path;
+	gchar              *file_path;
 	GiggleGitIgnore    *git_ignore;
 	GtkAction          *action;
 	GtkTreeSelection   *selection;
 	GtkTreeModel       *model;
 	GList              *rows, *l;
 	GtkTreeIter         iter;
+	GtkTreePath        *path;
 
 	list = GIGGLE_FILE_LIST (widget);
 	priv = GET_PRIV (list);
 	ignore = unignore = add = FALSE;
 
-	GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
-
 	if (event->button == 3) {
 		selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+
+		if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget), event->x, event->y,
+						    &path, NULL, NULL, NULL)) {
+			return TRUE;
+		}
+
+		if (event->state != 0) {
+			/* we want shift+click and ctrl+click behave as always here */
+			GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+		} else if (!gtk_tree_selection_path_is_selected (selection, path)) {
+			gtk_tree_selection_unselect_all (selection);
+			gtk_tree_selection_select_path (selection, path);
+		}
+
+		gtk_tree_path_free (path);
 		rows = gtk_tree_selection_get_selected_rows (selection, &model);
 
 		for (l = rows; l; l = l->next) {
@@ -384,15 +398,15 @@ file_list_button_press (GtkWidget      *widget,
 					    COL_MANAGED, &add,
 					    -1);
 
-			if (file_list_get_path_and_ignore_for_iter (list, &iter, &path, &git_ignore)) {
-				if (giggle_git_ignore_path_matches (git_ignore, path)) {
+			if (file_list_get_path_and_ignore_for_iter (list, &iter, &file_path, &git_ignore)) {
+				if (giggle_git_ignore_path_matches (git_ignore, file_path)) {
 					unignore = TRUE;
 				} else {
 					ignore = TRUE;
 				}
 
 				g_object_unref (git_ignore);
-				g_free (path);
+				g_free (file_path);
 			}
 		}
 
@@ -408,9 +422,11 @@ file_list_button_press (GtkWidget      *widget,
 
 		g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 		g_list_free (rows);
-	}
 
-	return TRUE;
+		return TRUE;
+	} else {
+		return GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+	}
 }
 
 static void
