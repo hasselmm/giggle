@@ -142,15 +142,15 @@ personal_details_window_response (GtkDialog *dialog,
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_NAME,
-					gtk_entry_get_text (GTK_ENTRY (priv->name_entry)),
-					personal_details_configuration_changed_cb,
-					dialog);
+					gtk_entry_get_text (GTK_ENTRY (priv->name_entry)));
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_EMAIL,
-					gtk_entry_get_text (GTK_ENTRY (priv->email_entry)),
-					personal_details_configuration_changed_cb,
-					dialog);
+					gtk_entry_get_text (GTK_ENTRY (priv->email_entry)));
+
+	giggle_configuration_commit (priv->configuration,
+				     personal_details_configuration_changed_cb,
+				     dialog);
 }
 
 static void

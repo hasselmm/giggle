@@ -40,19 +40,28 @@ typedef struct GiggleConfigurationPriv GiggleConfigurationPriv;
 typedef struct GiggleConfigurationTask GiggleConfigurationTask;
 
 struct GiggleConfigurationPriv {
-	GiggleGit               *git;
-	GiggleJob               *current_job;
-	GHashTable              *config;
+	GiggleGit    *git;
+	GiggleJob    *current_job;
+	GHashTable   *config;
+	GList        *changed_keys;
 };
 
 struct GiggleConfigurationTask {
 	GiggleConfigurationFunc  func;
 	gpointer                 data;
 	GiggleConfiguration     *configuration;
+
+	/* useful only for commit tasks */
+	GList                   *changed_keys;
+	gboolean                 success;
 };
 
 static void     configuration_finalize         (GObject           *object);
 static void     configuration_read_callback    (GiggleGit         *git,
+						GiggleJob         *job,
+						GError            *error,
+						gpointer           user_data);
+static void     configuration_write_callback   (GiggleGit         *git,
 						GiggleJob         *job,
 						GError            *error,
 						gpointer           user_data);
@@ -142,22 +151,70 @@ configuration_read_callback (GiggleGit *git,
 }
 
 static void
+configuration_write (GiggleConfigurationTask *task)
+{
+	GiggleConfigurationPriv *priv;
+	gchar                   *key, *value;
+	GList                   *elem;
+
+	priv = GET_PRIV (task->configuration);
+
+	if (task->changed_keys) {
+		elem = task->changed_keys;
+		task->changed_keys = g_list_remove_link (task->changed_keys, elem);
+		key = (gchar *) elem->data;
+		g_list_free_1 (elem);
+
+		value = g_hash_table_lookup (priv->config, key);
+
+		priv->current_job = giggle_git_write_config_new (key, value);
+
+		/* FIXME: valid for the parameters that we manage currently,
+		 * but should be figured out per parameter.
+		 */
+		g_object_set (priv->current_job, "global", TRUE, NULL);
+
+		giggle_git_run_job_full (priv->git,
+					 priv->current_job,
+					 configuration_write_callback,
+					 task, NULL);
+		g_free (key);
+	} else {
+		if (task->func) {
+			(task->func) (task->configuration, task->success, task->data);
+		}
+
+		g_signal_emit (task->configuration, signals[CHANGED], 0);
+
+		/* we're done with the task, free it */
+		g_list_foreach (priv->changed_keys, (GFunc) g_free, NULL);
+		g_list_free (priv->changed_keys);
+		g_free (task);
+	}
+}
+
+static void
 configuration_write_callback (GiggleGit *git,
 			      GiggleJob *job,
 			      GError    *error,
 			      gpointer   user_data)
 {
 	GiggleConfigurationTask *task;
+	GiggleConfigurationPriv *priv;
 	gboolean                 success;
 
 	task = (GiggleConfigurationTask *) user_data;
-
 	success = (error == NULL);
-	if (task->func) {
-		(task->func) (task->configuration, success, task->data);
+	priv = GET_PRIV (task->configuration);
+
+	if (!success) {
+		task->success = FALSE;
 	}
 
-	g_signal_emit (task->configuration, signals[CHANGED], 0);
+	g_object_unref (priv->current_job);
+	priv->current_job = NULL;
+
+	configuration_write (task);
 }
 
 GiggleConfiguration *
@@ -218,13 +275,9 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 void
 giggle_configuration_set_field (GiggleConfiguration      *configuration,
 				GiggleConfigurationField  field,
-				const gchar              *value,
-				GiggleConfigurationFunc   func,
-				gpointer                  data)
+				const gchar              *value)
 {
 	GiggleConfigurationPriv *priv;
-	GiggleJob               *job;
-	GiggleConfigurationTask *task;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
 
@@ -239,20 +292,39 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 			     g_strdup (fields[field]),
 			     g_strdup (value));
 
-	job = giggle_git_write_config_new (fields[field], value);
+	/* insert the key in the changed keys list */
+	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field]));
+}
 
-	/* FIXME: valid for the parameters that we manage currently,
-	 * but should be figured out per parameter.
-	 */
-	g_object_set (job, "global", TRUE, NULL);
+void
+giggle_configuration_commit (GiggleConfiguration     *configuration,
+			     GiggleConfigurationFunc  func,
+			     gpointer                 data)
+{
+	GiggleConfigurationPriv *priv;
+	GiggleConfigurationTask *task;
+
+	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
+
+	priv = GET_PRIV (configuration);
+
+	if (priv->current_job) {
+		giggle_git_cancel_job (priv->git, priv->current_job);
+		g_object_unref (priv->current_job);
+		priv->current_job = NULL;
+	}
 
 	task = g_new0 (GiggleConfigurationTask, 1);
 	task->func = func;
 	task->data = data;
+	task->changed_keys = priv->changed_keys;
 	task->configuration = configuration;
+	task->success = TRUE;
 
-	giggle_git_run_job_full (priv->git, job,
-				 configuration_write_callback,
-				 task,
-				 g_free);
+	/* the list has been passed to the task, set it to NULL
+	 * so other commit operations may run without interferences
+	 */
+	priv->changed_keys = NULL;
+
+	configuration_write (task);
 }

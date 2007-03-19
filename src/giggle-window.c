@@ -70,13 +70,6 @@ enum {
 	SEARCH_PREV
 };
 
-enum {
-	QUITTING,
-	LAST_SIGNAL
-};
-
-static guint signals [LAST_SIGNAL] = { 0, };
-
 
 static void window_finalize                       (GObject           *object);
 
@@ -121,8 +114,6 @@ static void window_find_next                      (GtkWidget         *widget,
 						   GiggleWindow      *window);
 static void window_find_previous                  (GtkWidget         *widget,
 						   GiggleWindow      *window);
-
-static void window_quitting                       (GiggleWindow      *window);
 
 static void window_update_toolbar_buttons         (GiggleWindow      *window);
 
@@ -242,16 +233,6 @@ giggle_window_class_init (GiggleWindowClass *class)
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = window_finalize;
-	class->quitting = window_quitting;
-
-	signals[QUITTING] =
-		g_signal_new ("quitting",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (GiggleWindowClass, quitting),
-			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -361,61 +342,39 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
-static guint config_writes_remaining = 0;
-
 static void
-on_configuration_data_set (GiggleConfiguration *configuration,
-			   gboolean             success,
-			   gpointer             user_data)
+window_configuration_committed (GiggleConfiguration *configuration,
+				gboolean             success,
+				gpointer             user_data)
 {
-	if (!success) {
-		g_warning ("Unable to set configuration data");
-	}
-	if ((--config_writes_remaining == 0) && user_data) {
-		g_return_if_fail (GIGGLE_IS_WINDOW (user_data));
-		GiggleWindow *window = GIGGLE_WINDOW (user_data);
-		g_signal_emit (window, signals[QUITTING], 0);
-	}
+	gtk_main_quit ();
 }
 
 static void
 save_state_and_exit (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	gboolean compact;
-	gint w, h, x, y;
-	gchar buf[25];
+	gboolean          compact;
+	gint              w, h, x, y;
+	gchar             buf[25];
 
 	priv = GET_PRIV (window);
-	g_assert (priv);
 
 	gtk_window_get_size (GTK_WINDOW (window), &w, &h);
 	gtk_window_get_position (GTK_WINDOW (window), &x, &y);
 
-	/* Because of the asynchronous nature of GiggleConfiguration writes, we
-	 * can't actually exit at the end of this function, although that is the
-	 * goal.  Instead, we delegate the 'quitting' to the set_field callback
-	 * functions
-	 */
-	config_writes_remaining++;
-	g_snprintf (buf, 25, "%dx%d+%d+%d", w, h, x, y);
+	g_snprintf (buf, sizeof (buf), "%dx%d+%d+%d", w, h, x, y);
 	giggle_configuration_set_field (priv->configuration,
-				       CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf,
-				       on_configuration_data_set, NULL);
+					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf);
 
 	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
-	config_writes_remaining++;
 	giggle_configuration_set_field (priv->configuration,
-				       CONFIG_FIELD_COMPACT_MODE,
-				       compact ? "true" : "false",
-				       on_configuration_data_set,
-				       window);
-}
+					CONFIG_FIELD_COMPACT_MODE,
+					compact ? "true" : "false");
 
-static void
-window_quitting (GiggleWindow *window)
-{
-	gtk_main_quit ();
+	giggle_configuration_commit (priv->configuration,
+				     window_configuration_committed,
+				     window);
 }
 
 static gboolean
@@ -424,6 +383,7 @@ window_delete_event_cb (GtkWidget *widget,
 			gpointer   user_data)
 {
 	save_state_and_exit (GIGGLE_WINDOW (widget));
+	gtk_widget_hide (widget);
 	return TRUE;
 }
 
@@ -728,7 +688,8 @@ static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-    save_state_and_exit (window);
+	save_state_and_exit (window);
+	gtk_widget_hide (GTK_WIDGET (window));
 }
 
 static void
