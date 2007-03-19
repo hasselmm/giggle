@@ -59,7 +59,7 @@ struct GiggleViewHistoryPriv {
 	GList     *history; /* reversed list of history elems */
 	GList     *current_history_elem;
 
-	gboolean   compact_mode : 1;
+	guint     compact_mode : 1;
 };
 
 static void     view_history_finalize              (GObject *object);

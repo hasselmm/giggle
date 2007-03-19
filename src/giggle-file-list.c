@@ -47,8 +47,8 @@ struct GiggleFileListPriv {
 
 	GtkWidget    *diff_window;
 
-	gboolean      show_all : 1;
-	gboolean      compact_mode : 1;
+	guint         show_all : 1;
+	guint         compact_mode : 1;
 };
 
 static void       file_list_finalize           (GObject        *object);

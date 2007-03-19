@@ -50,9 +50,9 @@ struct GiggleRevisionListPriv {
 	/* used for search inside diffs */
 	GMainLoop         *main_loop;
 
-	gboolean           show_graph : 1;
-	gboolean           compact_mode : 1;
-	gboolean           cancelled : 1;
+	guint              show_graph : 1;
+	guint              compact_mode : 1;
+	guint              cancelled : 1;
 };
 
 typedef struct RevisionSearchData RevisionSearchData;
