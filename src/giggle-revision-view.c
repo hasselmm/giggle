@@ -159,14 +159,14 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
 					     GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_widget_set_size_request (scrolled_window, -1, 60);
 	gtk_widget_show (scrolled_window);
 
 	priv->log = gtk_text_view_new ();
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->log), FALSE);
-	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (priv->log), GTK_WRAP_WORD);
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (priv->log), GTK_WRAP_WORD_CHAR);
 	gtk_widget_show (priv->log);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->log);
