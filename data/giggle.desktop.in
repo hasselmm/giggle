@@ -7,4 +7,4 @@ Exec=giggle %F
 # Icon=giggle
 StartupNotify=true
 Encoding=UTF-8
-Categories=Application;Development;
+Categories=Development;RevisionControl;
