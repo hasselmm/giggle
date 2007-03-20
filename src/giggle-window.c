@@ -541,7 +541,7 @@ window_recent_repositories_add (GiggleWindow *window)
 {
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
-	GtkRecentData    *data;
+	GtkRecentData     data = { 0, };
 	const gchar      *repository;
 	gchar            *tmp_string;
 
@@ -554,17 +554,17 @@ window_recent_repositories_add (GiggleWindow *window)
 
 	g_return_if_fail (repository != NULL);
 
-	data = g_slice_new0 (GtkRecentData);
-	data->display_name = g_strdup (giggle_git_get_project_name (priv->git));
-	data->groups = groups;
-	data->mime_type = g_strdup ("x-directory/normal");
-	data->app_name = (gchar *) g_get_application_name ();
-	data->app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
+	data.display_name = (gchar *) giggle_git_get_project_name (priv->git);
+	data.groups = groups;
+	data.mime_type = "x-directory/normal";
+	data.app_name = (gchar *) g_get_application_name ();
+	data.app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
 
 	tmp_string = g_filename_to_uri (repository, NULL, NULL);
 	gtk_recent_manager_add_full (priv->recent_manager,
-                                     tmp_string, data);
+                                     tmp_string, &data);
 	g_free (tmp_string);
+	g_free (data.app_exec);
 }
 
 static void
