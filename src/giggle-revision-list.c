@@ -277,7 +277,6 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 			  revision_list);
 
 	priv->revision_tooltip = giggle_revision_tooltip_new ();
-	g_object_ref_sink (priv->revision_tooltip);
 
 	gtk_rc_parse_string ("style \"revision-list-compact-style\""
 			     "{"
@@ -296,7 +295,7 @@ revision_list_finalize (GObject *object)
 	g_object_unref (priv->graph_column);
 	g_object_unref (priv->emblem_renderer);
 	g_object_unref (priv->graph_renderer);
-	g_object_unref (priv->revision_tooltip);
+	gtk_widget_destroy (priv->revision_tooltip);
 
 	if (g_main_loop_is_running (priv->main_loop)) {
 		g_main_loop_quit (priv->main_loop);
@@ -400,7 +399,7 @@ revision_list_motion_notify (GtkWidget      *widget,
 	}
 
 	giggle_revision_tooltip_set_revision (GIGGLE_REVISION_TOOLTIP (priv->revision_tooltip),
-						      revision);
+					      revision);
 	gtk_widget_show (priv->revision_tooltip);
 
 	gtk_window_move (GTK_WINDOW (priv->revision_tooltip),
