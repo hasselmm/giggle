@@ -57,5 +57,7 @@ main (int argc, char **argv)
 
 	gtk_main ();
 
+	gtk_widget_destroy (window);
+
 	return 0;
 }

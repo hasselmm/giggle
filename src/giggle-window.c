@@ -531,6 +531,7 @@ window_finalize (GObject *object)
 	g_object_unref (priv->git);
 	g_object_unref (priv->recent_manager);
 	g_object_unref (priv->recent_action_group);
+	g_object_unref (priv->configuration);
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
 }
@@ -620,7 +621,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 
 		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
 			action_name = g_strdup_printf ("recent-repository-%d", count);
-			label = g_strdup (gtk_recent_info_get_uri_display (info));
+			label = gtk_recent_info_get_uri_display (info);
 
 			/* FIXME: add accel? */
 
@@ -630,7 +631,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 						 NULL);
 
 			g_object_set_data_full (G_OBJECT (action), "recent-action-path",
-						g_strdup (gtk_recent_info_get_uri_display (info)),
+						gtk_recent_info_get_uri_display (info),
 						(GDestroyNotify) g_free);
 
 			g_signal_connect (action,

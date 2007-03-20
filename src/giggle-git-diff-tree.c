@@ -108,6 +108,9 @@ git_diff_tree_finalize (GObject *object)
 		g_object_unref (priv->rev2);
 	}
 
+	g_list_foreach (priv->files, (GFunc) g_free, NULL);
+	g_list_free (priv->files);
+
 	G_OBJECT_CLASS (giggle_git_diff_tree_parent_class)->finalize (object);
 }
 

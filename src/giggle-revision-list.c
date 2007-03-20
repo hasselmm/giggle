@@ -298,7 +298,11 @@ revision_list_finalize (GObject *object)
 	g_object_unref (priv->graph_renderer);
 	g_object_unref (priv->revision_tooltip);
 
-	g_main_loop_quit (priv->main_loop);
+	if (g_main_loop_is_running (priv->main_loop)) {
+		g_main_loop_quit (priv->main_loop);
+	}
+
+	g_main_loop_unref (priv->main_loop);
 
 	G_OBJECT_CLASS (giggle_revision_list_parent_class)->finalize (object);
 }
