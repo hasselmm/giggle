@@ -23,7 +23,8 @@
 #include <string.h>
 
 #include "giggle-git-refs.h"
-#include "giggle-ref.h"
+#include "giggle-branch.h"
+#include "giggle-tag.h"
 
 typedef struct GiggleGitRefsPriv GiggleGitRefsPriv;
 
@@ -148,7 +149,7 @@ git_refs_add_ref (GiggleJob   *job,
 	data = g_strsplit (str, " ", 2);
 
 	if (g_str_has_prefix (data[1], "refs/heads/")) {
-		ref = giggle_ref_new (data[1] + strlen ("refs/heads/"));
+		ref = giggle_branch_new (data[1] + strlen ("refs/heads/"));
 		g_object_set (ref, "sha", data[0], NULL);
 		priv->branches = g_list_prepend (priv->branches, ref);
 	} else if (g_str_has_prefix (data[1], "refs/tags/")) {
@@ -157,7 +158,7 @@ git_refs_add_ref (GiggleJob   *job,
 			(g_strrstr (data[1], "^{}")) [0] = '\0';
 		}
 
-		ref = giggle_ref_new (data[1] + strlen ("refs/tags/"));
+		ref = giggle_tag_new (data[1] + strlen ("refs/tags/"));
 		g_object_set (ref, "sha", data[0], NULL);
 		priv->tags = g_list_prepend (priv->tags, ref);
 	}

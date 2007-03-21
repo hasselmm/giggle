@@ -23,6 +23,8 @@ giggle_SOURCES =				\
 	giggle-author.h				\
 	giggle-authors-view.c			\
 	giggle-authors-view.h			\
+	giggle-branch.c				\
+	giggle-branch.h				\
 	giggle-branches-view.c			\
 	giggle-branches-view.h			\
 	giggle-configuration.c			\
@@ -98,6 +100,8 @@ giggle_SOURCES =				\
 	giggle-short-list.h			\
 	giggle-sysdeps.c                        \
 	giggle-sysdeps.h                        \
+	giggle-tag.c				\
+	giggle-tag.h				\
 	giggle-tree-view-helpers.c		\
 	giggle-tree-view-helpers.h		\
 	giggle-view.c				\
