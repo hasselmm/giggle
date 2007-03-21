@@ -238,7 +238,8 @@ giggle_file_list_init (GiggleFileList *list)
 					    list, NULL);
 
 	renderer = gtk_cell_renderer_text_new ();
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, FALSE);
+	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, TRUE);
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (column), renderer,
 					"text", COL_NAME,
 					NULL);
