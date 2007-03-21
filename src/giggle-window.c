@@ -87,6 +87,10 @@ static void window_action_diff_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_find_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_find_next_cb            (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_find_prev_cb            (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
@@ -110,9 +114,9 @@ static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
 
 static void window_cancel_find                    (GtkWidget         *widget,
 						   GiggleWindow      *window);
-static void window_find_next                      (GtkWidget         *widget,
+static void window_find_next                      (EggFindBar        *find_bar,
 						   GiggleWindow      *window);
-static void window_find_previous                  (GtkWidget         *widget,
+static void window_find_previous                  (EggFindBar        *find_bar,
 						   GiggleWindow      *window);
 
 static void window_update_toolbar_buttons         (GiggleWindow      *window);
@@ -163,8 +167,16 @@ static const GtkActionEntry action_entries[] = {
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
 	{ "Find", GTK_STOCK_FIND,
-	  N_("Find..."), NULL, N_("Find..."),
+	  N_("_Find..."), NULL, N_("Find..."),
 	  G_CALLBACK (window_action_find_cb)
+	},
+	{ "FindNext", NULL,
+	  N_("Find _Next"), "<control>G", N_("Find next"),
+	  G_CALLBACK (window_action_find_next_cb)
+	},
+	{ "FindPrev", NULL,
+	  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
+	  G_CALLBACK (window_action_find_prev_cb)
 	},
 	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
@@ -200,6 +212,8 @@ static const gchar *ui_layout =
 	"      <menuitem action='PersonalDetails'/>"
 	"      <separator/>"
 	"      <menuitem action='Find'/>"
+	"      <menuitem action='FindNext'/>"
+	"      <menuitem action='FindPrev'/>"
 	"    </menu>"
 	"    <menu action='ViewMenu'>"
 	"      <menuitem action='CompactMode'/>"
@@ -814,6 +828,26 @@ window_action_find_cb (GtkAction    *action,
 }
 
 static void
+window_action_find_next_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	window_find_next (EGG_FIND_BAR (priv->find_bar), window);
+}
+
+static void
+window_action_find_prev_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	window_find_previous (EGG_FIND_BAR (priv->find_bar), window);
+}
+
+static void
 window_action_compact_mode_cb (GtkAction    *action,
 			       GiggleWindow *window)
 {
@@ -845,7 +879,7 @@ window_cancel_find (GtkWidget    *widget,
 }
 
 static void
-window_find (GtkWidget             *widget,
+window_find (EggFindBar            *find_bar,
 	     GiggleWindow          *window,
 	     GiggleSearchDirection  direction)
 {
@@ -861,25 +895,29 @@ window_find (GtkWidget             *widget,
 
 	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
 
-	full_search = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+	search_string = egg_find_bar_get_search_string (find_bar);
 
-	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
-	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-				  search_string, direction, full_search);
+	if (search_string && *search_string) {
+		full_search = gtk_toggle_tool_button_get_active (
+			GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+
+		giggle_searchable_search (GIGGLE_SEARCHABLE (page),
+					  search_string, direction, full_search);
+	}
 }
 
 static void
-window_find_next (GtkWidget    *widget,
+window_find_next (EggFindBar   *find_bar,
 		  GiggleWindow *window)
 {
-	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_NEXT);
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_NEXT);
 }
 
 static void
-window_find_previous (GtkWidget    *widget,
+window_find_previous (EggFindBar   *find_bar,
 		      GiggleWindow *window)
 {
-	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_PREV);
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_PREV);
 }
 
 static void
