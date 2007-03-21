@@ -37,8 +37,10 @@ typedef struct GiggleRevisionListPriv GiggleRevisionListPriv;
 
 struct GiggleRevisionListPriv {
 	GtkTreeViewColumn *graph_column;
-	GtkCellRenderer   *emblem_renderer;
 	GtkCellRenderer   *graph_renderer;
+
+	GtkTreeViewColumn *emblem_column;
+	GtkCellRenderer   *emblem_renderer;
 
 	GtkIconTheme      *icon_theme;
 
@@ -201,20 +203,29 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	priv->git = giggle_git_get ();
 	priv->main_loop = g_main_loop_new (NULL, FALSE);
 
-	priv->graph_column = gtk_tree_view_column_new ();
-	g_object_ref_sink (priv->graph_column);
-
 	/* emblems renderer */
+	priv->emblem_column = gtk_tree_view_column_new ();
+	g_object_ref_sink (priv->emblem_column);
+
 	priv->emblem_renderer = gtk_cell_renderer_pixbuf_new ();
 	g_object_ref_sink (priv->emblem_renderer);
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->graph_column), priv->emblem_renderer, FALSE);
-	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->graph_column),
+
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->emblem_column),
+				    priv->emblem_renderer, FALSE);
+
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->emblem_column),
 					    priv->emblem_renderer,
 					    revision_list_cell_data_emblem_func,
 					    revision_list,
 					    NULL);
 
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list),
+				     priv->emblem_column, -1);
+
 	/* graph renderer */
+	priv->graph_column = gtk_tree_view_column_new ();
+	g_object_ref_sink (priv->graph_column);
+
 	priv->graph_renderer = giggle_graph_renderer_new ();
 	g_object_ref_sink (priv->graph_renderer);
 
@@ -373,7 +384,7 @@ revision_list_motion_notify (GtkWidget      *widget,
 	if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget),
 					    event->x, event->y,
 					    &path, &column, &cell_x, NULL) ||
-	    column != priv->graph_column) {
+	    column != priv->emblem_column) {
 		goto failed;
 	}
 
