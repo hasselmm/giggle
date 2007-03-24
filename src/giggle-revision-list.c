@@ -32,6 +32,10 @@
 #include "giggle-revision.h"
 #include "giggle-marshal.h"
 #include "giggle-searchable.h"
+#include "giggle-branch.h"
+#include "giggle-tag.h"
+#include "giggle-git-add-ref.h"
+#include "giggle-input-dialog.h"
 
 typedef struct GiggleRevisionListPriv GiggleRevisionListPriv;
 
@@ -48,6 +52,9 @@ struct GiggleRevisionListPriv {
 
 	GiggleGit         *git;
 	GiggleJob         *job;
+
+	GtkUIManager      *ui_manager;
+	GtkWidget         *popup;
 
 	/* used for search inside diffs */
 	GMainLoop         *main_loop;
@@ -84,6 +91,7 @@ enum {
 
 static guint signals [LAST_SIGNAL] = { 0 };
 
+
 static void revision_list_finalize                (GObject *object);
 static void giggle_revision_list_searchable_init  (GiggleSearchableIface *iface);
 static void revision_list_get_property            (GObject        *object,
@@ -94,6 +102,9 @@ static void revision_list_set_property            (GObject        *object,
 						   guint           param_id,
 						   const GValue   *value,
 						   GParamSpec     *pspec);
+
+static gboolean revision_list_button_press        (GtkWidget      *widget,
+						   GdkEventButton *event);
 static gboolean revision_list_motion_notify       (GtkWidget      *widget,
 						   GdkEventMotion *event);
 static gboolean revision_list_leave_notify        (GtkWidget        *widget,
@@ -130,6 +141,11 @@ static gboolean revision_list_search              (GiggleSearchable      *search
 						   gboolean               full_search);
 static void revision_list_cancel_search           (GiggleSearchable      *searchable);
 
+static void revision_list_create_branch           (GtkAction          *action,
+						   GiggleRevisionList *list);
+static void revision_list_create_tag              (GtkAction          *action,
+						   GiggleRevisionList *list);
+
 
 G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
@@ -137,6 +153,22 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListPriv))
 
+
+#define CREATE_BRANCH_PATH "/ui/PopupMenu/CreateBranch"
+#define CREATE_TAG_PATH "/ui/PopupMenu/CreateTag"
+
+static GtkActionEntry menu_items [] = {
+	{ "CreateBranch",   NULL,                 N_("Create _Branch"), NULL, NULL, G_CALLBACK (revision_list_create_branch) },
+	{ "CreateTag",      "stock_add-bookmark", N_("Create _Tag"),    NULL, NULL, G_CALLBACK (revision_list_create_tag) },
+};
+
+static const gchar *ui_description =
+	"<ui>"
+	"  <popup name='PopupMenu'>"
+	"    <menuitem action='CreateBranch'/>"
+	"    <menuitem action='CreateTag'/>"
+	"  </popup>"
+	"</ui>";
 
 static void
 giggle_revision_list_class_init (GiggleRevisionListClass *class)
@@ -148,6 +180,7 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 	object_class->set_property = revision_list_set_property;
 	object_class->get_property = revision_list_get_property;
 
+	widget_class->button_press_event = revision_list_button_press;
 	widget_class->motion_notify_event = revision_list_motion_notify;
 	widget_class->leave_notify_event = revision_list_leave_notify;
 	widget_class->style_set = revision_list_style_set;
@@ -196,6 +229,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	GtkCellRenderer        *cell;
 	GtkTreeSelection       *selection;
 	gint                    n_columns;
+	GtkActionGroup         *action_group;
 
 	priv = GET_PRIV (revision_list);
 
@@ -294,6 +328,19 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 			     "  GtkTreeView::vertical-separator = 0"
 			     "}"
 			     "widget \"*.revision-list\" style \"revision-list-compact-style\"");
+
+	/* create the popup menu */
+	action_group = gtk_action_group_new ("PopupActions");
+	gtk_action_group_set_translation_domain (action_group, NULL);
+	gtk_action_group_add_actions (action_group, menu_items,
+				      G_N_ELEMENTS (menu_items), revision_list);
+
+	priv->ui_manager = gtk_ui_manager_new ();
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+
+	if (gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_description, -1, NULL)) {
+		priv->popup = gtk_ui_manager_get_widget (priv->ui_manager, "/ui/PopupMenu");
+	}
 }
 
 static void
@@ -362,6 +409,46 @@ revision_list_set_property (GObject      *object,
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
+	}
+}
+
+static gboolean
+revision_list_button_press (GtkWidget      *widget,
+			    GdkEventButton *event)
+{
+	GiggleRevisionListPriv *priv;
+	GtkTreeSelection       *selection;
+	GtkTreeModel           *model;
+	GtkTreePath            *path;
+	GtkTreeIter             iter;
+	GiggleRevision         *revision;
+
+	if (event->button == 3) {
+		priv = GET_PRIV (widget);
+		selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (widget));
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (widget));
+
+		if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget), event->x, event->y,
+						    &path, NULL, NULL, NULL)) {
+			return TRUE;
+		}
+
+		gtk_tree_selection_unselect_all (selection);
+		gtk_tree_selection_select_path (selection, path);
+
+		gtk_tree_model_get_iter (model, &iter, path);
+		gtk_tree_model_get (model, &iter,
+				    COL_OBJECT, &revision,
+				    -1);
+
+		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
+				NULL, NULL, event->button, event->time);
+
+		gtk_tree_path_free (path);
+
+		return TRUE;
+	} else {
+		return GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->button_press_event (widget, event);
 	}
 }
 
@@ -907,6 +994,123 @@ revision_list_cancel_search (GiggleSearchable *searchable)
 			g_main_loop_quit (priv->main_loop);
 		}
 	}
+}
+
+static void
+create_ref_cb (GiggleGit *git,
+	       GiggleJob *job,
+	       GError    *error,
+	       gpointer   user_data)
+{
+	GiggleRevisionListPriv *priv;
+
+	priv = GET_PRIV (user_data);
+
+	/* FIXME: error reporting missing */
+	if (!error) {
+		g_object_notify (G_OBJECT (priv->git), "git-dir");
+	}
+
+	g_object_unref (job);
+}
+
+static void
+revision_list_create_branch (GtkAction          *action,
+			     GiggleRevisionList *list)
+{
+	GiggleRevisionListPriv *priv;
+	GtkTreeSelection       *selection;
+	GtkTreeIter             iter;
+	GtkTreeModel           *model;
+	GiggleRevision         *revision;
+	GList                  *paths;
+	GiggleRef              *branch;
+	GtkWidget              *input_dialog;
+	const gchar            *branch_name;
+
+	priv = GET_PRIV (list);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	paths = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	g_return_if_fail (paths != NULL);
+
+	gtk_tree_model_get_iter (model, &iter, (GtkTreePath *) paths->data);
+
+	gtk_tree_model_get (model, &iter,
+			    COL_OBJECT, &revision,
+			    -1);
+
+	input_dialog = giggle_input_dialog_new (_("Enter branch name:"));
+	gtk_window_set_transient_for (GTK_WINDOW (input_dialog),
+				      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))));
+
+	gtk_dialog_run (GTK_DIALOG (input_dialog));
+	branch_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
+
+	branch = giggle_branch_new (branch_name);
+	priv->job = giggle_git_add_ref_new (branch, revision);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    create_ref_cb,
+			    list);
+
+	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (paths);
+	g_object_unref (branch);
+	g_object_unref (revision);
+	gtk_widget_destroy (input_dialog);
+}
+
+/* FIXME: pretty equal to revision_list_create_branch() */
+static void
+revision_list_create_tag (GtkAction          *action,
+			  GiggleRevisionList *list)
+{
+	GiggleRevisionListPriv *priv;
+	GtkTreeSelection       *selection;
+	GtkTreeIter             iter;
+	GtkTreeModel           *model;
+	GiggleRevision         *revision;
+	GList                  *paths;
+	GiggleRef              *tag;
+	GtkWidget              *input_dialog;
+	const gchar            *tag_name;
+
+	priv = GET_PRIV (list);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	paths = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	g_return_if_fail (paths != NULL);
+
+	gtk_tree_model_get_iter (model, &iter, (GtkTreePath *) paths->data);
+
+	gtk_tree_model_get (model, &iter,
+			    COL_OBJECT, &revision,
+			    -1);
+
+	input_dialog = giggle_input_dialog_new (_("Enter tag name:"));
+	gtk_window_set_transient_for (GTK_WINDOW (input_dialog),
+				      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))));
+
+	gtk_dialog_run (GTK_DIALOG (input_dialog));
+	tag_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
+
+	tag = giggle_tag_new (tag_name);
+	priv->job = giggle_git_add_ref_new (tag, revision);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    create_ref_cb,
+			    list);
+
+	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (paths);
+	g_object_unref (tag);
+	g_object_unref (revision);
+	gtk_widget_destroy (input_dialog);
 }
 
 GtkWidget*
