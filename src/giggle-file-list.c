@@ -92,15 +92,15 @@ static gboolean   file_list_get_path_and_ignore_for_iter (GiggleFileList   *list
 							  gchar           **name,
 							  GiggleGitIgnore **git_ignore);
 
-static void       file_list_diff_file           (GtkWidget        *widget,
+static void       file_list_diff_file           (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_add_file            (GtkWidget        *widget,
+static void       file_list_add_file            (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_ignore_file         (GtkWidget        *widget,
+static void       file_list_ignore_file         (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_unignore_file       (GtkWidget        *widget,
+static void       file_list_unignore_file       (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_toggle_show_all     (GtkWidget        *widget,
+static void       file_list_toggle_show_all     (GtkAction        *action,
 						 GiggleFileList   *list);
 
 static void       file_list_cell_data_sensitive_func  (GtkCellLayout   *cell_layout,
@@ -129,18 +129,18 @@ enum {
 	PROP_COMPACT_MODE,
 };
 
-GtkActionEntry menu_items [] = {
+static GtkActionEntry menu_items [] = {
 	{ "Diff",     NULL,             N_("_Diff"),                   NULL, NULL, G_CALLBACK (file_list_diff_file) },
 	{ "AddFile",  NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
 	{ "Ignore",   GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
 	{ "Unignore", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
 };
 
-GtkToggleActionEntry toggle_menu_items [] = {
+static GtkToggleActionEntry toggle_menu_items [] = {
 	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, G_CALLBACK (file_list_toggle_show_all), FALSE },
 };
 
-const gchar *ui_description =
+static const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
 	"    <menuitem action='Diff'/>"
@@ -556,7 +556,7 @@ file_list_managed_files_changed (GiggleFileList *list)
 }
 
 static void
-file_list_diff_file (GtkWidget      *widget,
+file_list_diff_file (GtkAction      *action,
 		     GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -705,8 +705,8 @@ file_list_add_file_callback (GiggleGit *git,
 }
 
 static void
-file_list_add_file (GtkWidget        *widget,
-		    GiggleFileList   *list)
+file_list_add_file (GtkAction      *action,
+		    GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 
@@ -927,7 +927,7 @@ file_list_ignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_ignore_file (GtkWidget      *widget,
+file_list_ignore_file (GtkAction      *action,
 		       GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -985,7 +985,7 @@ file_list_unignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_unignore_file (GtkWidget      *widget,
+file_list_unignore_file (GtkAction      *action,
 			 GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -999,14 +999,14 @@ file_list_unignore_file (GtkWidget      *widget,
 }
 
 static void
-file_list_toggle_show_all (GtkWidget      *widget,
+file_list_toggle_show_all (GtkAction      *action,
 			   GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 	gboolean active;
 
 	priv = GET_PRIV (list);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (widget));
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 	giggle_file_list_set_show_all (list, active);
 }
 
