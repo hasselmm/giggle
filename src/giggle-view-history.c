@@ -40,6 +40,8 @@ typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
 struct GiggleViewHistoryPriv {
 	GtkWidget *file_list;
+	GtkWidget *file_list_sw;
+
 	GtkWidget *revision_list;
 	GtkWidget *revision_view;
 	GtkWidget *diff_view;
@@ -183,16 +185,16 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_paned_pack1 (GTK_PANED (priv->revision_hpaned), vbox, TRUE, FALSE);
 
 	/* file view */
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+	priv->file_list_sw = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->file_list_sw),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->file_list_sw), GTK_SHADOW_IN);
 
 	priv->file_list = giggle_file_list_new ();
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->file_list);
-	gtk_widget_show_all (scrolled_window);
+	gtk_container_add (GTK_CONTAINER (priv->file_list_sw), priv->file_list);
+	gtk_widget_show_all (priv->file_list_sw);
 
-	gtk_paned_pack1 (GTK_PANED (priv->main_hpaned), scrolled_window, FALSE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->main_hpaned), priv->file_list_sw, FALSE, FALSE);
 
 	/* revisions list */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -606,6 +608,31 @@ giggle_view_history_get_compact_mode  (GiggleViewHistory *view)
 
 	priv = GET_PRIV (view);
 	return priv->compact_mode;
+}
+
+void
+giggle_view_history_set_file_list_visible (GiggleViewHistory *view,
+					   gboolean           visible)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
+
+	priv = GET_PRIV (view);
+
+	g_object_set (priv->file_list_sw, "visible", visible, NULL);
+}
+
+gboolean
+giggle_view_history_get_file_list_visible (GiggleViewHistory *view)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_HISTORY (view), FALSE);
+
+	priv = GET_PRIV (view);
+
+	return GTK_WIDGET_VISIBLE (priv->file_list_sw);
 }
 
 static void

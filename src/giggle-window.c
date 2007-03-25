@@ -98,6 +98,8 @@ static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_compact_mode_cb         (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_view_file_list_cb       (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_history_go_back         (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_history_go_forward      (GtkAction         *action,
@@ -125,8 +127,12 @@ static void window_update_toolbar_buttons         (GiggleWindow      *window);
 
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
-	  N_("_Compact mode"), "F7", NULL,
+	  N_("_Compact Mode"), "F7", NULL,
 	  G_CALLBACK (window_action_compact_mode_cb), FALSE
+	},
+	{ "ViewFileList", NULL,
+	  N_("Show Project _Tree"), "F9", NULL,
+	  G_CALLBACK (window_action_view_file_list_cb), TRUE
 	},
 };
 
@@ -218,6 +224,7 @@ static const gchar *ui_layout =
 	"    </menu>"
 	"    <menu action='ViewMenu'>"
 	"      <menuitem action='CompactMode'/>"
+	"      <menuitem action='ViewFileList'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -866,6 +873,19 @@ window_action_compact_mode_cb (GtkAction    *action,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
+}
+
+static void
+window_action_view_file_list_cb (GtkAction    *action,
+				 GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	giggle_view_history_set_file_list_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void
