@@ -53,6 +53,7 @@ struct GiggleWindowPriv {
 	GtkUIManager        *ui_manager;
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
+	guint                recent_merge_id;
 
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
@@ -603,7 +604,15 @@ window_recent_repositories_clear (GiggleWindow *window)
 	priv = GET_PRIV (window);
 	actions = l = gtk_action_group_list_actions (priv->recent_action_group);
 
+	if (priv->recent_merge_id) {
+		gtk_ui_manager_remove_ui (priv->ui_manager, priv->recent_merge_id);
+	}
+
 	for (l = actions; l != NULL; l = l->next) {
+		g_signal_handlers_disconnect_by_func (GTK_ACTION (l->data),
+                                                      G_CALLBACK (window_recent_repository_activate),
+                                                      window);
+
 		gtk_action_group_remove_action (priv->recent_action_group, l->data);
 	}
 
@@ -620,14 +629,13 @@ window_recent_repositories_reload (GiggleWindow *window)
 	GList            *recent_items, *l;
 	GtkRecentInfo    *info;
 	GtkAction        *action;
-	guint             recent_menu_id;
 	gchar            *action_name, *label;
 	gint              count = 0;
 
 	priv = GET_PRIV (window);
 
 	recent_items = l = gtk_recent_manager_get_items (priv->recent_manager);
-	recent_menu_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
+	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 
 	/* FIXME: the max count is hardcoded */
 	while (l && count < 10) {
@@ -656,7 +664,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 			gtk_action_group_add_action (priv->recent_action_group, action);
 
 			gtk_ui_manager_add_ui (priv->ui_manager,
-					       recent_menu_id,
+					       priv->recent_merge_id,
 					       RECENT_REPOS_PLACEHOLDER_PATH,
 					       action_name,
 					       action_name,
