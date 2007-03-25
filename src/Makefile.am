@@ -55,6 +55,8 @@ giggle_SOURCES =				\
 	giggle-git-authors.h			\
 	giggle-git-commit.c			\
 	giggle-git-commit.h			\
+	giggle-git-delete-ref.c			\
+	giggle-git-delete-ref.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-diff-tree.c			\
