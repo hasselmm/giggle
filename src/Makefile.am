@@ -49,10 +49,14 @@ giggle_SOURCES =				\
 	giggle-git.h                            \
 	giggle-git-add.c			\
 	giggle-git-add.h			\
+	giggle-git-add-ref.c			\
+	giggle-git-add-ref.h			\
 	giggle-git-authors.c			\
 	giggle-git-authors.h			\
 	giggle-git-commit.c			\
 	giggle-git-commit.h			\
+	giggle-git-delete-ref.c			\
+	giggle-git-delete-ref.h			\
 	giggle-git-diff.c                       \
 	giggle-git-diff.h                       \
 	giggle-git-diff-tree.c			\
@@ -73,6 +77,8 @@ giggle_SOURCES =				\
         giggle-graph-renderer.h	        	\
 	giggle-history.c			\
 	giggle-history.h			\
+	giggle-input-dialog.c			\
+	giggle-input-dialog.h			\
 	giggle-job.c                            \
 	giggle-job.h                            \
 	giggle-personal-details-window.c	\

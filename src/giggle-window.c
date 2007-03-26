@@ -53,6 +53,7 @@ struct GiggleWindowPriv {
 	GtkUIManager        *ui_manager;
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
+	guint                recent_merge_id;
 
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
@@ -97,6 +98,8 @@ static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_compact_mode_cb         (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_view_file_list_cb       (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_history_go_back         (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_history_go_forward      (GtkAction         *action,
@@ -124,8 +127,12 @@ static void window_update_toolbar_buttons         (GiggleWindow      *window);
 
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
-	  N_("_Compact mode"), "F7", NULL,
+	  N_("_Compact Mode"), "F7", NULL,
 	  G_CALLBACK (window_action_compact_mode_cb), FALSE
+	},
+	{ "ViewFileList", NULL,
+	  N_("Show Project _Tree"), "F9", NULL,
+	  G_CALLBACK (window_action_view_file_list_cb), TRUE
 	},
 };
 
@@ -136,6 +143,10 @@ static const GtkActionEntry action_entries[] = {
 	},
 	{ "EditMenu", NULL,
 	  N_("_Edit"), NULL, NULL,
+	  NULL
+	},
+	{ "GoMenu", NULL,
+	  N_("_Go"), NULL, NULL,
 	  NULL
 	},
 	{ "ViewMenu", NULL,
@@ -185,11 +196,11 @@ static const GtkActionEntry action_entries[] = {
 
 	/* Toolbar items */
 	{ "BackHistory", GTK_STOCK_GO_BACK,
-	  N_("_Back"), NULL, NULL,
+	  N_("_Back"), "<alt>Left", NULL,
 	  G_CALLBACK (window_action_history_go_back)
 	},
 	{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
-	  N_("_Forward"), NULL, NULL,
+	  N_("_Forward"), "<alt>Right", NULL,
 	  G_CALLBACK (window_action_history_go_forward)
 	},
 };
@@ -215,8 +226,13 @@ static const gchar *ui_layout =
 	"      <menuitem action='FindNext'/>"
 	"      <menuitem action='FindPrev'/>"
 	"    </menu>"
+	"    <menu action='GoMenu'>"
+	"      <menuitem action='BackHistory'/>"
+	"      <menuitem action='ForwardHistory'/>"
+	"    </menu>"
 	"    <menu action='ViewMenu'>"
 	"      <menuitem action='CompactMode'/>"
+	"      <menuitem action='ViewFileList'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -583,7 +599,15 @@ window_recent_repositories_clear (GiggleWindow *window)
 	priv = GET_PRIV (window);
 	actions = l = gtk_action_group_list_actions (priv->recent_action_group);
 
+	if (priv->recent_merge_id) {
+		gtk_ui_manager_remove_ui (priv->ui_manager, priv->recent_merge_id);
+	}
+
 	for (l = actions; l != NULL; l = l->next) {
+		g_signal_handlers_disconnect_by_func (GTK_ACTION (l->data),
+                                                      G_CALLBACK (window_recent_repository_activate),
+                                                      window);
+
 		gtk_action_group_remove_action (priv->recent_action_group, l->data);
 	}
 
@@ -600,14 +624,13 @@ window_recent_repositories_reload (GiggleWindow *window)
 	GList            *recent_items, *l;
 	GtkRecentInfo    *info;
 	GtkAction        *action;
-	guint             recent_menu_id;
 	gchar            *action_name, *label;
 	gint              count = 0;
 
 	priv = GET_PRIV (window);
 
 	recent_items = l = gtk_recent_manager_get_items (priv->recent_manager);
-	recent_menu_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
+	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 
 	/* FIXME: the max count is hardcoded */
 	while (l && count < 10) {
@@ -636,7 +659,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 			gtk_action_group_add_action (priv->recent_action_group, action);
 
 			gtk_ui_manager_add_ui (priv->ui_manager,
-					       recent_menu_id,
+					       priv->recent_merge_id,
 					       RECENT_REPOS_PLACEHOLDER_PATH,
 					       action_name,
 					       action_name,
@@ -849,6 +872,19 @@ window_action_compact_mode_cb (GtkAction    *action,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
+}
+
+static void
+window_action_view_file_list_cb (GtkAction    *action,
+				 GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	giggle_view_history_set_file_list_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void

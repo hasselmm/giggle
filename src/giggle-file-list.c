@@ -92,15 +92,15 @@ static gboolean   file_list_get_path_and_ignore_for_iter (GiggleFileList   *list
 							  gchar           **name,
 							  GiggleGitIgnore **git_ignore);
 
-static void       file_list_diff_file           (GtkWidget        *widget,
+static void       file_list_diff_file           (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_add_file            (GtkWidget        *widget,
+static void       file_list_add_file            (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_ignore_file         (GtkWidget        *widget,
+static void       file_list_ignore_file         (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_unignore_file       (GtkWidget        *widget,
+static void       file_list_unignore_file       (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_toggle_show_all     (GtkWidget        *widget,
+static void       file_list_toggle_show_all     (GtkAction        *action,
 						 GiggleFileList   *list);
 
 static void       file_list_cell_data_sensitive_func  (GtkCellLayout   *cell_layout,
@@ -129,18 +129,25 @@ enum {
 	PROP_COMPACT_MODE,
 };
 
-GtkActionEntry menu_items [] = {
+enum {
+	PATH_SELECTED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0, };
+
+static GtkActionEntry menu_items [] = {
 	{ "Diff",     NULL,             N_("_Diff"),                   NULL, NULL, G_CALLBACK (file_list_diff_file) },
 	{ "AddFile",  NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
 	{ "Ignore",   GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
 	{ "Unignore", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
 };
 
-GtkToggleActionEntry toggle_menu_items [] = {
+static GtkToggleActionEntry toggle_menu_items [] = {
 	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, G_CALLBACK (file_list_toggle_show_all), FALSE },
 };
 
-const gchar *ui_description =
+static const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
 	"    <menuitem action='Diff'/>"
@@ -181,6 +188,16 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 							       "Whether to show the list in compact mode or not",
 							       FALSE,
 							       G_PARAM_READWRITE));
+
+	signals[PATH_SELECTED] =
+		g_signal_new ("path-selected",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleFileListClass, path_selected),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__STRING,
+			      G_TYPE_NONE,
+			      1, G_TYPE_STRING);
 
 	g_type_class_add_private (object_class, sizeof (GiggleFileListPriv));
 }
@@ -423,11 +440,27 @@ file_list_button_press (GtkWidget      *widget,
 
 		g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 		g_list_free (rows);
-
-		return TRUE;
 	} else {
-		return GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+		GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+
+		if (event->button == 1 &&
+		    event->state == 0 &&
+		    event->type == GDK_2BUTTON_PRESS) {
+			selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+			rows = gtk_tree_selection_get_selected_rows (selection, &model);
+
+			g_assert (rows != NULL);
+
+			/* there should be just one item selected */
+			gtk_tree_model_get_iter (model, &iter, rows->data);
+
+			file_list_get_path_and_ignore_for_iter (list, &iter, &file_path, NULL);
+			g_signal_emit (widget, signals[PATH_SELECTED], 0, file_path);
+			g_free (file_path);
+		}
 	}
+
+	return TRUE;
 }
 
 static void
@@ -556,7 +589,7 @@ file_list_managed_files_changed (GiggleFileList *list)
 }
 
 static void
-file_list_diff_file (GtkWidget      *widget,
+file_list_diff_file (GtkAction      *action,
 		     GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -705,8 +738,8 @@ file_list_add_file_callback (GiggleGit *git,
 }
 
 static void
-file_list_add_file (GtkWidget        *widget,
-		    GiggleFileList   *list)
+file_list_add_file (GtkAction      *action,
+		    GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 
@@ -800,18 +833,29 @@ file_list_get_path_and_ignore_for_iter (GiggleFileList   *list,
 	priv = GET_PRIV (list);
 
 	if (!gtk_tree_model_iter_parent (priv->filter_model, &parent, iter)) {
-		*path = NULL;
-		*git_ignore = NULL;
+		if (path) {
+			*path = NULL;
+		}
+
+		if (git_ignore) {
+			*git_ignore = NULL;
+		}
 
 		return FALSE;
 	}
 
-	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
-			    COL_REL_PATH, path,
-			    -1);
-	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
-			    COL_GIT_IGNORE, git_ignore,
-			    -1);
+	if (path) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
+				    COL_REL_PATH, path,
+				    -1);
+	}
+
+	if (git_ignore) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
+				    COL_GIT_IGNORE, git_ignore,
+				    -1);
+	}
+
 	return TRUE;
 }
 
@@ -927,7 +971,7 @@ file_list_ignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_ignore_file (GtkWidget      *widget,
+file_list_ignore_file (GtkAction      *action,
 		       GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -985,7 +1029,7 @@ file_list_unignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_unignore_file (GtkWidget      *widget,
+file_list_unignore_file (GtkAction      *action,
 			 GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -999,14 +1043,14 @@ file_list_unignore_file (GtkWidget      *widget,
 }
 
 static void
-file_list_toggle_show_all (GtkWidget      *widget,
+file_list_toggle_show_all (GtkAction      *action,
 			   GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 	gboolean active;
 
 	priv = GET_PRIV (list);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (widget));
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 	giggle_file_list_set_show_all (list, active);
 }
 
