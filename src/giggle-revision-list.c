@@ -1168,16 +1168,17 @@ revision_list_create_branch (GtkAction          *action,
 	gtk_window_set_transient_for (GTK_WINDOW (input_dialog),
 				      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))));
 
-	gtk_dialog_run (GTK_DIALOG (input_dialog));
-	branch_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
+	if (gtk_dialog_run (GTK_DIALOG (input_dialog)) == GTK_RESPONSE_OK) {
+		branch_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
 
-	branch = giggle_branch_new (branch_name);
-	priv->job = giggle_git_add_ref_new (branch, revision);
+		branch = giggle_branch_new (branch_name);
+		priv->job = giggle_git_add_ref_new (branch, revision);
 
-	giggle_git_run_job (priv->git,
-			    priv->job,
-			    modify_ref_cb,
-			    list);
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    modify_ref_cb,
+				    list);
+	}
 
 	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (paths);
