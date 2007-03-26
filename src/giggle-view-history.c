@@ -296,6 +296,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 						revision1, revision2, files);
 		giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
 						     revision1, revision2);
+		giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
+						revision1, revision2);
 	}
 }
 
