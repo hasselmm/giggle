@@ -85,7 +85,7 @@ static void     view_history_cancel_search                      (GiggleSearchabl
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
 
-static void     view_history_diff_tree_path_selected            (GiggleDiffTreeView *diff_tree_view,
+static void     view_history_path_selected                      (GiggleDiffTreeView *diff_tree_view,
 								 const gchar        *path,
 								 GiggleViewHistory  *view);
 
@@ -178,7 +178,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_widget_show_all (scrolled_window);
 
 	g_signal_connect (priv->diff_tree_view, "path-selected",
-			  G_CALLBACK (view_history_diff_tree_path_selected), view);
+			  G_CALLBACK (view_history_path_selected), view);
 
 	vbox = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox);
@@ -193,6 +193,9 @@ giggle_view_history_init (GiggleViewHistory *view)
 	priv->file_list = giggle_file_list_new ();
 	gtk_container_add (GTK_CONTAINER (priv->file_list_sw), priv->file_list);
 	gtk_widget_show_all (priv->file_list_sw);
+
+	g_signal_connect (priv->file_list, "path-selected",
+			  G_CALLBACK (view_history_path_selected), view);
 
 	gtk_paned_pack1 (GTK_PANED (priv->main_hpaned), priv->file_list_sw, FALSE, FALSE);
 
@@ -531,7 +534,8 @@ view_history_update_revisions (GiggleViewHistory  *view)
 		priv->job = NULL;
 	}
 
-	if (priv->current_history_elem) {
+	if (priv->current_history_elem &&
+	    priv->current_history_elem->data) {
 		/* we just want one file */
 		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
 		priv->job = giggle_git_revisions_new_for_files (files);
@@ -546,9 +550,9 @@ view_history_update_revisions (GiggleViewHistory  *view)
 }
 
 static void
-view_history_diff_tree_path_selected (GiggleDiffTreeView *diff_tree_view,
-				      const gchar        *path,
-				      GiggleViewHistory  *view)
+view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
+			    const gchar        *path,
+			    GiggleViewHistory  *view)
 {
 	GiggleViewHistoryPriv *priv;
 	GList                 *list = NULL;
