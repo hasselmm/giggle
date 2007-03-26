@@ -1178,11 +1178,11 @@ revision_list_create_branch (GtkAction          *action,
 				    priv->job,
 				    modify_ref_cb,
 				    list);
+		g_object_unref (branch);
 	}
 
 	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (paths);
-	g_object_unref (branch);
 	g_object_unref (revision);
 	gtk_widget_destroy (input_dialog);
 }
@@ -1219,20 +1219,22 @@ revision_list_create_tag (GtkAction          *action,
 	gtk_window_set_transient_for (GTK_WINDOW (input_dialog),
 				      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))));
 
-	gtk_dialog_run (GTK_DIALOG (input_dialog));
-	tag_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
+	if (gtk_dialog_run (GTK_DIALOG (input_dialog)) == GTK_RESPONSE_OK) {
+		tag_name = giggle_input_dialog_get_text (GIGGLE_INPUT_DIALOG (input_dialog));
 
-	tag = giggle_tag_new (tag_name);
-	priv->job = giggle_git_add_ref_new (tag, revision);
+		tag = giggle_tag_new (tag_name);
+		priv->job = giggle_git_add_ref_new (tag, revision);
 
-	giggle_git_run_job (priv->git,
-			    priv->job,
-			    modify_ref_cb,
-			    list);
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    modify_ref_cb,
+				    list);
+
+		g_object_unref (tag);
+	}
 
 	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (paths);
-	g_object_unref (tag);
 	g_object_unref (revision);
 	gtk_widget_destroy (input_dialog);
 }
