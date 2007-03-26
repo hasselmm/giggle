@@ -482,26 +482,6 @@ giggle_window_init (GiggleWindow *window)
 	/* setup find bar */
 	window_create_find_bar (window);
 
-	/* personal details window */
-	priv->personal_details_window = giggle_personal_details_window_new ();
-
-	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
-				      GTK_WINDOW (window));
-	g_signal_connect (priv->personal_details_window, "delete-event",
-			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-	g_signal_connect_after (priv->personal_details_window, "response",
-				G_CALLBACK (gtk_widget_hide), NULL);
-
-	/* diff current window */
-	priv->diff_current_window = giggle_diff_window_new ();
-
-	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
-				      GTK_WINDOW (window));
-	g_signal_connect (priv->diff_current_window, "delete-event",
-			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-	g_signal_connect_after (priv->diff_current_window, "response",
-				G_CALLBACK (gtk_widget_hide), NULL);
-
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
 	gtk_widget_show (priv->history_view);
@@ -791,6 +771,17 @@ window_action_diff_cb (GtkAction    *action,
 
 	priv = GET_PRIV (window);
 
+	if (!priv->diff_current_window) {
+		priv->diff_current_window = giggle_diff_window_new ();
+ 
+		gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
+					      GTK_WINDOW (window));
+		g_signal_connect (priv->diff_current_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->diff_current_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
+
 	gtk_widget_show (priv->diff_current_window);
 }
 
@@ -927,6 +918,17 @@ window_action_personal_details_cb (GtkAction    *action,
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (window);
+
+	if (!priv->personal_details_window) {
+		priv->personal_details_window = giggle_personal_details_window_new ();
+
+		gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
+					      GTK_WINDOW (window));
+		g_signal_connect (priv->personal_details_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->personal_details_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
 
 	gtk_widget_show (priv->personal_details_window);
 }
