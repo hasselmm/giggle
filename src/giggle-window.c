@@ -145,6 +145,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Edit"), NULL, NULL,
 	  NULL
 	},
+	{ "GoMenu", NULL,
+	  N_("_Go"), NULL, NULL,
+	  NULL
+	},
 	{ "ViewMenu", NULL,
 	  N_("_View"), NULL, NULL,
 	  NULL
@@ -192,11 +196,11 @@ static const GtkActionEntry action_entries[] = {
 
 	/* Toolbar items */
 	{ "BackHistory", GTK_STOCK_GO_BACK,
-	  N_("_Back"), NULL, NULL,
+	  N_("_Back"), "<alt>Left", NULL,
 	  G_CALLBACK (window_action_history_go_back)
 	},
 	{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
-	  N_("_Forward"), NULL, NULL,
+	  N_("_Forward"), "<alt>Right", NULL,
 	  G_CALLBACK (window_action_history_go_forward)
 	},
 };
@@ -221,6 +225,10 @@ static const gchar *ui_layout =
 	"      <menuitem action='Find'/>"
 	"      <menuitem action='FindNext'/>"
 	"      <menuitem action='FindPrev'/>"
+	"    </menu>"
+	"    <menu action='GoMenu'>"
+	"      <menuitem action='BackHistory'/>"
+	"      <menuitem action='ForwardHistory'/>"
 	"    </menu>"
 	"    <menu action='ViewMenu'>"
 	"      <menuitem action='CompactMode'/>"
