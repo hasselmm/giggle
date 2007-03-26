@@ -63,6 +63,10 @@ struct GiggleRevisionListPriv {
 	/* used for search inside diffs */
 	GMainLoop         *main_loop;
 
+	/* revision caching */
+	GiggleRevision    *first_revision;
+	GiggleRevision    *last_revision;
+
 	guint              show_graph : 1;
 	guint              compact_mode : 1;
 	guint              cancelled : 1;
@@ -917,8 +921,14 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 		last_revision = parents ? g_object_ref(parents->data) : NULL;
 	}
 
-	g_signal_emit (list, signals [SELECTION_CHANGED], 0,
-		       first_revision, last_revision);
+	if (first_revision != priv->first_revision ||
+	    last_revision != priv->last_revision) {
+		priv->first_revision = first_revision;
+		priv->last_revision = last_revision;
+
+		g_signal_emit (list, signals [SELECTION_CHANGED], 0,
+			       first_revision, last_revision);
+	}
 
 	g_object_unref (first_revision);
 	if (last_revision) {
