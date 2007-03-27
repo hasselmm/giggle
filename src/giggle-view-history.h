@@ -53,6 +53,10 @@ void               giggle_view_history_set_compact_mode  (GiggleViewHistory *vie
 							  gboolean           compact_mode);
 gboolean           giggle_view_history_get_compact_mode  (GiggleViewHistory *view);
 
+void               giggle_view_history_set_file_list_visible (GiggleViewHistory *view,
+							      gboolean           visible);
+gboolean           giggle_view_history_get_file_list_visible (GiggleViewHistory *view);
+
 
 G_END_DECLS
 

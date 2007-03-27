@@ -71,7 +71,8 @@ G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration 
 							    GiggleConfigurationField  field);
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
-							    const gchar              *value,
+							    const gchar              *value);
+void                    giggle_configuration_commit        (GiggleConfiguration      *configuration,
 							    GiggleConfigurationFunc   func,
 							    gpointer                  data);
 

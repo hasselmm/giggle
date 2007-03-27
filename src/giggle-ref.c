@@ -42,7 +42,7 @@ static void giggle_ref_set_property       (GObject             *object,
 					   const GValue        *value,
 					   GParamSpec          *pspec);
 
-G_DEFINE_TYPE (GiggleRef, giggle_ref, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE (GiggleRef, giggle_ref, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,

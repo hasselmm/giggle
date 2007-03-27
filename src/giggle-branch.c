@@ -19,45 +19,29 @@
  */
 
 #include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtkmain.h>
+#include <gtk/gtk.h>
 
-#include "giggle-window.h"
+#include "giggle-branch.h"
+#include "giggle-revision.h"
+#include "giggle-ref.h"
 
-int
-main (int argc, char **argv)
+G_DEFINE_TYPE (GiggleBranch, giggle_branch, GIGGLE_TYPE_REF)
+
+
+static void
+giggle_branch_class_init (GiggleBranchClass *class)
 {
-	GtkWidget *window;
-	gchar     *dir;
-	
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-	textdomain (GETTEXT_PACKAGE);
+}
 
-	gtk_init (&argc, &argv);
+static void
+giggle_branch_init (GiggleBranch *ref)
+{
+}
 
-	g_set_application_name ("Giggle");
-
-	window = giggle_window_new ();
-
-	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
-	dir = g_strdup (g_getenv ("GIT_DIR"));
-	if (!dir || !*dir) {
-		g_free (dir);
-		dir = g_get_current_dir ();
-	}
-	g_unsetenv ("GIT_DIR");
-
-	if (giggle_git_test_dir (dir)) {
-		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
-	}
-	g_free (dir);
-
-	/* window will show itself when it reads its initial size configuration */
-
-	gtk_main ();
-
-	gtk_widget_destroy (window);
-
-	return 0;
+GiggleRef *
+giggle_branch_new (const gchar *name)
+{
+	return g_object_new (GIGGLE_TYPE_BRANCH,
+			     "name", name,
+			     NULL);
 }

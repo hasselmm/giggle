@@ -76,7 +76,7 @@ static gboolean
 git_list_files_get_command_line (GiggleJob *job, gchar **command_line)
 {
 	/* FIXME: At the moment, only lists files that are not in the repo */
-	*command_line = g_strdup_printf ("git ls-files --others");
+	*command_line = g_strdup_printf (GIT_COMMAND " ls-files --others");
 
 	return TRUE;
 }

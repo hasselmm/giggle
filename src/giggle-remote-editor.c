@@ -422,7 +422,10 @@ remote_editor_response (GtkDialog *dialog,
 				gtk_tree_model_get (model, &iter,
 						    COL_BRANCH, &branch,
 						    -1);
-				branches = g_list_prepend (branches, branch);
+
+				if (branch) {
+					branches = g_list_prepend (branches, branch);
+				}
 			} while (gtk_tree_model_iter_next (model, &iter));
 		}
 

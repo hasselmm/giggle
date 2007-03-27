@@ -43,6 +43,8 @@ struct _GiggleFileList {
 
 struct _GiggleFileListClass {
 	GtkTreeViewClass parent_class;
+
+	void (* path_selected) (GiggleFileList *list, const gchar *path);
 };
 
 GType              giggle_file_list_get_type          (void);

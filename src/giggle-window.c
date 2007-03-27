@@ -53,6 +53,7 @@ struct GiggleWindowPriv {
 	GtkUIManager        *ui_manager;
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
+	guint                recent_merge_id;
 
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
@@ -69,13 +70,6 @@ enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
-
-enum {
-	QUITTING,
-	LAST_SIGNAL
-};
-
-static guint signals [LAST_SIGNAL] = { 0, };
 
 
 static void window_finalize                       (GObject           *object);
@@ -94,11 +88,17 @@ static void window_action_diff_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_find_cb                 (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_find_next_cb            (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_find_prev_cb            (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_action_personal_details_cb     (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_about_cb                (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_compact_mode_cb         (GtkAction         *action,
+						   GiggleWindow      *window);
+static void window_action_view_file_list_cb       (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_history_go_back         (GtkAction         *action,
 						   GiggleWindow      *window);
@@ -117,20 +117,22 @@ static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
 
 static void window_cancel_find                    (GtkWidget         *widget,
 						   GiggleWindow      *window);
-static void window_find_next                      (GtkWidget         *widget,
+static void window_find_next                      (EggFindBar        *find_bar,
 						   GiggleWindow      *window);
-static void window_find_previous                  (GtkWidget         *widget,
+static void window_find_previous                  (EggFindBar        *find_bar,
 						   GiggleWindow      *window);
-
-static void window_quitting                       (GiggleWindow      *window);
 
 static void window_update_toolbar_buttons         (GiggleWindow      *window);
 
 
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
-	  N_("_Compact mode"), "F7", NULL,
+	  N_("_Compact Mode"), "F7", NULL,
 	  G_CALLBACK (window_action_compact_mode_cb), FALSE
+	},
+	{ "ViewFileList", NULL,
+	  N_("Show Project _Tree"), "F9", NULL,
+	  G_CALLBACK (window_action_view_file_list_cb), TRUE
 	},
 };
 
@@ -141,6 +143,10 @@ static const GtkActionEntry action_entries[] = {
 	},
 	{ "EditMenu", NULL,
 	  N_("_Edit"), NULL, NULL,
+	  NULL
+	},
+	{ "GoMenu", NULL,
+	  N_("_Go"), NULL, NULL,
 	  NULL
 	},
 	{ "ViewMenu", NULL,
@@ -172,8 +178,16 @@ static const GtkActionEntry action_entries[] = {
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
 	{ "Find", GTK_STOCK_FIND,
-	  N_("Find..."), NULL, N_("Find..."),
+	  N_("_Find..."), NULL, N_("Find..."),
 	  G_CALLBACK (window_action_find_cb)
+	},
+	{ "FindNext", NULL,
+	  N_("Find _Next"), "<control>G", N_("Find next"),
+	  G_CALLBACK (window_action_find_next_cb)
+	},
+	{ "FindPrev", NULL,
+	  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
+	  G_CALLBACK (window_action_find_prev_cb)
 	},
 	{ "About", GTK_STOCK_ABOUT,
 	  N_("_About"), NULL, N_("About this application"),
@@ -182,11 +196,11 @@ static const GtkActionEntry action_entries[] = {
 
 	/* Toolbar items */
 	{ "BackHistory", GTK_STOCK_GO_BACK,
-	  N_("_Back"), NULL, NULL,
+	  N_("_Back"), "<alt>Left", NULL,
 	  G_CALLBACK (window_action_history_go_back)
 	},
 	{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
-	  N_("_Forward"), NULL, NULL,
+	  N_("_Forward"), "<alt>Right", NULL,
 	  G_CALLBACK (window_action_history_go_forward)
 	},
 };
@@ -209,9 +223,16 @@ static const gchar *ui_layout =
 	"      <menuitem action='PersonalDetails'/>"
 	"      <separator/>"
 	"      <menuitem action='Find'/>"
+	"      <menuitem action='FindNext'/>"
+	"      <menuitem action='FindPrev'/>"
+	"    </menu>"
+	"    <menu action='GoMenu'>"
+	"      <menuitem action='BackHistory'/>"
+	"      <menuitem action='ForwardHistory'/>"
 	"    </menu>"
 	"    <menu action='ViewMenu'>"
 	"      <menuitem action='CompactMode'/>"
+	"      <menuitem action='ViewFileList'/>"
 	"    </menu>"
 	"    <menu action='HelpMenu'>"
 	"      <menuitem action='About'/>"
@@ -242,16 +263,6 @@ giggle_window_class_init (GiggleWindowClass *class)
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = window_finalize;
-	class->quitting = window_quitting;
-
-	signals[QUITTING] =
-		g_signal_new ("quitting",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (GiggleWindowClass, quitting),
-			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -361,61 +372,39 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
-static guint config_writes_remaining = 0;
-
 static void
-on_configuration_data_set (GiggleConfiguration *configuration,
-			   gboolean             success,
-			   gpointer             user_data)
+window_configuration_committed (GiggleConfiguration *configuration,
+				gboolean             success,
+				gpointer             user_data)
 {
-	if (!success) {
-		g_warning ("Unable to set configuration data");
-	}
-	if ((--config_writes_remaining == 0) && user_data) {
-		g_return_if_fail (GIGGLE_IS_WINDOW (user_data));
-		GiggleWindow *window = GIGGLE_WINDOW (user_data);
-		g_signal_emit (window, signals[QUITTING], 0);
-	}
+	gtk_main_quit ();
 }
 
 static void
 save_state_and_exit (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	gboolean compact;
-	gint w, h, x, y;
-	gchar buf[25];
+	gboolean          compact;
+	gint              w, h, x, y;
+	gchar             buf[25];
 
 	priv = GET_PRIV (window);
-	g_assert (priv);
 
 	gtk_window_get_size (GTK_WINDOW (window), &w, &h);
 	gtk_window_get_position (GTK_WINDOW (window), &x, &y);
 
-	/* Because of the asynchronous nature of GiggleConfiguration writes, we
-	 * can't actually exit at the end of this function, although that is the
-	 * goal.  Instead, we delegate the 'quitting' to the set_field callback
-	 * functions
-	 */
-	config_writes_remaining++;
-	g_snprintf (buf, 25, "%dx%d+%d+%d", w, h, x, y);
+	g_snprintf (buf, sizeof (buf), "%dx%d+%d+%d", w, h, x, y);
 	giggle_configuration_set_field (priv->configuration,
-				       CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf,
-				       on_configuration_data_set, NULL);
+					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf);
 
 	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
-	config_writes_remaining++;
 	giggle_configuration_set_field (priv->configuration,
-				       CONFIG_FIELD_COMPACT_MODE,
-				       compact ? "true" : "false",
-				       on_configuration_data_set,
-				       window);
-}
+					CONFIG_FIELD_COMPACT_MODE,
+					compact ? "true" : "false");
 
-static void
-window_quitting (GiggleWindow *window)
-{
-	gtk_main_quit ();
+	giggle_configuration_commit (priv->configuration,
+				     window_configuration_committed,
+				     window);
 }
 
 static gboolean
@@ -424,6 +413,7 @@ window_delete_event_cb (GtkWidget *widget,
 			gpointer   user_data)
 {
 	save_state_and_exit (GIGGLE_WINDOW (widget));
+	gtk_widget_hide (widget);
 	return TRUE;
 }
 
@@ -508,26 +498,6 @@ giggle_window_init (GiggleWindow *window)
 	/* setup find bar */
 	window_create_find_bar (window);
 
-	/* personal details window */
-	priv->personal_details_window = giggle_personal_details_window_new ();
-
-	gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
-				      GTK_WINDOW (window));
-	g_signal_connect (priv->personal_details_window, "delete-event",
-			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-	g_signal_connect_after (priv->personal_details_window, "response",
-				G_CALLBACK (gtk_widget_hide), NULL);
-
-	/* diff current window */
-	priv->diff_current_window = giggle_diff_window_new ();
-
-	gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
-				      GTK_WINDOW (window));
-	g_signal_connect (priv->diff_current_window, "delete-event",
-			  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-	g_signal_connect_after (priv->diff_current_window, "response",
-				G_CALLBACK (gtk_widget_hide), NULL);
-
 	/* append history view */
 	priv->history_view = giggle_view_history_new ();
 	gtk_widget_show (priv->history_view);
@@ -571,6 +541,7 @@ window_finalize (GObject *object)
 	g_object_unref (priv->git);
 	g_object_unref (priv->recent_manager);
 	g_object_unref (priv->recent_action_group);
+	g_object_unref (priv->configuration);
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
 }
@@ -580,7 +551,7 @@ window_recent_repositories_add (GiggleWindow *window)
 {
 	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
 	GiggleWindowPriv *priv;
-	GtkRecentData    *data;
+	GtkRecentData     data = { 0, };
 	const gchar      *repository;
 	gchar            *tmp_string;
 
@@ -593,17 +564,17 @@ window_recent_repositories_add (GiggleWindow *window)
 
 	g_return_if_fail (repository != NULL);
 
-	data = g_slice_new0 (GtkRecentData);
-	data->display_name = g_strdup (giggle_git_get_project_name (priv->git));
-	data->groups = groups;
-	data->mime_type = g_strdup ("x-directory/normal");
-	data->app_name = (gchar *) g_get_application_name ();
-	data->app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
+	data.display_name = (gchar *) giggle_git_get_project_name (priv->git);
+	data.groups = groups;
+	data.mime_type = "x-directory/normal";
+	data.app_name = (gchar *) g_get_application_name ();
+	data.app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
 
 	tmp_string = g_filename_to_uri (repository, NULL, NULL);
 	gtk_recent_manager_add_full (priv->recent_manager,
-                                     tmp_string, data);
+                                     tmp_string, &data);
 	g_free (tmp_string);
+	g_free (data.app_exec);
 }
 
 static void
@@ -628,7 +599,15 @@ window_recent_repositories_clear (GiggleWindow *window)
 	priv = GET_PRIV (window);
 	actions = l = gtk_action_group_list_actions (priv->recent_action_group);
 
+	if (priv->recent_merge_id) {
+		gtk_ui_manager_remove_ui (priv->ui_manager, priv->recent_merge_id);
+	}
+
 	for (l = actions; l != NULL; l = l->next) {
+		g_signal_handlers_disconnect_by_func (GTK_ACTION (l->data),
+                                                      G_CALLBACK (window_recent_repository_activate),
+                                                      window);
+
 		gtk_action_group_remove_action (priv->recent_action_group, l->data);
 	}
 
@@ -645,14 +624,13 @@ window_recent_repositories_reload (GiggleWindow *window)
 	GList            *recent_items, *l;
 	GtkRecentInfo    *info;
 	GtkAction        *action;
-	guint             recent_menu_id;
 	gchar            *action_name, *label;
 	gint              count = 0;
 
 	priv = GET_PRIV (window);
 
 	recent_items = l = gtk_recent_manager_get_items (priv->recent_manager);
-	recent_menu_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
+	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 
 	/* FIXME: the max count is hardcoded */
 	while (l && count < 10) {
@@ -660,7 +638,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 
 		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
 			action_name = g_strdup_printf ("recent-repository-%d", count);
-			label = g_strdup (gtk_recent_info_get_uri_display (info));
+			label = gtk_recent_info_get_uri_display (info);
 
 			/* FIXME: add accel? */
 
@@ -670,7 +648,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 						 NULL);
 
 			g_object_set_data_full (G_OBJECT (action), "recent-action-path",
-						g_strdup (gtk_recent_info_get_uri_display (info)),
+						gtk_recent_info_get_uri_display (info),
 						(GDestroyNotify) g_free);
 
 			g_signal_connect (action,
@@ -681,7 +659,7 @@ window_recent_repositories_reload (GiggleWindow *window)
 			gtk_action_group_add_action (priv->recent_action_group, action);
 
 			gtk_ui_manager_add_ui (priv->ui_manager,
-					       recent_menu_id,
+					       priv->recent_merge_id,
 					       RECENT_REPOS_PLACEHOLDER_PATH,
 					       action_name,
 					       action_name,
@@ -728,7 +706,8 @@ static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-    save_state_and_exit (window);
+	save_state_and_exit (window);
+	gtk_widget_hide (GTK_WIDGET (window));
 }
 
 static void
@@ -815,6 +794,17 @@ window_action_diff_cb (GtkAction    *action,
 
 	priv = GET_PRIV (window);
 
+	if (!priv->diff_current_window) {
+		priv->diff_current_window = giggle_diff_window_new ();
+ 
+		gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
+					      GTK_WINDOW (window));
+		g_signal_connect (priv->diff_current_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->diff_current_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
+
 	gtk_widget_show (priv->diff_current_window);
 }
 
@@ -852,6 +842,26 @@ window_action_find_cb (GtkAction    *action,
 }
 
 static void
+window_action_find_next_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	window_find_next (EGG_FIND_BAR (priv->find_bar), window);
+}
+
+static void
+window_action_find_prev_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+	window_find_previous (EGG_FIND_BAR (priv->find_bar), window);
+}
+
+static void
 window_action_compact_mode_cb (GtkAction    *action,
 			       GiggleWindow *window)
 {
@@ -862,6 +872,19 @@ window_action_compact_mode_cb (GtkAction    *action,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
+}
+
+static void
+window_action_view_file_list_cb (GtkAction    *action,
+				 GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	giggle_view_history_set_file_list_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void
@@ -883,7 +906,7 @@ window_cancel_find (GtkWidget    *widget,
 }
 
 static void
-window_find (GtkWidget             *widget,
+window_find (EggFindBar            *find_bar,
 	     GiggleWindow          *window,
 	     GiggleSearchDirection  direction)
 {
@@ -899,25 +922,29 @@ window_find (GtkWidget             *widget,
 
 	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
 
-	full_search = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+	search_string = egg_find_bar_get_search_string (find_bar);
 
-	search_string = egg_find_bar_get_search_string (EGG_FIND_BAR (widget));
-	giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-				  search_string, direction, full_search);
+	if (search_string && *search_string) {
+		full_search = gtk_toggle_tool_button_get_active (
+			GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+
+		giggle_searchable_search (GIGGLE_SEARCHABLE (page),
+					  search_string, direction, full_search);
+	}
 }
 
 static void
-window_find_next (GtkWidget    *widget,
+window_find_next (EggFindBar   *find_bar,
 		  GiggleWindow *window)
 {
-	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_NEXT);
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_NEXT);
 }
 
 static void
-window_find_previous (GtkWidget    *widget,
+window_find_previous (EggFindBar   *find_bar,
 		      GiggleWindow *window)
 {
-	window_find (widget, window, GIGGLE_SEARCH_DIRECTION_PREV);
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_PREV);
 }
 
 static void
@@ -927,6 +954,17 @@ window_action_personal_details_cb (GtkAction    *action,
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (window);
+
+	if (!priv->personal_details_window) {
+		priv->personal_details_window = giggle_personal_details_window_new ();
+
+		gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
+					      GTK_WINDOW (window));
+		g_signal_connect (priv->personal_details_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->personal_details_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
 
 	gtk_widget_show (priv->personal_details_window);
 }

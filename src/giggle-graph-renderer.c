@@ -28,7 +28,7 @@
 #define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 
 /* included padding */
-#define PATH_SPACE(font_size) (font_size * 2)
+#define PATH_SPACE(font_size) (font_size + 3)
 #define DOT_RADIUS(font_size) (font_size / 2)
 #define LINE_WIDTH(font_size) ((font_size / 6) << 1) /* we want the closest even number <= size/3 */
 #define NEXT_COLOR(n_color)   ((n_color + 1) % G_N_ELEMENTS (colors))

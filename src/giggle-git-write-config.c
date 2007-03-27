@@ -111,6 +111,9 @@ git_write_config_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	g_free (priv->field);
+	g_free (priv->value);
+
 	G_OBJECT_CLASS (giggle_git_write_config_parent_class)->finalize (object);
 }
 

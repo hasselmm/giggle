@@ -108,6 +108,9 @@ git_diff_tree_finalize (GObject *object)
 		g_object_unref (priv->rev2);
 	}
 
+	g_list_foreach (priv->files, (GFunc) g_free, NULL);
+	g_list_free (priv->files);
+
 	G_OBJECT_CLASS (giggle_git_diff_tree_parent_class)->finalize (object);
 }
 
@@ -170,7 +173,7 @@ git_diff_tree_get_command_line (GiggleJob *job, gchar **command_line)
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf ("git diff-tree -r %s %s",
+	*command_line = g_strdup_printf (GIT_COMMAND " diff-tree -r %s %s",
 					 giggle_revision_get_sha (priv->rev1),
 					 giggle_revision_get_sha (priv->rev2));
 

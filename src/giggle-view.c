@@ -25,9 +25,6 @@
 
 typedef struct GiggleViewPriv GiggleViewPriv;
 
-struct GiggleViewPriv {
-};
-
 static void       view_finalize           (GObject        *object);
 
 
@@ -41,8 +38,6 @@ giggle_view_class_init (GiggleViewClass *class)
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = view_finalize;
-
-	g_type_class_add_private (object_class, sizeof (GiggleViewPriv));
 }
 
 static void
@@ -53,7 +48,5 @@ giggle_view_init (GiggleView *view)
 static void
 view_finalize (GObject *object)
 {
-	GiggleViewPriv *priv;
-
-	priv = GET_PRIV (object);
+	G_OBJECT_CLASS (giggle_view_parent_class)->finalize (object);
 }

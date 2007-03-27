@@ -29,6 +29,7 @@
 #include "giggle-git-ignore.h"
 #include "giggle-git-list-files.h"
 #include "giggle-git-add.h"
+#include "giggle-git-diff-tree.h"
 #include "giggle-revision.h"
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
@@ -92,15 +93,15 @@ static gboolean   file_list_get_path_and_ignore_for_iter (GiggleFileList   *list
 							  gchar           **name,
 							  GiggleGitIgnore **git_ignore);
 
-static void       file_list_diff_file           (GtkWidget        *widget,
+static void       file_list_diff_file           (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_add_file            (GtkWidget        *widget,
+static void       file_list_add_file            (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_ignore_file         (GtkWidget        *widget,
+static void       file_list_ignore_file         (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_unignore_file       (GtkWidget        *widget,
+static void       file_list_unignore_file       (GtkAction        *action,
 						 GiggleFileList   *list);
-static void       file_list_toggle_show_all     (GtkWidget        *widget,
+static void       file_list_toggle_show_all     (GtkAction        *action,
 						 GiggleFileList   *list);
 
 static void       file_list_cell_data_sensitive_func  (GtkCellLayout   *cell_layout,
@@ -108,7 +109,11 @@ static void       file_list_cell_data_sensitive_func  (GtkCellLayout   *cell_lay
 						       GtkTreeModel    *tree_model,
 						       GtkTreeIter     *iter,
 						       gpointer         data);
-
+static void       file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
+						       GtkCellRenderer *renderer,
+						       GtkTreeModel    *tree_model,
+						       GtkTreeIter     *iter,
+						       gpointer         data);
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW)
 
@@ -120,6 +125,7 @@ enum {
 	COL_PIXBUF,
 	COL_GIT_IGNORE,
 	COL_MANAGED, /* File managed by git */
+	COL_HIGHLIGHT,
 	LAST_COL
 };
 
@@ -129,18 +135,25 @@ enum {
 	PROP_COMPACT_MODE,
 };
 
-GtkActionEntry menu_items [] = {
+enum {
+	PATH_SELECTED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0, };
+
+static GtkActionEntry menu_items [] = {
 	{ "Diff",     NULL,             N_("_Diff"),                   NULL, NULL, G_CALLBACK (file_list_diff_file) },
 	{ "AddFile",  NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
 	{ "Ignore",   GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
 	{ "Unignore", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
 };
 
-GtkToggleActionEntry toggle_menu_items [] = {
+static GtkToggleActionEntry toggle_menu_items [] = {
 	{ "ShowAll", NULL, N_("_Show all files"), NULL, NULL, G_CALLBACK (file_list_toggle_show_all), FALSE },
 };
 
-const gchar *ui_description =
+static const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
 	"    <menuitem action='Diff'/>"
@@ -182,6 +195,16 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 							       FALSE,
 							       G_PARAM_READWRITE));
 
+	signals[PATH_SELECTED] =
+		g_signal_new ("path-selected",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleFileListClass, path_selected),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__STRING,
+			      G_TYPE_NONE,
+			      1, G_TYPE_STRING);
+
 	g_type_class_add_private (object_class, sizeof (GiggleFileListPriv));
 }
 
@@ -205,7 +228,7 @@ giggle_file_list_init (GiggleFileList *list)
 	priv->icon_theme = gtk_icon_theme_get_default ();
 
 	priv->store = gtk_tree_store_new (LAST_COL, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF,
-					  GIGGLE_TYPE_GIT_IGNORE, G_TYPE_BOOLEAN, G_TYPE_BOOLEAN);
+					  GIGGLE_TYPE_GIT_IGNORE, G_TYPE_BOOLEAN, G_TYPE_BOOLEAN, G_TYPE_BOOLEAN);
 	priv->filter_model = gtk_tree_model_filter_new (GTK_TREE_MODEL (priv->store), NULL);
 
 	gtk_tree_model_filter_set_visible_func (GTK_TREE_MODEL_FILTER (priv->filter_model),
@@ -236,9 +259,13 @@ giggle_file_list_init (GiggleFileList *list)
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), renderer,
 					    file_list_cell_data_sensitive_func,
 					    list, NULL);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), renderer,
+					    file_list_cell_data_background_func,
+					    list, NULL);
 
 	renderer = gtk_cell_renderer_text_new ();
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, FALSE);
+	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), renderer, TRUE);
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (column), renderer,
 					"text", COL_NAME,
 					NULL);
@@ -422,11 +449,27 @@ file_list_button_press (GtkWidget      *widget,
 
 		g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 		g_list_free (rows);
-
-		return TRUE;
 	} else {
-		return GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+		GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
+
+		if (event->button == 1 &&
+		    event->state == 0 &&
+		    event->type == GDK_2BUTTON_PRESS) {
+			selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+			rows = gtk_tree_selection_get_selected_rows (selection, &model);
+
+			g_assert (rows != NULL);
+
+			/* there should be just one item selected */
+			gtk_tree_model_get_iter (model, &iter, rows->data);
+
+			file_list_get_path_and_ignore_for_iter (list, &iter, &file_path, NULL);
+			g_signal_emit (widget, signals[PATH_SELECTED], 0, file_path);
+			g_free (file_path);
+		}
 	}
+
+	return TRUE;
 }
 
 static void
@@ -555,7 +598,7 @@ file_list_managed_files_changed (GiggleFileList *list)
 }
 
 static void
-file_list_diff_file (GtkWidget      *widget,
+file_list_diff_file (GtkAction      *action,
 		     GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -704,8 +747,8 @@ file_list_add_file_callback (GiggleGit *git,
 }
 
 static void
-file_list_add_file (GtkWidget        *widget,
-		    GiggleFileList   *list)
+file_list_add_file (GtkAction      *action,
+		    GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 
@@ -799,18 +842,29 @@ file_list_get_path_and_ignore_for_iter (GiggleFileList   *list,
 	priv = GET_PRIV (list);
 
 	if (!gtk_tree_model_iter_parent (priv->filter_model, &parent, iter)) {
-		*path = NULL;
-		*git_ignore = NULL;
+		if (path) {
+			*path = NULL;
+		}
+
+		if (git_ignore) {
+			*git_ignore = NULL;
+		}
 
 		return FALSE;
 	}
 
-	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
-			    COL_REL_PATH, path,
-			    -1);
-	gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
-			    COL_GIT_IGNORE, git_ignore,
-			    -1);
+	if (path) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), iter,
+				    COL_REL_PATH, path,
+				    -1);
+	}
+
+	if (git_ignore) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->filter_model), &parent,
+				    COL_GIT_IGNORE, git_ignore,
+				    -1);
+	}
+
 	return TRUE;
 }
 
@@ -926,7 +980,7 @@ file_list_ignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_ignore_file (GtkWidget      *widget,
+file_list_ignore_file (GtkAction      *action,
 		       GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -984,7 +1038,7 @@ file_list_unignore_file_foreach (GtkTreeModel *model,
 }
 
 static void
-file_list_unignore_file (GtkWidget      *widget,
+file_list_unignore_file (GtkAction      *action,
 			 GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
@@ -998,14 +1052,14 @@ file_list_unignore_file (GtkWidget      *widget,
 }
 
 static void
-file_list_toggle_show_all (GtkWidget      *widget,
+file_list_toggle_show_all (GtkAction      *action,
 			   GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 	gboolean active;
 
 	priv = GET_PRIV (list);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (widget));
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 	giggle_file_list_set_show_all (list, active);
 }
 
@@ -1027,6 +1081,9 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 
 	list = GIGGLE_FILE_LIST (data);
 	priv = GET_PRIV (list);
+
+	/* we want highlighted background too */
+	file_list_cell_data_background_func (layout, renderer, tree_model, iter, data);
 
 	if (priv->show_all) {
 		if (file_list_get_path_and_ignore_for_iter (list, iter, &path, &git_ignore)) {
@@ -1057,6 +1114,30 @@ file_list_cell_data_sensitive_func (GtkCellLayout   *layout,
 		g_object_unref (git_ignore);
 	}
 	g_free (path);
+}
+
+static void
+file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
+				     GtkCellRenderer *renderer,
+				     GtkTreeModel    *tree_model,
+				     GtkTreeIter     *iter,
+				     gpointer         data)
+{
+	GdkColor            color = { 0x0, 0xed00, 0xd400, 0x0 };
+	GiggleFileListPriv *priv;
+	GiggleFileList     *file_list;
+	gboolean            highlight;
+
+	file_list = GIGGLE_FILE_LIST (data);
+	priv = GET_PRIV (file_list);
+
+	gtk_tree_model_get (tree_model, iter,
+			    COL_HIGHLIGHT, &highlight,
+			    -1);
+
+	g_object_set (G_OBJECT (renderer),
+		      "cell-background-gdk", (highlight) ? &color : NULL,
+		      NULL);
 }
 
 GtkWidget *
@@ -1170,4 +1251,126 @@ giggle_file_list_set_compact_mode (GiggleFileList *list,
 				     (priv->compact_mode) ? "file-list" : NULL);
 		g_object_notify (G_OBJECT (list), "compact-mode");
 	}
+}
+
+static gint
+file_list_compare_prefix (gconstpointer a,
+			  gconstpointer b)
+{
+	return ! g_str_has_prefix (a, b);
+}
+
+static void
+file_list_update_highlight (GiggleFileList *file_list,
+			    GtkTreeIter    *parent,
+			    const gchar    *parent_path,
+			    GList          *files)
+{
+	GiggleFileListPriv *priv;
+	GtkTreeIter         iter;
+	gboolean            valid;
+	GiggleGitIgnore    *git_ignore;
+	gchar              *rel_path, *name;
+	gboolean            highlight;
+
+	priv = GET_PRIV (file_list);
+
+	if (parent) {
+		valid = gtk_tree_model_iter_children (GTK_TREE_MODEL (priv->store),
+						      &iter, parent);
+	} else {
+		valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL (priv->store), &iter);
+	}
+
+	while (valid) {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->store), &iter,
+				    COL_NAME, &name,
+				    COL_REL_PATH, &rel_path,
+				    COL_GIT_IGNORE, &git_ignore,
+				    -1);
+
+		if (rel_path && *rel_path) {
+			highlight = (g_list_find_custom (files, rel_path, (GCompareFunc) file_list_compare_prefix) != NULL);
+		} else {
+			/* we don't want the project basename included */
+			highlight = FALSE;
+		}
+
+		gtk_tree_store_set (priv->store, &iter,
+				    COL_HIGHLIGHT, highlight,
+				    -1);
+
+		if (git_ignore) {
+			/* it's a directory */
+			file_list_update_highlight (file_list, &iter, rel_path, files);
+			g_object_unref (git_ignore);
+		}
+
+		g_free (rel_path);
+		valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (priv->store), &iter);
+	}
+}
+
+static void
+file_list_job_callback (GiggleGit *git,
+			GiggleJob *job,
+			GError    *error,
+			gpointer   user_data)
+{
+	GiggleFileList     *list;
+	GiggleFileListPriv *priv;
+	GList              *files;
+
+	list = GIGGLE_FILE_LIST (user_data);
+	priv = GET_PRIV (list);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when retrieving different files list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+	} else {
+		files = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (priv->job));
+		file_list_update_highlight (list, NULL, NULL, files);
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+void
+giggle_file_list_highlight_revisions (GiggleFileList *list,
+				      GiggleRevision *from,
+				      GiggleRevision *to)
+{
+	GiggleFileListPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
+	g_return_if_fail (GIGGLE_IS_REVISION (from));
+	g_return_if_fail (GIGGLE_IS_REVISION (to));
+
+	priv = GET_PRIV (list);
+
+	/* clear highlights */
+	file_list_update_highlight (list, NULL, NULL, NULL);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_diff_tree_new (from, to);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    file_list_job_callback,
+			    list);
 }
