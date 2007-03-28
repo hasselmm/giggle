@@ -5,13 +5,14 @@
 #
 # Jag är inte riktigt säker på hur mycket vi ska översätta här, det är 
 # ganska förvirrande om man översätter vissa saker eftersom det är 
-# specifika termer i git man pratar om.
+# specifika termer i git man pratar om. Just nu kallar jag branch
+#  branch, patch för patch osv.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Giggle 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-03-27 18:28+0200\n"
+"POT-Creation-Date: 2007-03-28 13:27+0200\n"
 "PO-Revision-Date: 2007-01-14 12:41+0200\n"
 "Last-Translator: Richard Hult <richard@imendio.com>\n"
 "Language-Team: sv <sv@li.org>\n"
@@ -21,7 +22,7 @@ msgstr ""
 
 #: ../data/main-window.glade.h:1
 msgid "<b>Branches</b>"
-msgstr ""
+msgstr "<b>Brancher</b>"
 
 #: ../data/main-window.glade.h:2
 msgid "Name:"
@@ -51,38 +52,6 @@ msgstr "Giggle"
 msgid "Git repository viewer"
 msgstr "Visare för Git-repon"
 
-#: ../src/eggfindbar.c:157
-msgid "Search string"
-msgstr "Söksträng"
-
-#: ../src/eggfindbar.c:158
-msgid "The name of the string to be found"
-msgstr ""
-
-#: ../src/eggfindbar.c:171
-msgid "Case sensitive"
-msgstr ""
-
-#: ../src/eggfindbar.c:172
-msgid "TRUE for a case sensitive search"
-msgstr ""
-
-#: ../src/eggfindbar.c:179
-msgid "Highlight color"
-msgstr ""
-
-#: ../src/eggfindbar.c:180
-msgid "Color of highlight for all matches"
-msgstr ""
-
-#: ../src/eggfindbar.c:186
-msgid "Current color"
-msgstr ""
-
-#: ../src/eggfindbar.c:187
-msgid "Color of highlight for the current match"
-msgstr ""
-
 #: ../src/eggfindbar.c:320
 msgid "Find:"
 msgstr "Sök:"
@@ -109,7 +78,7 @@ msgstr "_Skiftlägeskänslig"
 
 #: ../src/eggfindbar.c:351
 msgid "Toggle case sensitive search"
-msgstr ""
+msgstr "Växla skiftlägeskänslig sökning"
 
 #: ../src/giggle-authors-view.c:80
 #, c-format
@@ -162,7 +131,7 @@ msgstr ""
 
 #: ../src/giggle-diff-window.c:102
 msgid "Revision log:"
-msgstr ""
+msgstr "Revisionslogg:"
 
 #: ../src/giggle-diff-window.c:128
 msgid "Co_mmit"
@@ -179,11 +148,11 @@ msgstr ""
 
 #: ../src/giggle-file-list.c:146
 msgid "_Diff"
-msgstr ""
+msgstr "Visa _ändringar"
 
 #: ../src/giggle-file-list.c:147
 msgid "A_dd file to repository"
-msgstr ""
+msgstr "_Lägg till fil i repot"
 
 #: ../src/giggle-file-list.c:148
 msgid "_Add to .gitignore"
@@ -195,7 +164,7 @@ msgstr "_Ta bort från .gitignore"
 
 #: ../src/giggle-file-list.c:153
 msgid "_Show all files"
-msgstr "_Visa alla filer"
+msgstr "Visa _alla filer"
 
 #: ../src/giggle-file-list.c:252
 msgid "Project"
@@ -276,11 +245,11 @@ msgstr "Logg:"
 
 #: ../src/giggle-revision-list.c:165
 msgid "Create _Branch"
-msgstr ""
+msgstr "Skapa _branch"
 
 #: ../src/giggle-revision-list.c:166
 msgid "Create _Tag"
-msgstr ""
+msgstr "Skapa _tagg"
 
 #: ../src/giggle-revision-list.c:272
 msgid "Graph"
@@ -301,12 +270,12 @@ msgstr "Datum"
 #: ../src/giggle-revision-list.c:582
 #, c-format
 msgid "Delete branch \"%s\""
-msgstr ""
+msgstr "Ta bort branchen \"%s\""
 
 #: ../src/giggle-revision-list.c:585
 #, c-format
 msgid "Delete tag \"%s\""
-msgstr ""
+msgstr "Ta bort taggen \"%s\""
 
 #. TRANSLATORS: it's a strftime format string
 #: ../src/giggle-revision-list.c:808
@@ -331,15 +300,15 @@ msgstr "%b %d %Y"
 
 #: ../src/giggle-revision-list.c:1177
 msgid "Enter branch name:"
-msgstr ""
+msgstr "Ange branchnamn:"
 
 #: ../src/giggle-revision-list.c:1228
 msgid "Enter tag name:"
-msgstr ""
+msgstr "Ange taggnamn:"
 
 #: ../src/giggle-revision-tooltip.c:255
 msgid "Branch"
-msgstr ""
+msgstr "Branch"
 
 #: ../src/giggle-revision-tooltip.c:261
 msgid "Tag"
@@ -417,7 +386,6 @@ msgstr "_Öppna"
 msgid "Open a GIT repository"
 msgstr "Öppna ett GIT-repo"
 
-# Ska vi översätta termer som patch/branch, kan vara lite förvirrande...
 #: ../src/giggle-window.c:165
 msgid "_Save patch"
 msgstr "_Spara patch"
@@ -492,7 +460,7 @@ msgstr "_Framåt"
 
 #: ../src/giggle-window.c:334
 msgid "Search inside _diffs"
-msgstr "Sök inuti _diffar"
+msgstr "Sök i _diffar"
 
 #: ../src/giggle-window.c:367
 #, c-format
@@ -527,3 +495,6 @@ msgstr ""
 #: ../src/giggle-window.c:987
 msgid "translator-credits"
 msgstr "Richard Hult"
+
+#~ msgid "Search string"
+#~ msgstr "Söksträng"
