@@ -150,6 +150,8 @@ static gboolean revision_list_search              (GiggleSearchable      *search
 						   gboolean               full_search);
 static void revision_list_cancel_search           (GiggleSearchable      *searchable);
 
+static void revision_list_commit                  (GtkAction          *action,
+						   GiggleRevisionList *list);
 static void revision_list_create_branch           (GtkAction          *action,
 						   GiggleRevisionList *list);
 static void revision_list_create_tag              (GtkAction          *action,
@@ -162,7 +164,12 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListPriv))
 
+#define COMMIT_UI_PATH        "/ui/PopupMenu/Commit"
+#define CREATE_BRANCH_UI_PATH "/ui/PopupMenu/CreateBranch"
+#define CREATE_TAG_UI_PATH    "/ui/PopupMenu/CreateTag"
+
 static GtkActionEntry menu_items [] = {
+	{ "Commit",         NULL,                 N_("Commit"),         NULL, NULL, G_CALLBACK (revision_list_commit) },
 	{ "CreateBranch",   NULL,                 N_("Create _Branch"), NULL, NULL, G_CALLBACK (revision_list_create_branch) },
 	{ "CreateTag",      "stock_add-bookmark", N_("Create _Tag"),    NULL, NULL, G_CALLBACK (revision_list_create_tag) },
 };
@@ -170,6 +177,7 @@ static GtkActionEntry menu_items [] = {
 static const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
+	"    <menuitem action='Commit'/>"
 	"    <menuitem action='CreateBranch'/>"
 	"    <menuitem action='CreateTag'/>"
 	"    <separator/>"
@@ -549,6 +557,65 @@ revision_list_add_popup_refs (GiggleRevisionList *list,
 	}
 }
 
+static void
+revision_list_setup_popup (GiggleRevisionList *list,
+			   GiggleRevision     *revision)
+{
+	GiggleRevisionListPriv *priv;
+	GtkAction              *action;
+
+	priv = GET_PRIV (list);
+
+	/* clear action list */
+	revision_list_clear_popup_refs (list);
+
+	if (revision) {
+		action = gtk_ui_manager_get_action (priv->ui_manager, COMMIT_UI_PATH);
+		gtk_action_set_visible (action, FALSE);
+
+		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_BRANCH_UI_PATH);
+		gtk_action_set_visible (action, TRUE);
+
+		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_TAG_UI_PATH);
+		gtk_action_set_visible (action, TRUE);
+
+		/* repopulate action list */
+		revision_list_add_popup_refs (list, revision,
+					      giggle_revision_get_branch_heads (revision),
+					      _("Delete branch \"%s\""), "branch-%s");
+		revision_list_add_popup_refs (list, revision,
+					      giggle_revision_get_tags (revision),
+					      _("Delete tag \"%s\""), "tag-%s");
+	} else {
+		action = gtk_ui_manager_get_action (priv->ui_manager, COMMIT_UI_PATH);
+		gtk_action_set_visible (action, TRUE);
+
+		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_BRANCH_UI_PATH);
+		gtk_action_set_visible (action, FALSE);
+
+		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_TAG_UI_PATH);
+		gtk_action_set_visible (action, FALSE);
+	}
+
+	gtk_ui_manager_ensure_update (priv->ui_manager);
+}
+
+static void
+revision_list_commit_changes (GiggleRevisionList *list)
+{
+	GtkWidget *diff_window, *toplevel;
+
+	diff_window = giggle_diff_window_new ();
+
+	g_signal_connect_after (diff_window, "response",
+				G_CALLBACK (gtk_widget_hide), NULL);
+
+	toplevel = gtk_widget_get_toplevel (GTK_WIDGET (list));
+	gtk_window_set_transient_for (GTK_WINDOW (diff_window),
+				      GTK_WINDOW (toplevel));
+	gtk_widget_show (diff_window);
+}
+
 static gboolean
 revision_list_button_press (GtkWidget      *widget,
 			    GdkEventButton *event)
@@ -578,18 +645,7 @@ revision_list_button_press (GtkWidget      *widget,
 				    COL_OBJECT, &revision,
 				    -1);
 
-		/* clear action list */
-		revision_list_clear_popup_refs (GIGGLE_REVISION_LIST (widget));
-
-		/* and populate it */
-		revision_list_add_popup_refs (GIGGLE_REVISION_LIST (widget), revision,
-					      giggle_revision_get_branch_heads (revision),
-					      _("Delete branch \"%s\""), "branch-%s");
-		revision_list_add_popup_refs (GIGGLE_REVISION_LIST (widget), revision,
-					      giggle_revision_get_tags (revision),
-					      _("Delete tag \"%s\""), "tag-%s");
-
-		gtk_ui_manager_ensure_update (priv->ui_manager);
+		revision_list_setup_popup (GIGGLE_REVISION_LIST (widget), revision);
 
 		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
 				NULL, NULL, event->button, event->time);
@@ -613,20 +669,8 @@ revision_list_button_press (GtkWidget      *widget,
 					    -1);
 
 			if (!revision) {
-				GtkWidget *diff_window, *toplevel;
-
 				/* clicked on the uncommitted changes revision */
-				diff_window = giggle_diff_window_new ();
-
-				g_signal_connect (diff_window, "delete-event",
-						  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-				g_signal_connect_after (diff_window, "response",
-							G_CALLBACK (gtk_widget_hide), NULL);
-
-				toplevel = gtk_widget_get_toplevel (widget);
-				gtk_window_set_transient_for (GTK_WINDOW (diff_window),
-							      GTK_WINDOW (toplevel));
-				gtk_widget_show (diff_window);
+				revision_list_commit_changes (GIGGLE_REVISION_LIST (widget));
 			} else {
 				g_object_unref (revision);
 			}
@@ -1208,6 +1252,13 @@ revision_list_cancel_search (GiggleSearchable *searchable)
 			g_main_loop_quit (priv->main_loop);
 		}
 	}
+}
+
+static void
+revision_list_commit (GtkAction          *action,
+		      GiggleRevisionList *list)
+{
+	revision_list_commit_changes (list);
 }
 
 static void
