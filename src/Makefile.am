@@ -64,7 +64,7 @@ giggle_SOURCES =				\
 	giggle-git-ignore.c			\
 	giggle-git-ignore.h			\
 	giggle-git-list-files.c			\
-	giggle-git-lits-files.h			\
+	giggle-git-list-files.h			\
 	giggle-git-read-config.c		\
 	giggle-git-read-config.h		\
 	giggle-git-refs.c			\
