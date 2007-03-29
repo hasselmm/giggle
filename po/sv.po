@@ -3,10 +3,10 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Richard Hult <richard@imendio.com>, 2007.
 #
-# Jag är inte riktigt säker på hur mycket vi ska översätta här, det är 
-# ganska förvirrande om man översätter vissa saker eftersom det är 
-# specifika termer i git man pratar om. Just nu kallar jag branch
-#  branch, patch för patch osv.
+
+# Vi översätter INTE utvecklartermer som branch, patch, commit, osv.
+# Det blir väldigt förvirrande om man gör det. Detta är inte ett
+# slutanvändarverktyg, punkt slut.
 #
 msgid ""
 msgstr ""
@@ -135,7 +135,7 @@ msgstr "Revisionslogg:"
 
 #: ../src/giggle-diff-window.c:128
 msgid "Co_mmit"
-msgstr ""
+msgstr "_Committa"
 
 #: ../src/giggle-diff-window.c:199
 #, c-format
@@ -148,7 +148,7 @@ msgstr ""
 
 #: ../src/giggle-file-list.c:146
 msgid "_Diff"
-msgstr "Visa _ändringar"
+msgstr "Visa _diff"
 
 #: ../src/giggle-file-list.c:147
 msgid "A_dd file to repository"
@@ -200,11 +200,11 @@ msgstr ""
 
 #: ../src/giggle-personal-details-window.c:127
 msgid "There was an error setting the configuration"
-msgstr ""
+msgstr "Ett fel inträffade när konfigurationen ställdes in"
 
 #: ../src/giggle-personal-details-window.c:180
 msgid "There was an error getting the configuration"
-msgstr ""
+msgstr "Ett fel inträffade när konfiguration hämtades"
 
 #: ../src/giggle-remote-editor.c:157
 msgid "Double click to add mapping..."
@@ -348,7 +348,7 @@ msgstr "<b>Beskrivning:</b>"
 
 #: ../src/giggle-view-summary.c:152
 msgid "<b>Remotes:</b>"
-msgstr ""
+msgstr "<b>Remotes:/b>"
 
 #: ../src/giggle-window.c:130
 msgid "_Compact Mode"
