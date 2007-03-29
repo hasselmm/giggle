@@ -24,7 +24,16 @@ Bugs fixed since the last release:
   - .gitignore allows beginning '/' to match files in the root directory (GGL-38)
   - Clicking an already-selected revision causes the detail pane to reload (GGL-40)
   - Desktop file category 'Application' is deprecated (GGL-39)
-  - And other improvements
+
+Other Changes:
+
+  - Detect the git command in configure time (Carlos)
+  - Add a compact mode for the diff view (Richard)
+  - Add commit support (Carlos)
+  - Add support to add files to the repository (Carlos)
+  - Save window size and compact mode (Jonathon Jongsma)
+  - Add history (Carlos)
+  - Add hability to create/delete tags/branches (Carlos)
 
 Updated translations:
 
