@@ -1201,10 +1201,13 @@ revision_list_search (GiggleSearchable      *searchable,
 		}
 
 		gtk_tree_model_get (model, &iter, 0, &revision, -1);
-		found = revision_matches (GIGGLE_REVISION_LIST (searchable),
+
+		if (revision) {
+			found = revision_matches (GIGGLE_REVISION_LIST (searchable),
 					  revision, search_term, full_search);
 
-		g_object_unref (revision);
+			g_object_unref (revision);
+		}
 
 		if (!found && !priv->cancelled) {
 			if (direction == GIGGLE_SEARCH_DIRECTION_NEXT) {
