@@ -37,6 +37,7 @@
 #include "giggle-git-add-ref.h"
 #include "giggle-git-delete-ref.h"
 #include "giggle-input-dialog.h"
+#include "giggle-diff-window.h"
 
 typedef struct GiggleRevisionListPriv GiggleRevisionListPriv;
 
@@ -594,11 +595,45 @@ revision_list_button_press (GtkWidget      *widget,
 				NULL, NULL, event->button, event->time);
 
 		gtk_tree_path_free (path);
-
-		return TRUE;
 	} else {
-		return GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->button_press_event (widget, event);
+		GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->button_press_event (widget, event);
+
+		if (event->button == 1 &&
+		    event->state == 0 &&
+		    event->type == GDK_2BUTTON_PRESS) {
+			if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget), event->x, event->y,
+							    &path, NULL, NULL, NULL)) {
+				return TRUE;
+			}
+
+			model = gtk_tree_view_get_model (GTK_TREE_VIEW (widget));
+			gtk_tree_model_get_iter (model, &iter, path);
+			gtk_tree_model_get (model, &iter,
+					    COL_OBJECT, &revision,
+					    -1);
+
+			if (!revision) {
+				GtkWidget *diff_window, *toplevel;
+
+				/* clicked on the uncommitted changes revision */
+				diff_window = giggle_diff_window_new ();
+
+				g_signal_connect (diff_window, "delete-event",
+						  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+				g_signal_connect_after (diff_window, "response",
+							G_CALLBACK (gtk_widget_hide), NULL);
+
+				toplevel = gtk_widget_get_toplevel (widget);
+				gtk_window_set_transient_for (GTK_WINDOW (diff_window),
+							      GTK_WINDOW (toplevel));
+				gtk_widget_show (diff_window);
+			} else {
+				g_object_unref (revision);
+			}
+		}
 	}
+
+	return TRUE;
 }
 
 static gboolean
