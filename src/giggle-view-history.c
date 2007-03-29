@@ -292,10 +292,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	priv = GET_PRIV (view);
 	files = NULL;
 
-	if (revision1) {
-		giggle_revision_view_set_revision (
-			GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
-	}
+	giggle_revision_view_set_revision (
+		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
 
 	if (priv->current_history_elem) {
 		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));

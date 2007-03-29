@@ -302,22 +302,31 @@ revision_view_update (GiggleRevisionView *view)
 	gchar                   str[256];
 
 	priv = GET_PRIV (view);
-	g_object_get (priv->revision,
-		      "sha", &sha, 
-		      "long-log", &log,
-		      "date", &tm,
-		      NULL);
 
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
-	gtk_text_buffer_set_text (buffer, log, -1);
-	g_free (log);
+	if (priv->revision) {
+		g_object_get (priv->revision,
+			      "sha", &sha, 
+			      "long-log", &log,
+			      "date", &tm,
+			      NULL);
 
-	gtk_label_set_text (GTK_LABEL (priv->sha), sha);
-	g_free (sha);
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
+		gtk_text_buffer_set_text (buffer, log, -1);
+		g_free (log);
 
-	if (tm) {
-		strftime (str, sizeof (str), "%c", tm);
-		gtk_label_set_text (GTK_LABEL (priv->date), str);
+		gtk_label_set_text (GTK_LABEL (priv->sha), sha);
+		g_free (sha);
+
+		if (tm) {
+			strftime (str, sizeof (str), "%c", tm);
+			gtk_label_set_text (GTK_LABEL (priv->date), str);
+		}
+	} else {
+		gtk_label_set_text (GTK_LABEL (priv->sha), NULL);
+		gtk_label_set_text (GTK_LABEL (priv->date), NULL);
+
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
+		gtk_text_buffer_set_text (buffer, "", -1);
 	}
 }
 
@@ -332,7 +341,7 @@ giggle_revision_view_set_revision (GiggleRevisionView *view,
 				   GiggleRevision     *revision)
 {
 	g_return_if_fail (GIGGLE_IS_REVISION_VIEW (view));
-	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (!revision || GIGGLE_IS_REVISION (revision));
 
 	g_object_set (view,
 		      "revision", revision,
