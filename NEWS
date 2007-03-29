@@ -1,0 +1,37 @@
+Giggle 0.2, 2007-03-29
+----------------------
+
+Giggle is a graphical frontend for the git directory tracker (think of gitk on GTK+).
+
+Bugs fixed since the last release:
+
+  - Segfault when displaying revision informations (GGL-28)
+  - Add a changed file list (GGL-19)
+  - Add an icon column to the revision list and move the branch information icon there (GGL-48)
+  - Add ctrl+g and ctrl+shift+g to go to next/prev search hit (GGL-51)
+  - Add support for double clicking files in the project tree (GGL-44)
+  - Compile with -Werror on AMD64 (GGL-29)
+  - Compiler warning fix (GGL-33)
+  - Create/edit/save Remotes (GGL-9)
+  - Grouping for Files and Folders in the Project view (GGL-30)
+  - Improve the look of the summary view (GGL-7)
+  - Make it possible to go back to the "full project" revision list by clicking on project root (GGL-43)
+  - Possibility to hide the Project Tree easily (GGL-45)
+  - Show changed files in the project tree (GGL-42)
+  - Stop using Glade for the main window (GGL-10)
+  - Tooltips don't Update (GGL-25)
+  - directory is not detected as a git repository (GGL-27)
+  - .gitignore allows beginning '/' to match files in the root directory (GGL-38)
+  - Clicking an already-selected revision causes the detail pane to reload (GGL-40)
+  - Desktop file category 'Application' is deprecated (GGL-39)
+  - And other improvements
+
+Updated translations:
+
+  - de
+  - es
+  - sv
+
+Downloads:
+
+  http://ftp.imendio.com/pub/imendio/giggle/src/
