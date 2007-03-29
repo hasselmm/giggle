@@ -203,24 +203,27 @@ giggle_diff_tree_view_set_revisions (GiggleDiffTreeView *view,
 	GiggleDiffTreeViewPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_DIFF_TREE_VIEW (view));
-	g_return_if_fail (GIGGLE_IS_REVISION (from));
-	g_return_if_fail (GIGGLE_IS_REVISION (to));
+	g_return_if_fail (!from || GIGGLE_IS_REVISION (from));
+	g_return_if_fail (!to || GIGGLE_IS_REVISION (to));
 
 	priv = GET_PRIV (view);
 
-	if (priv->job) {
-		giggle_git_cancel_job (priv->git, priv->job);
-		g_object_unref (priv->job);
-		priv->job = NULL;
-	}
-
 	gtk_list_store_clear (priv->store);
-	priv->job = giggle_git_diff_tree_new (from, to);
 
-	giggle_git_run_job (priv->git,
-			    priv->job,
-			    diff_tree_view_job_callback,
-			    view);
+	if (from && to) {
+		if (priv->job) {
+			giggle_git_cancel_job (priv->git, priv->job);
+			g_object_unref (priv->job);
+			priv->job = NULL;
+		}
+
+		priv->job = giggle_git_diff_tree_new (from, to);
+
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    diff_tree_view_job_callback,
+				    view);
+	}
 }
 
 gchar *

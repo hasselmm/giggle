@@ -143,7 +143,7 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0, };
 
 static GtkActionEntry menu_items [] = {
-	{ "Diff",     NULL,             N_("_Diff"),                   NULL, NULL, G_CALLBACK (file_list_diff_file) },
+	{ "Commit",   NULL,             N_("_Commit Changes"),         NULL, NULL, G_CALLBACK (file_list_diff_file) },
 	{ "AddFile",  NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
 	{ "Ignore",   GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
 	{ "Unignore", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
@@ -156,7 +156,7 @@ static GtkToggleActionEntry toggle_menu_items [] = {
 static const gchar *ui_description =
 	"<ui>"
 	"  <popup name='PopupMenu'>"
-	"    <menuitem action='Diff'/>"
+	"    <menuitem action='Commit'/>"
 	"    <separator/>"
 	"    <menuitem action='AddFile'/>"
 	"    <separator/>"
@@ -1353,24 +1353,26 @@ giggle_file_list_highlight_revisions (GiggleFileList *list,
 	GiggleFileListPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
-	g_return_if_fail (GIGGLE_IS_REVISION (from));
-	g_return_if_fail (GIGGLE_IS_REVISION (to));
+	g_return_if_fail (!from || GIGGLE_IS_REVISION (from));
+	g_return_if_fail (!to || GIGGLE_IS_REVISION (to));
 
 	priv = GET_PRIV (list);
 
 	/* clear highlights */
 	file_list_update_highlight (list, NULL, NULL, NULL);
 
-	if (priv->job) {
-		giggle_git_cancel_job (priv->git, priv->job);
-		g_object_unref (priv->job);
-		priv->job = NULL;
+	if (from && to) {
+		if (priv->job) {
+			giggle_git_cancel_job (priv->git, priv->job);
+			g_object_unref (priv->job);
+			priv->job = NULL;
+		}
+
+		priv->job = giggle_git_diff_tree_new (from, to);
+
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    file_list_job_callback,
+				    list);
 	}
-
-	priv->job = giggle_git_diff_tree_new (from, to);
-
-	giggle_git_run_job (priv->git,
-			    priv->job,
-			    file_list_job_callback,
-			    list);
 }

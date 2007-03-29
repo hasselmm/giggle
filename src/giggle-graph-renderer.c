@@ -276,7 +276,9 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
-	g_return_if_fail (priv->revision != NULL);
+	if (!priv->revision) {
+		return;
+	}
 
 	cr = gdk_cairo_create (window);
 	x = cell_area->x;
@@ -505,15 +507,17 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 		gtk_tree_model_iter_nth_child (model, &iter, NULL, n_children);
 		gtk_tree_model_get (model, &iter, column, &revision, -1);
 
-		if (!giggle_revision_get_parents (revision)) {
-			n_color = NEXT_COLOR (n_color);
-			find_free_path (visible_paths, &priv->n_paths, &n_path);
-			g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (n_path));
-			g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), &colors[n_color]);
-		}
+		if (revision) {
+			if (!giggle_revision_get_parents (revision)) {
+				n_color = NEXT_COLOR (n_color);
+				find_free_path (visible_paths, &priv->n_paths, &n_path);
+				g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (n_path));
+				g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), &colors[n_color]);
+			}
 
-		giggle_graph_renderer_calculate_revision_state (renderer, revision, visible_paths, &n_color);
-		g_object_unref (revision);
+			giggle_graph_renderer_calculate_revision_state (renderer, revision, visible_paths, &n_color);
+			g_object_unref (revision);
+		}
 	}
 
 	g_hash_table_destroy (visible_paths);

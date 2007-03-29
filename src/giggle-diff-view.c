@@ -316,8 +316,8 @@ giggle_diff_view_set_revisions (GiggleDiffView *diff_view,
 	GiggleDiffViewPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (diff_view));
-	g_return_if_fail (GIGGLE_IS_REVISION (revision1));
-	g_return_if_fail (GIGGLE_IS_REVISION (revision2));
+	g_return_if_fail (!revision1 || GIGGLE_IS_REVISION (revision1));
+	g_return_if_fail (!revision2 || GIGGLE_IS_REVISION (revision2));
 
 	priv = GET_PRIV (diff_view);
 

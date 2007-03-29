@@ -27,6 +27,7 @@
 #include "giggle-git.h"
 #include "giggle-git-revisions.h"
 #include "giggle-git-refs.h"
+#include "giggle-git-diff.h"
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
@@ -57,6 +58,7 @@ struct GiggleViewHistoryPriv {
 
 	GiggleGit *git;
 	GiggleJob *job;
+	GiggleJob *diff_current_job;
 
 	GList     *history; /* reversed list of history elems */
 	GList     *current_history_elem;
@@ -264,6 +266,12 @@ view_history_finalize (GObject *object)
 		priv->job = NULL;
 	}
 
+	if (priv->diff_current_job) {
+		giggle_git_cancel_job (priv->git, priv->diff_current_job);
+		g_object_unref (priv->diff_current_job);
+		priv->diff_current_job = NULL;
+	}
+
 	g_list_foreach (priv->history, (GFunc) g_free, NULL);
 	g_list_free (priv->history);
 
@@ -284,21 +292,22 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 	priv = GET_PRIV (view);
 	files = NULL;
 
-	giggle_revision_view_set_revision (
-		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
-
-	if (revision1 && revision2) {
-		if (priv->current_history_elem) {
-			files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
-		}
-
-		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
-						revision1, revision2, files);
-		giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
-						     revision1, revision2);
-		giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
-						revision1, revision2);
+	if (revision1) {
+		giggle_revision_view_set_revision (
+			GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
 	}
+
+	if (priv->current_history_elem) {
+		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
+	}
+
+	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
+					revision1, revision2, files);
+
+	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
+					     revision1, revision2);
+	giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
+					      revision1, revision2);
 }
 
 static gboolean
@@ -443,22 +452,59 @@ view_history_get_branches_cb (GiggleGit    *git,
 					    REVISION_COL_OBJECT, &revision,
 					    -1);
 
-			changed = view_history_add_refs (revision, branches, giggle_revision_add_branch_head);
-			changed |= view_history_add_refs (revision, tags, giggle_revision_add_tag);
+			if (revision) {
+				changed = view_history_add_refs (revision, branches, giggle_revision_add_branch_head);
+				changed |= view_history_add_refs (revision, tags, giggle_revision_add_tag);
 
-			if (changed) {
-				path = gtk_tree_model_get_path (model, &iter);
-				gtk_tree_model_row_changed (model, path, &iter);
-				gtk_tree_path_free (path);
+				if (changed) {
+					path = gtk_tree_model_get_path (model, &iter);
+					gtk_tree_model_row_changed (model, path, &iter);
+					gtk_tree_path_free (path);
+				}
+
+				g_object_unref (revision);
 			}
 
-			g_object_unref (revision);
 			valid = gtk_tree_model_iter_next (model, &iter);
 		}
 	}
 
 	g_object_unref (priv->job);
 	priv->job = NULL;
+}
+
+static void
+view_history_diff_current_cb (GiggleGit *git,
+			      GiggleJob *job,
+			      GError    *error,
+			      gpointer   user_data)
+{
+	GiggleViewHistoryPriv *priv;
+	GtkTreeModel          *model;
+	GtkTreePath           *path;
+	GtkTreeIter            iter;
+	const gchar           *text;
+
+	priv = GET_PRIV (user_data);
+
+	/* FIXME: error report missing */
+	if (error) {
+		return;
+	}
+
+	text = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job));
+
+	if (text && *text) {
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
+		gtk_list_store_insert (GTK_LIST_STORE (model), &iter, 0);
+		gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+				    REVISION_COL_OBJECT, NULL,
+				    -1);
+
+		path = gtk_tree_model_get_path (model, &iter);
+		gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (priv->revision_list),
+					      path, NULL, FALSE, 0.0, 0.0);
+	}
 }
 
 static void
@@ -516,6 +562,20 @@ view_history_get_revisions_cb (GiggleGit    *git,
 				    view_history_get_branches_cb,
 				    view);
 
+		/* and current diff row */
+		if (priv->diff_current_job) {
+			giggle_git_cancel_job (priv->git, priv->diff_current_job);
+			g_object_unref (priv->diff_current_job);
+			priv->diff_current_job = NULL;
+		}
+
+		priv->diff_current_job = giggle_git_diff_new ();
+
+		giggle_git_run_job (priv->git,
+				    priv->diff_current_job,
+				    view_history_diff_current_cb,
+				    view);
+
 		giggle_history_changed (GIGGLE_HISTORY (view));
 	}
 }
@@ -530,6 +590,7 @@ view_history_update_revisions (GiggleViewHistory  *view)
 
 	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), NULL);
 
+	/* get revision list */
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
 		g_object_unref (priv->job);

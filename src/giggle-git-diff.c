@@ -202,10 +202,12 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 
 	str = g_string_new (GIT_COMMAND " diff");
 
-	if (priv->rev1 && priv->rev2) {
-		g_string_append_printf (str, " %s %s",
-					giggle_revision_get_sha (priv->rev1),
-					giggle_revision_get_sha (priv->rev2));
+	if (priv->rev1) {
+		g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev1));
+	}
+
+	if (priv->rev2) {
+		g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev2));
 	}
 
 	while (files) {
@@ -241,8 +243,8 @@ giggle_git_diff_set_revisions (GiggleGitDiff  *diff,
 			       GiggleRevision *rev2)
 {
 	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
-	g_return_if_fail (GIGGLE_IS_REVISION (rev1));
-	g_return_if_fail (GIGGLE_IS_REVISION (rev2));
+	g_return_if_fail (!rev1 || GIGGLE_IS_REVISION (rev1));
+	g_return_if_fail (!rev2 || GIGGLE_IS_REVISION (rev2));
 
 	g_object_set (diff,
 		      "revision1", rev1,

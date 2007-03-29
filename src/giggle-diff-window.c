@@ -78,6 +78,7 @@ giggle_diff_window_init (GiggleDiffWindow *diff_window)
 	priv->git = giggle_git_get ();
 
 	gtk_window_set_default_size (GTK_WINDOW (diff_window), 500, 380);
+	gtk_window_set_title (GTK_WINDOW (diff_window), _("Commit changes"));
 
 	vbox = gtk_vbox_new (FALSE, 12);
 	gtk_container_set_border_width (GTK_CONTAINER (vbox), 7);
@@ -125,9 +126,9 @@ giggle_diff_window_init (GiggleDiffWindow *diff_window)
 		      NULL);
 
 	gtk_dialog_add_button (GTK_DIALOG (diff_window),
-			       _("Co_mmit"), GTK_RESPONSE_OK);
+			       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 	gtk_dialog_add_button (GTK_DIALOG (diff_window),
-			       GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
+			       _("Co_mmit"), GTK_RESPONSE_OK);
 }
 
 static void

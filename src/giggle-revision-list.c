@@ -239,6 +239,10 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	priv = GET_PRIV (revision_list);
 
+	/* yes, it's a hack */
+	priv->first_revision = (GiggleRevision *) 0x1;
+	priv->last_revision = (GiggleRevision *) 0x1;
+
 	priv->icon_theme = gtk_icon_theme_get_default ();
 	priv->git = giggle_git_get ();
 	priv->main_loop = g_main_loop_new (NULL, FALSE);
@@ -720,8 +724,9 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	if (giggle_revision_get_tags (revision) ||
-	    giggle_revision_get_branch_heads (revision)) {
+	if (revision &&
+	    (giggle_revision_get_tags (revision) ||
+	     giggle_revision_get_branch_heads (revision))) {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
 						   "gtk-info", 16, 0, NULL);
 	}
@@ -734,7 +739,9 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 		g_object_unref (pixbuf);
 	}
 
-	g_object_unref (revision);
+	if (revision) {
+		g_object_unref (revision);
+	}
 }
 
 static void
@@ -746,6 +753,7 @@ revision_list_cell_data_log_func (GtkTreeViewColumn *column,
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
+	gchar                  *markup;
 
 	priv = GET_PRIV (data);
 
@@ -753,11 +761,18 @@ revision_list_cell_data_log_func (GtkTreeViewColumn *column,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	g_object_set (cell,
-		      "text", giggle_revision_get_short_log (revision),
-		      NULL);
-
-	g_object_unref (revision);
+	if (revision) {
+		g_object_set (cell,
+			      "text", giggle_revision_get_short_log (revision),
+			      NULL);
+		g_object_unref (revision);
+	} else {
+		markup = g_strdup_printf ("<b>%s</b>", _("Uncommitted changes"));
+		g_object_set (cell,
+			      "markup", markup,
+			      NULL);
+		g_free (markup);
+	}
 }
 
 static void
@@ -769,6 +784,7 @@ revision_list_cell_data_author_func (GtkTreeViewColumn *column,
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
+	const gchar            *author = NULL;
 
 	priv = GET_PRIV (data);
 
@@ -776,11 +792,15 @@ revision_list_cell_data_author_func (GtkTreeViewColumn *column,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	g_object_set (cell,
-		      "text", giggle_revision_get_author (revision),
-		      NULL);
+	if (revision) {
+		author = giggle_revision_get_author (revision);
+	}
 
-	g_object_unref (revision);
+	g_object_set (cell, "text", author, NULL);
+
+	if (revision) {
+		g_object_unref (revision);
+	}
 }
 
 static gchar *
@@ -857,20 +877,23 @@ revision_list_cell_data_date_func (GtkTreeViewColumn *column,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	tm = giggle_revision_get_date (revision);
+	if (revision) {
+		tm = giggle_revision_get_date (revision);
 
-	if (tm) {
-		format = revision_list_get_formatted_time (tm);
-		strftime (buf, sizeof (buf), format, tm);
+		if (tm) {
+			format = revision_list_get_formatted_time (tm);
+			strftime (buf, sizeof (buf), format, tm);
 
-		g_object_set (cell,
-			      "text", buf,
-			      NULL);
+			g_object_set (cell,
+				      "text", buf,
+				      NULL);
 
-		g_free (format);
+			g_free (format);
+			g_object_unref (revision);
+		}
+	} else {
+		g_object_set (cell, "text", NULL, NULL);
 	}
-
-	g_object_unref (revision);
 }
 
 static void
@@ -891,6 +914,7 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 	priv = GET_PRIV (list);
 
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
+	first_revision = last_revision = NULL;
 
 	if (!rows) {
 		return;
@@ -911,11 +935,12 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 	gtk_tree_model_get (model, &first_iter,
 			    COL_OBJECT, &first_revision,
 			    -1);
+
 	if (valid) {
 		gtk_tree_model_get (model, &last_iter,
 				    COL_OBJECT, &last_revision,
 				    -1);
-	} else {
+	} else if (first_revision) {
 		/* maybe select a better parent? */
 		GList* parents = giggle_revision_get_parents (first_revision);
 		last_revision = parents ? g_object_ref(parents->data) : NULL;
@@ -930,7 +955,10 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 			       first_revision, last_revision);
 	}
 
-	g_object_unref (first_revision);
+	if (first_revision) {
+		g_object_unref (first_revision);
+	}
+
 	if (last_revision) {
 		g_object_unref (last_revision);
 	}
