@@ -348,7 +348,7 @@ msgstr "<b>Beskrivning:</b>"
 
 #: ../src/giggle-view-summary.c:152
 msgid "<b>Remotes:</b>"
-msgstr "<b>Remotes:/b>"
+msgstr "<b>Remotes:</b>"
 
 #: ../src/giggle-window.c:130
 msgid "_Compact Mode"
