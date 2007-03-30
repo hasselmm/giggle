@@ -34,8 +34,8 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_GIT_LIST_FILES_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_GIT_LIST_FILES))
 #define GIGGLE_GIT_LIST_FILES_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_GIT_LIST_FILES, GiggleGitListFilesClass))
 
-typedef struct GiggleGitListFiles      GiggleGitListFiles;
-typedef struct GiggleGitListFilesClass GiggleGitListFilesClass;
+typedef struct GiggleGitListFiles       GiggleGitListFiles;
+typedef struct GiggleGitListFilesClass  GiggleGitListFilesClass;
 
 struct GiggleGitListFiles {
 	GiggleJob parent;
@@ -45,10 +45,20 @@ struct GiggleGitListFilesClass {
 	GiggleJobClass parent_class;
 };
 
-GType		      giggle_git_list_files_get_type   (void);
-GiggleJob *           giggle_git_list_files_new        (void);
+typedef enum {
+	GIGGLE_GIT_FILE_STATUS_OTHER = 0,
+	GIGGLE_GIT_FILE_STATUS_CACHED,
+	GIGGLE_GIT_FILE_STATUS_UNMERGED,
+	GIGGLE_GIT_FILE_STATUS_DELETED,
+	GIGGLE_GIT_FILE_STATUS_CHANGED,
+	GIGGLE_GIT_FILE_STATUS_KILLED,
+}  GiggleGitListFilesStatus;
 
-GList *               giggle_git_list_files_get_files  (GiggleGitListFiles *list_files);
+GType		         giggle_git_list_files_get_type   (void);
+GiggleJob *              giggle_git_list_files_new        (void);
+
+GiggleGitListFilesStatus giggle_git_list_files_get_file_status (GiggleGitListFiles *list_files,
+								const gchar        *file);
 
 
 G_END_DECLS

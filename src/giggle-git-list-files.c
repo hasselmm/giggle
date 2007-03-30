@@ -25,7 +25,7 @@
 typedef struct GiggleGitListFilesPriv GiggleGitListFilesPriv;
 
 struct GiggleGitListFilesPriv {
-	GList *files;
+	GHashTable *files;
 };
 
 static void     git_list_files_finalize            (GObject           *object);
@@ -57,6 +57,11 @@ giggle_git_list_files_class_init (GiggleGitListFilesClass *class)
 static void
 giggle_git_list_files_init (GiggleGitListFiles *list_files)
 {
+	GiggleGitListFilesPriv *priv;
+
+	priv = GET_PRIV (list_files);
+
+	priv->files = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 }
 
 static void
@@ -66,8 +71,7 @@ git_list_files_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
-	g_list_foreach (priv->files, (GFunc) g_free, NULL);
-	g_list_free (priv->files);
+	g_hash_table_destroy (priv->files);
 
 	G_OBJECT_CLASS (giggle_git_list_files_parent_class)->finalize (object);
 }
@@ -75,10 +79,32 @@ git_list_files_finalize (GObject *object)
 static gboolean
 git_list_files_get_command_line (GiggleJob *job, gchar **command_line)
 {
-	/* FIXME: At the moment, only lists files that are not in the repo */
-	*command_line = g_strdup_printf (GIT_COMMAND " ls-files --others");
+	*command_line = g_strdup_printf (GIT_COMMAND " ls-files "
+					 "--cached --deleted --modified --others "
+					 "--killed -t --full-name");
 
 	return TRUE;
+}
+
+static GiggleGitListFilesStatus
+git_list_files_char_to_status (gchar status)
+{
+	switch (status) {
+	case 'H':
+		return GIGGLE_GIT_FILE_STATUS_CACHED;
+	case 'M':
+		return GIGGLE_GIT_FILE_STATUS_UNMERGED;
+	case 'R':
+		return GIGGLE_GIT_FILE_STATUS_DELETED;
+	case 'C':
+		return GIGGLE_GIT_FILE_STATUS_CHANGED;
+	case 'K':
+		return GIGGLE_GIT_FILE_STATUS_KILLED;
+	case '?':
+		return GIGGLE_GIT_FILE_STATUS_OTHER;
+	default:
+		g_assert_not_reached ();
+	}
 }
 
 static void
@@ -86,23 +112,25 @@ git_list_files_handle_output (GiggleJob   *job,
 			const gchar *output_str,
 			gsize        output_len)
 {
-	GiggleGitListFilesPriv  *priv;
-	gchar                  **lines;
-	gint                     i;
+	GiggleGitListFilesPriv    *priv;
+	GiggleGitListFilesStatus   status;
+	gchar                    **lines;
+	gchar                     *file;
+	gchar                      status_char;
+	gint                       i;
 
 	priv = GET_PRIV (job);
-
-	g_list_foreach (priv->files, (GFunc) g_free, NULL);
-	g_list_free (priv->files);
-
 	lines = g_strsplit (output_str, "\n", -1);
 
 	for (i = 0; lines[i] && *lines[i]; i++) {
+		status_char = lines[i][0];
+		file = g_strdup (&lines[i][2]); /* just the file name */
+		status = git_list_files_char_to_status (status_char);
+		
 		/* add filename */
-		priv->files = g_list_prepend (priv->files, g_strdup (lines[i]));
+		g_hash_table_insert (priv->files, file, GINT_TO_POINTER (status));
 	}
 
-	priv->files = g_list_reverse (priv->files);
 	g_strfreev (lines);
 }
 
@@ -112,14 +140,18 @@ giggle_git_list_files_new ()
 	return g_object_new (GIGGLE_TYPE_GIT_LIST_FILES, NULL);
 }
 
-GList *
-giggle_git_list_files_get_files (GiggleGitListFiles *list_files)
+GiggleGitListFilesStatus
+giggle_git_list_files_get_file_status (GiggleGitListFiles *list_files,
+				       const gchar        *file)
 {
-	GiggleGitListFilesPriv *priv;
+	GiggleGitListFilesPriv   *priv;
+	GiggleGitListFilesStatus  status;
 
-	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_FILES (list_files), NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_FILES (list_files),
+			      GIGGLE_GIT_FILE_STATUS_OTHER);
 
 	priv = GET_PRIV (list_files);
 
-	return priv->files;
+	status = GPOINTER_TO_INT (g_hash_table_lookup (priv->files, file));
+	return status;
 }

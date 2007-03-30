@@ -13,7 +13,8 @@ dist_ENUMS_TEMPLATES=				\
 
 # h_files are the headers that include enums
 h_files = 					\
-	giggle-remote-branch.h
+	giggle-remote-branch.h			\
+	giggle-git-list-files.h
 
 giggle_SOURCES =				\
 	$(BUILT_SOURCES)			\
