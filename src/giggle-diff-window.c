@@ -108,6 +108,8 @@ giggle_diff_window_init (GiggleDiffWindow *diff_window)
 	gtk_box_pack_start (GTK_BOX (vbox2), label, FALSE, FALSE, 0);
 
 	priv->commit_textview = gtk_text_view_new ();
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (priv->commit_textview),
+				     GTK_WRAP_WORD_CHAR);
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
 					     GTK_SHADOW_IN);
