@@ -277,6 +277,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	/* graph renderer */
 	priv->graph_column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_resizable (priv->graph_column, TRUE);
 	g_object_ref_sink (priv->graph_column);
 
 	priv->graph_renderer = giggle_graph_renderer_new ();
