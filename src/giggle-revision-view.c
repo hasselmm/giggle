@@ -262,7 +262,7 @@ revision_view_search (GiggleSearchable      *searchable,
 		len = g_utf8_strlen (search_term, -1);
 
 		gtk_label_select_region (GTK_LABEL (priv->sha),
-					 (gint) offset, (gint) len);
+					 (gint) offset, (gint) offset + len);
 
 		return TRUE;
 	}
