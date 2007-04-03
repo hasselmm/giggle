@@ -26,6 +26,7 @@
 #include <gtk/gtktreemodel.h>
 
 #include "giggle-ref.h"
+#include "giggle-branch.h"
 
 G_BEGIN_DECLS
 
@@ -45,6 +46,9 @@ struct _GiggleRevision {
 
 struct _GiggleRevisionClass {
 	GObjectClass parent_class;
+
+	void (* descendent_branch_added) (GiggleRevision *revision,
+					  GiggleBranch   *branch);
 };
 
 GType              giggle_revision_get_type          (void);
@@ -70,6 +74,9 @@ void               giggle_revision_add_branch_head   (GiggleRevision   *revision
 GList            * giggle_revision_get_tags          (GiggleRevision   *revision);
 void               giggle_revision_add_tag           (GiggleRevision   *revision,
 						      GiggleRef        *tag);
+
+GList            * giggle_revision_get_descendent_branches (GiggleRevision *revision);
+
 
 G_END_DECLS
 
