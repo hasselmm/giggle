@@ -791,6 +791,20 @@ giggle_view_history_get_file_list_visible (GiggleViewHistory *view)
 	return GTK_WIDGET_VISIBLE (priv->file_list_sw);
 }
 
+void
+giggle_view_history_set_graph_visible (GiggleViewHistory *view,
+				       gboolean           visible)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
+
+	priv = GET_PRIV (view);
+
+	giggle_revision_list_set_graph_visible (
+		GIGGLE_REVISION_LIST (priv->revision_list), visible);
+}
+
 static void
 view_history_go_back (GiggleHistory *history)
 {

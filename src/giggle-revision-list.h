@@ -55,8 +55,8 @@ GtkWidget *        giggle_revision_list_new               (void);
 void               giggle_revision_list_set_model         (GiggleRevisionList *list,
 							   GtkTreeModel       *model);
 
-gboolean           giggle_revision_list_get_show_graph    (GiggleRevisionList *list);
-void               giggle_revision_list_set_show_graph    (GiggleRevisionList *list,
+gboolean           giggle_revision_list_get_graph_visible (GiggleRevisionList *list);
+void               giggle_revision_list_set_graph_visible (GiggleRevisionList *list,
 							   gboolean            show_graph);
 
 gboolean           giggle_revision_list_get_compact_mode  (GiggleRevisionList *list);
