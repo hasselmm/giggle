@@ -687,7 +687,7 @@ revision_list_motion_notify (GtkWidget      *widget,
 {
 	GiggleRevisionListPriv *priv;
 	GtkTreeModel           *model;
-	GtkTreePath            *path;
+	GtkTreePath            *path = NULL;
 	GtkTreeViewColumn      *column;
 	GtkTreeIter             iter;
 	gint                    cell_x, start, width;
@@ -695,6 +695,10 @@ revision_list_motion_notify (GtkWidget      *widget,
 
 	priv = GET_PRIV (widget);
 	GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->motion_notify_event (widget, event);
+
+	if (event->window != gtk_tree_view_get_bin_window (GTK_TREE_VIEW (widget))) {
+		goto failed;
+	}
 
 	/* are we in the correct column? */
 	if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget),
@@ -720,6 +724,10 @@ revision_list_motion_notify (GtkWidget      *widget,
 			    COL_OBJECT, &revision,
 			    -1);
 
+	if (!revision) {
+		goto failed;
+	}
+
 	if (!giggle_revision_get_tags (revision) &&
 	    !giggle_revision_get_branch_heads (revision)) {
 		goto failed;
@@ -741,7 +749,11 @@ revision_list_motion_notify (GtkWidget      *widget,
 	if (revision) {
 		g_object_unref (revision);
 	}
-	gtk_tree_path_free (path);
+
+	if (path) {
+		gtk_tree_path_free (path);
+	}
+
 	return FALSE;
 }
 

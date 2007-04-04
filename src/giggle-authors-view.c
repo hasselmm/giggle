@@ -142,8 +142,6 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (authors_view_update), view);
 
-	authors_view_update (view);
-
 	g_object_set (view, "label", _("Authors:"), NULL);
 }
 
