@@ -57,6 +57,8 @@ void               giggle_view_history_set_file_list_visible (GiggleViewHistory 
 							      gboolean           visible);
 gboolean           giggle_view_history_get_file_list_visible (GiggleViewHistory *view);
 
+void               giggle_view_history_set_graph_visible     (GiggleViewHistory *view,
+							      gboolean           visible);
 
 G_END_DECLS
 

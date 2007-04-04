@@ -53,6 +53,9 @@ struct GiggleViewHistoryPriv {
 	GtkWidget *revision_hpaned;
 
 	GtkWidget *revision_view_expander;
+	GtkWidget *revision_expander_label;
+	GtkWidget *branches_label;
+
 	GtkWidget *diff_view_expander;
 	GtkWidget *diff_view_sw;
 
@@ -63,7 +66,9 @@ struct GiggleViewHistoryPriv {
 	GList     *history; /* reversed list of history elems */
 	GList     *current_history_elem;
 
-	guint     compact_mode : 1;
+	guint      selection_changed_idle;
+
+	guint      compact_mode : 1;
 };
 
 static void     view_history_finalize              (GObject *object);
@@ -138,6 +143,55 @@ giggle_view_history_history_init (GiggleHistoryIface *iface)
 }
 
 static void
+view_history_expander_label_size_allocation (GtkWidget         *widget,
+					     GtkAllocation     *allocation,
+					     GiggleViewHistory *view)
+{
+	GiggleViewHistoryPriv *priv;
+	GtkAllocation          expander_allocation;
+
+	priv = GET_PRIV (view);
+
+	/* terrible, but there's no other way to show
+	 * something in the label area aligned to the right
+	 */
+	expander_allocation = priv->revision_view_expander->allocation;
+	allocation->width = expander_allocation.width -
+		(allocation->x - expander_allocation.x);
+
+	gtk_widget_size_allocate (widget, allocation);
+}
+
+static GtkWidget *
+view_history_create_revision_expander (GiggleViewHistory *view)
+{
+	GiggleViewHistoryPriv *priv;
+	GtkWidget             *expander, *label;
+
+	priv = GET_PRIV (view);
+
+	priv->revision_expander_label = gtk_hbox_new (FALSE, 12);
+
+	label = gtk_label_new_with_mnemonic (_("Revision _information"));
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
+	gtk_box_pack_start (GTK_BOX (priv->revision_expander_label), label, FALSE, FALSE, 0);
+
+	priv->branches_label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (priv->branches_label), 1.0, 0.0);
+	gtk_label_set_ellipsize (GTK_LABEL (priv->branches_label), PANGO_ELLIPSIZE_END);
+	gtk_box_pack_start (GTK_BOX (priv->revision_expander_label), priv->branches_label, TRUE, TRUE, 0);
+
+	expander = gtk_expander_new (NULL);
+	gtk_expander_set_label_widget (GTK_EXPANDER (expander), priv->revision_expander_label);
+	gtk_widget_show_all (expander);
+
+	g_signal_connect (priv->revision_expander_label, "size-allocate",
+			  G_CALLBACK (view_history_expander_label_size_allocation), view);
+
+	return expander;
+}
+
+static void
 giggle_view_history_init (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
@@ -164,7 +218,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	priv->revision_hpaned = gtk_hpaned_new ();
 	gtk_widget_show (priv->revision_hpaned);
 	gtk_paned_pack2 (GTK_PANED (priv->main_vpaned), priv->revision_hpaned, FALSE, FALSE);
-	
+
 	/* diff file view */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -219,7 +273,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), scrolled_window, TRUE, FALSE);
 
 	/* revision view */
-	priv->revision_view_expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
+	priv->revision_view_expander = view_history_create_revision_expander (view);
 	priv->revision_view = giggle_revision_view_new ();
 	gtk_container_add (GTK_CONTAINER (priv->revision_view_expander), priv->revision_view);
 	gtk_expander_set_expanded (GTK_EXPANDER (priv->revision_view_expander), TRUE);
@@ -280,32 +334,106 @@ view_history_finalize (GObject *object)
 	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
 }
 
-static void
-view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
-						 GiggleRevision     *revision1,
-						 GiggleRevision     *revision2,
-						 GiggleViewHistory  *view)
+typedef struct {
+	GiggleViewHistory *view;
+	GiggleRevision    *revision1;
+	GiggleRevision    *revision2;
+} ViewHistorySelectionIdleData;
+
+static gboolean
+view_history_selection_changed_idle (ViewHistorySelectionIdleData *data)
 {
 	GiggleViewHistoryPriv *priv;
 	GList                 *files;
 
-	priv = GET_PRIV (view);
-	files = NULL;
+	GDK_THREADS_ENTER ();
 
-	giggle_revision_view_set_revision (
-		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
+	priv = GET_PRIV (data->view);
+	files = NULL;
 
 	if (priv->current_history_elem) {
 		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
 	}
 
 	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
-					revision1, revision2, files);
+					data->revision1, data->revision2, files);
 
 	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
-					     revision1, revision2);
+					     data->revision1, data->revision2);
 	giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
-					      revision1, revision2);
+					      data->revision1, data->revision2);
+
+	GDK_THREADS_LEAVE ();
+
+	return FALSE;
+}
+
+static void
+view_history_set_branches_label (GiggleViewHistory *view,
+				 GiggleRevision    *revision)
+{
+	GiggleViewHistoryPriv *priv;
+	GiggleRef             *ref;
+	GList                 *branches;
+	GString               *str;
+
+	priv = GET_PRIV (view);
+
+	gtk_label_set_text (GTK_LABEL (priv->branches_label), NULL);
+
+	if (!revision) {
+		return;
+	}
+
+	branches = giggle_revision_get_descendent_branches (revision);
+
+	if (branches) {
+		str = g_string_new ("");
+
+		g_string_append_printf (str, "<b>%s</b>:",
+					ngettext ("Branch", "Branches",
+						  g_list_length (branches)));
+
+		while (branches) {
+			ref = GIGGLE_REF (branches->data);
+			g_string_append_printf (str, " %s", giggle_ref_get_name (ref));
+			branches = branches->next;
+		}
+
+		gtk_label_set_markup (GTK_LABEL (priv->branches_label), str->str);
+		g_string_free (str, TRUE);
+	}
+}
+
+static void
+view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
+						 GiggleRevision     *revision1,
+						 GiggleRevision     *revision2,
+						 GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv        *priv;
+	ViewHistorySelectionIdleData *data;
+
+	priv = GET_PRIV (view);
+
+	view_history_set_branches_label (view, revision1);
+
+	giggle_revision_view_set_revision (
+		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
+
+	if (priv->selection_changed_idle) {
+		g_source_remove (priv->selection_changed_idle);
+	}
+
+	data = g_new0 (ViewHistorySelectionIdleData, 1);
+	data->view = view;
+	data->revision1 = revision1;
+	data->revision2 = revision2;
+
+	priv->selection_changed_idle =
+		g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+				 (GSourceFunc) view_history_selection_changed_idle,
+				 data, g_free);
 }
 
 static gboolean
@@ -322,7 +450,7 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	if (event->keyval == GDK_space ||
 	    event->keyval == GDK_BackSpace) {
 		gtk_expander_set_expanded (GTK_EXPANDER (priv->diff_view_expander), TRUE);
-		
+
 		adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->diff_view_sw));
 
 		value = (event->keyval == GDK_space) ?
@@ -698,6 +826,20 @@ giggle_view_history_get_file_list_visible (GiggleViewHistory *view)
 	priv = GET_PRIV (view);
 
 	return GTK_WIDGET_VISIBLE (priv->file_list_sw);
+}
+
+void
+giggle_view_history_set_graph_visible (GiggleViewHistory *view,
+				       gboolean           visible)
+{
+	GiggleViewHistoryPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
+
+	priv = GET_PRIV (view);
+
+	giggle_revision_list_set_graph_visible (
+		GIGGLE_REVISION_LIST (priv->revision_list), visible);
 }
 
 static void

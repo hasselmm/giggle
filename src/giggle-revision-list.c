@@ -89,7 +89,7 @@ enum {
 
 enum {
 	PROP_0,
-	PROP_SHOW_GRAPH,
+	PROP_GRAPH_VISIBLE,
 	PROP_COMPACT_MODE,
 };
 
@@ -202,9 +202,9 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 
 	g_object_class_install_property (
 		object_class,
-		PROP_SHOW_GRAPH,
-		g_param_spec_boolean ("show-graph",
-				      "Show graph",
+		PROP_GRAPH_VISIBLE,
+		g_param_spec_boolean ("graph-visible",
+				      "Graph visible",
 				      "Whether to show the revisions graph",
 				      FALSE,
 				      G_PARAM_READWRITE));
@@ -406,7 +406,7 @@ revision_list_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_SHOW_GRAPH:
+	case PROP_GRAPH_VISIBLE:
 		g_value_set_boolean (value, priv->show_graph);
 		break;
 	case PROP_COMPACT_MODE:
@@ -429,9 +429,9 @@ revision_list_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_SHOW_GRAPH:
-		giggle_revision_list_set_show_graph (GIGGLE_REVISION_LIST (object),
-						     g_value_get_boolean (value));
+	case PROP_GRAPH_VISIBLE:
+		giggle_revision_list_set_graph_visible (GIGGLE_REVISION_LIST (object),
+							g_value_get_boolean (value));
 		break;
 	case PROP_COMPACT_MODE:
 		giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (object),
@@ -1399,7 +1399,7 @@ giggle_revision_list_set_model (GiggleRevisionList *list,
 }
 
 gboolean
-giggle_revision_list_get_show_graph (GiggleRevisionList *list)
+giggle_revision_list_get_graph_visible (GiggleRevisionList *list)
 {
 	GiggleRevisionListPriv *priv;
 
@@ -1410,8 +1410,8 @@ giggle_revision_list_get_show_graph (GiggleRevisionList *list)
 }
 
 void
-giggle_revision_list_set_show_graph (GiggleRevisionList *list,
-				     gboolean            show_graph)
+giggle_revision_list_set_graph_visible (GiggleRevisionList *list,
+					gboolean            show_graph)
 {
 	GiggleRevisionListPriv *priv;
 
@@ -1421,7 +1421,7 @@ giggle_revision_list_set_show_graph (GiggleRevisionList *list,
 
 	priv->show_graph = (show_graph == TRUE);
 	gtk_tree_view_column_set_visible (priv->graph_column, priv->show_graph);
-	g_object_notify (G_OBJECT (list), "show-graph");
+	g_object_notify (G_OBJECT (list), "graph-visible");
 }
 
 gboolean
