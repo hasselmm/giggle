@@ -370,7 +370,7 @@ static gchar *
 giggle_git_get_description_file (const GiggleGit *git)
 {
 	GiggleGitPriv *priv = GET_PRIV (git);
-	
+
 	return g_build_filename (priv->git_dir, "description", NULL);
 }
 
@@ -652,10 +652,10 @@ giggle_git_run_job_full (GiggleGit             *git,
 
 	if (giggle_job_get_command_line (job, &command)) {
 		GitJobData    *data;
-		
+
 		data = g_slice_new0 (GitJobData);
 		data->id = giggle_dispatcher_execute (priv->dispatcher,
-						      priv->directory,
+						      priv->project_dir,
 						      command,
 						      (GiggleExecuteCallback) git_execute_callback,
 						      git);
