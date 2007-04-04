@@ -142,8 +142,6 @@ giggle_branches_view_init (GiggleBranchesView *view)
 	g_signal_connect_swapped (priv->git, "notify::git-dir",
 				  G_CALLBACK (branches_view_update), view);
 
-	branches_view_update (view);
-
 	g_object_set (view, "label", _("Branches:"), NULL);
 }
 
