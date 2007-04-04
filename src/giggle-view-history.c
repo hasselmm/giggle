@@ -66,7 +66,9 @@ struct GiggleViewHistoryPriv {
 	GList     *history; /* reversed list of history elems */
 	GList     *current_history_elem;
 
-	guint     compact_mode : 1;
+	guint      selection_changed_idle;
+
+	guint      compact_mode : 1;
 };
 
 static void     view_history_finalize              (GObject *object);
@@ -332,6 +334,40 @@ view_history_finalize (GObject *object)
 	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
 }
 
+typedef struct {
+	GiggleViewHistory *view;
+	GiggleRevision    *revision1;
+	GiggleRevision    *revision2;
+} ViewHistorySelectionIdleData;
+
+static gboolean
+view_history_selection_changed_idle (ViewHistorySelectionIdleData *data)
+{
+	GiggleViewHistoryPriv *priv;
+	GList                 *files;
+
+	GDK_THREADS_ENTER ();
+
+	priv = GET_PRIV (data->view);
+	files = NULL;
+
+	if (priv->current_history_elem) {
+		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
+	}
+
+	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
+					data->revision1, data->revision2, files);
+
+	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
+					     data->revision1, data->revision2);
+	giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
+					      data->revision1, data->revision2);
+
+	GDK_THREADS_LEAVE ();
+
+	return FALSE;
+}
+
 static void
 view_history_set_branches_label (GiggleViewHistory *view,
 				 GiggleRevision    *revision)
@@ -375,28 +411,29 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 						 GiggleRevision     *revision2,
 						 GiggleViewHistory  *view)
 {
-	GiggleViewHistoryPriv *priv;
-	GList                 *files;
+	GiggleViewHistoryPriv        *priv;
+	ViewHistorySelectionIdleData *data;
 
 	priv = GET_PRIV (view);
-	files = NULL;
 
 	view_history_set_branches_label (view, revision1);
 
 	giggle_revision_view_set_revision (
 		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
 
-	if (priv->current_history_elem) {
-		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
+	if (priv->selection_changed_idle) {
+		g_source_remove (priv->selection_changed_idle);
 	}
 
-	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
-					revision1, revision2, files);
+	data = g_new0 (ViewHistorySelectionIdleData, 1);
+	data->view = view;
+	data->revision1 = revision1;
+	data->revision2 = revision2;
 
-	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
-					     revision1, revision2);
-	giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
-					      revision1, revision2);
+	priv->selection_changed_idle =
+		g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+				 (GSourceFunc) view_history_selection_changed_idle,
+				 data, g_free);
 }
 
 static gboolean
