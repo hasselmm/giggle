@@ -284,7 +284,7 @@ giggle_file_list_init (GiggleFileList *list)
 
 	priv->idle_jobs = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 						 (GDestroyNotify) file_list_idle_data_free,
-						 NULL);
+						 (GDestroyNotify) g_source_remove);
 
 	priv->git = giggle_git_get ();
 	g_signal_connect (priv->git, "notify::project-dir",
@@ -352,17 +352,6 @@ giggle_file_list_init (GiggleFileList *list)
 }
 
 static void
-file_list_cancel_foreach (gpointer key,
-			  gpointer value,
-			  gpointer data)
-{
-	guint idle_id;
-
-	idle_id = GPOINTER_TO_UINT (value);
-	g_source_remove (idle_id);
-}
-
-static void
 file_list_finalize (GObject *object)
 {
 	GiggleFileListPriv *priv;
@@ -381,7 +370,6 @@ file_list_finalize (GObject *object)
 
 	g_object_unref (priv->ui_manager);
 
-	g_hash_table_foreach (priv->idle_jobs, file_list_cancel_foreach, NULL);
 	g_hash_table_destroy (priv->idle_jobs);
 
 	G_OBJECT_CLASS (giggle_file_list_parent_class)->finalize (object);
@@ -560,7 +548,6 @@ file_list_directory_changed (GObject    *object,
 	priv = GET_PRIV (list);
 
 	/* remove old directory idles */
-	g_hash_table_foreach (priv->idle_jobs, file_list_cancel_foreach, NULL);
 	g_hash_table_remove_all (priv->idle_jobs);
 
 	file_list_create_store (list);
@@ -689,14 +676,16 @@ static gboolean
 file_list_populate_dir_idle (gpointer user_data)
 {
 	GiggleFileListPriv *priv;
+	GiggleFileList     *list;
 	IdleLoaderData     *data;
 	GiggleGitIgnore    *git_ignore;
 	gchar              *full_path;
 
 	data = (IdleLoaderData *) user_data;
-	priv = GET_PRIV (data->list);
-	full_path = g_build_filename (data->directory, data->rel_path, NULL);
+	list = g_object_ref (data->list);
+	priv = GET_PRIV (list);
 
+	full_path = g_build_filename (data->directory, data->rel_path, NULL);
 	git_ignore = giggle_git_ignore_new (full_path);
 
 	gtk_tree_store_set (priv->store, &data->parent_iter,
@@ -706,7 +695,16 @@ file_list_populate_dir_idle (gpointer user_data)
 	file_list_populate_dir (data->list, data->directory,
 				data->rel_path, &data->parent_iter);
 
+	/* remove this data from the table */
+	g_hash_table_remove (priv->idle_jobs, data);
+
+	if (g_hash_table_size (priv->idle_jobs) == 0) {
+		/* no remaining jobs */
+		g_signal_emit (list, signals[PROJECT_LOADED], 0);
+	}
+
 	g_object_unref (git_ignore);
+	g_object_unref (list);
 	g_free (full_path);
 
 	return FALSE;
@@ -719,25 +717,6 @@ file_list_idle_data_free (IdleLoaderData *data)
 	g_free (data->rel_path);
 	g_object_unref (data->list);
 	g_free (data);
-}
-
-static void
-file_list_idle_data_delete (IdleLoaderData *data)
-{
-	GiggleFileListPriv *priv;
-	GiggleFileList     *list;
-
-	list = g_object_ref (data->list);
-	priv = GET_PRIV (list);
-
-	g_hash_table_remove (priv->idle_jobs, data);
-
-	if (g_hash_table_size (priv->idle_jobs) == 0) {
-		/* no remaining jobs */
-		g_signal_emit (list, signals[PROJECT_LOADED], 0);
-	}
-
-	g_object_unref (list);
 }
 
 static void
@@ -778,7 +757,7 @@ file_list_add_element (GiggleFileList *list,
 
 		idle_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
 					   file_list_populate_dir_idle,
-					   data, (GDestroyNotify) file_list_idle_data_delete);
+					   data, NULL);
 
 		g_hash_table_insert (priv->idle_jobs, data, GUINT_TO_POINTER (idle_id));
 	}
