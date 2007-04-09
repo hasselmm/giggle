@@ -379,6 +379,8 @@ dispatcher_job_read_cb (GIOChannel       *source,
 		dispatcher_signal_job_failed (dispatcher, priv->current_job, error);
 		dispatcher_stop_current_job (dispatcher);
 		dispatcher_start_next_job (dispatcher);
+
+		return FALSE;
 	}
 
 	return TRUE;
