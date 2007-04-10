@@ -1226,17 +1226,21 @@ file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
 	GiggleFileListPriv *priv;
 	GiggleFileList     *file_list;
 	gboolean            highlight;
+	gchar              *rel_path;
 
 	file_list = GIGGLE_FILE_LIST (data);
 	priv = GET_PRIV (file_list);
 
 	gtk_tree_model_get (tree_model, iter,
+			    COL_REL_PATH, &rel_path,
 			    COL_HIGHLIGHT, &highlight,
 			    -1);
 
-	g_object_set (G_OBJECT (renderer),
-		      "cell-background-gdk", (highlight) ? &color : NULL,
+	g_object_set (G_OBJECT (renderer), "cell-background-gdk",
+		      (rel_path && *rel_path && highlight) ? &color : NULL,
 		      NULL);
+
+	g_free (rel_path);
 }
 
 static void
@@ -1430,7 +1434,7 @@ file_list_update_highlight (GiggleFileList *file_list,
 	GtkTreeIter         iter;
 	gboolean            valid;
 	GiggleGitIgnore    *git_ignore;
-	gchar              *rel_path, *name;
+	gchar              *rel_path;
 	gboolean            highlight;
 
 	priv = GET_PRIV (file_list);
@@ -1444,23 +1448,17 @@ file_list_update_highlight (GiggleFileList *file_list,
 
 	while (valid) {
 		gtk_tree_model_get (GTK_TREE_MODEL (priv->store), &iter,
-				    COL_NAME, &name,
 				    COL_REL_PATH, &rel_path,
 				    COL_GIT_IGNORE, &git_ignore,
 				    -1);
 
-		if (rel_path && *rel_path) {
-			highlight = (g_list_find_custom (files, rel_path, (GCompareFunc) file_list_compare_prefix) != NULL);
-		} else {
-			/* we don't want the project basename included */
-			highlight = FALSE;
-		}
+		highlight = (g_list_find_custom (files, rel_path, (GCompareFunc) file_list_compare_prefix) != NULL);
 
 		gtk_tree_store_set (priv->store, &iter,
 				    COL_HIGHLIGHT, highlight,
 				    -1);
 
-		if (git_ignore) {
+		if (highlight && git_ignore) {
 			/* it's a directory */
 			file_list_update_highlight (file_list, &iter, rel_path, files);
 			g_object_unref (git_ignore);
