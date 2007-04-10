@@ -188,3 +188,15 @@ giggle_ref_get_name (GiggleRef *ref)
 
 	return priv->name;
 }
+
+G_CONST_RETURN gchar *
+giggle_ref_get_sha (GiggleRef *ref)
+{
+	GiggleRefPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REF (ref), NULL);
+
+	priv = GET_PRIV (ref);
+
+	return priv->sha;
+}
