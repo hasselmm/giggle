@@ -757,7 +757,7 @@ file_list_add_element (GiggleFileList *list,
 		data->rel_path = g_strdup (rel_path);
 		data->parent_iter = iter;
 
-		idle_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+		idle_id = g_idle_add_full (GDK_PRIORITY_REDRAW + 1,
 					   file_list_populate_dir_idle,
 					   data, NULL);
 
