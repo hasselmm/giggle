@@ -133,6 +133,7 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 		priv->search_mark = gtk_text_buffer_create_mark (buffer,
 								 "search-mark",
 								 &iter, FALSE);
+		g_object_unref (buffer);
 	}
 
 	g_object_unref (manager);
