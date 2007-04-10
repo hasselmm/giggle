@@ -192,7 +192,7 @@ view_history_create_revision_expander (GiggleViewHistory *view)
 }
 
 static void
-view_history_git_dir_changed (GiggleViewHistory *view)
+view_history_git_changed (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
 
@@ -204,6 +204,12 @@ view_history_git_dir_changed (GiggleViewHistory *view)
 	priv->history = NULL;
 	priv->current_history_elem = NULL;
 
+	view_history_update_revisions (view);
+}
+
+static void
+view_history_git_dir_notify (GiggleViewHistory *view)
+{
 	view_history_update_revisions (view);
 }
 
@@ -319,7 +325,9 @@ giggle_view_history_init (GiggleViewHistory *view)
 	/* git interaction */
 	priv->git = giggle_git_get ();
 	g_signal_connect_swapped (priv->git, "notify::git-dir",
-				  G_CALLBACK (view_history_git_dir_changed), view);
+				  G_CALLBACK (view_history_git_dir_notify), view);
+	g_signal_connect_swapped (priv->git, "changed",
+				  G_CALLBACK (view_history_git_changed), view);
 }
 
 static void

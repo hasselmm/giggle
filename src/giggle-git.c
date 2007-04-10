@@ -82,6 +82,13 @@ enum {
 	PROP_REMOTES
 };
 
+enum {
+	CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0, };
+
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT, GiggleGitPriv))
 
 static void
@@ -134,6 +141,15 @@ giggle_git_class_init (GiggleGitClass *class)
 						 	      "Remotes",
 							      "The remote sources",
 							      NULL, G_PARAM_READABLE));
+
+	signals[CHANGED] =
+		g_signal_new ("changed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleGitClass, changed),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitPriv));
 }
@@ -704,3 +720,10 @@ giggle_git_cancel_job (GiggleGit *git, GiggleJob *job)
 	g_hash_table_remove (priv->jobs, GINT_TO_POINTER (id));
 }
 
+void
+giggle_git_changed (GiggleGit *git)
+{
+	g_return_if_fail (GIGGLE_IS_GIT (git));
+
+	g_signal_emit (git, signals[CHANGED], 0);
+}

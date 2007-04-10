@@ -210,7 +210,7 @@ diff_window_job_callback (GiggleGit *git,
 		gtk_widget_destroy (dialog);
 	} else {
 		/* Tell GiggleGit listeners to update */
-		g_object_notify (G_OBJECT (priv->git), "git-dir");
+		giggle_git_changed (priv->git);
 	}
 
 	g_object_unref (priv->job);

@@ -44,6 +44,8 @@ struct GiggleGit {
 
 struct GiggleGitClass {
 	GObjectClass parent_class;
+
+	void (* changed) (GiggleGit *git);
 };
 
 typedef void (*GiggleJobDoneCallback)   (GiggleGit *git,
@@ -80,8 +82,10 @@ void             giggle_git_run_job          (GiggleGit             *git,
 
 void             giggle_git_cancel_job       (GiggleGit          *git,
 					      GiggleJob          *job);
+void             giggle_git_changed          (GiggleGit          *git);
 
 gboolean         giggle_git_test_dir         (gchar const  * dir);
+
 
 G_END_DECLS
 

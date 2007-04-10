@@ -289,7 +289,7 @@ giggle_file_list_init (GiggleFileList *list)
 	priv->git = giggle_git_get ();
 	g_signal_connect (priv->git, "notify::project-dir",
 			  G_CALLBACK (file_list_directory_changed), list);
-	g_signal_connect_swapped (priv->git, "notify::git-dir",
+	g_signal_connect_swapped (priv->git, "changed",
 				  G_CALLBACK (file_list_files_status_changed), list);
 
 	priv->icon_theme = gtk_icon_theme_get_default ();
