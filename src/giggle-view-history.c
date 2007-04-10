@@ -528,26 +528,24 @@ view_history_add_refs (GiggleRevision *revision,
 		       GList          *list,
 		       AddRefFunc      func)
 {
-	GiggleRef *ref;
-	gchar     *sha1, *sha2;
-	gboolean   updated = FALSE;
+	GiggleRef   *ref;
+	const gchar *sha1, *sha2;
+	gboolean     updated = FALSE;
 
-	g_object_get (revision, "sha", &sha1, NULL);
+	sha1 = giggle_revision_get_sha (revision);
 
 	while (list) {
 		ref = GIGGLE_REF (list->data);
-		g_object_get (ref, "sha", &sha2, NULL);
+		sha2 = giggle_ref_get_sha (ref);
 
 		if (strcmp (sha1, sha2) == 0) {
 			updated = TRUE;
 			(* func) (revision, ref);
 		}
 
-		g_free (sha2);
 		list = list->next;
 	}
 
-	g_free (sha1);
 	return updated;
 }
 

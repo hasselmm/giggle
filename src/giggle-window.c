@@ -636,8 +636,9 @@ window_recent_repositories_reload (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	recent_items = l = gtk_recent_manager_get_items (priv->recent_manager);
+	recent_items = gtk_recent_manager_get_items (priv->recent_manager);
 	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
+	l = recent_items = g_list_reverse (recent_items);
 
 	/* FIXME: the max count is hardcoded */
 	while (l && count < 10) {

@@ -48,8 +48,10 @@ static void     git_revisions_handle_output       (GiggleJob         *job,
 						   gsize              output_len);
 static GiggleRevision* git_revisions_get_revision (const gchar *str,
 						   GHashTable  *revisions_hash);
-static void     git_revisions_set_committer_info  (GiggleRevision *revision,
-						   const gchar    *line);
+static void     git_revisions_get_committer_info  (GiggleRevision  *revision,
+						   const gchar     *line,
+						   gchar          **author,
+						   struct tm      **tm);
 
 enum {
 	PROP_0,
@@ -231,14 +233,16 @@ git_revisions_get_time (const gchar *date)
 }
 
 static void
-git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
+git_revisions_get_committer_info (GiggleRevision  *revision,
+				  const gchar     *line,
+				  gchar          **author,
+				  struct tm      **tm)
 {
-	gchar *author, *date;
-	gchar **strarr;
+	gchar *date, **strarr;
 
 	/* parse author */
 	strarr = g_strsplit (line, " <", 2);
-	author = g_strdup (strarr[0]);
+	*author = g_strdup (strarr[0]);
 	g_strfreev (strarr);
 
 	/* parse timestamp */
@@ -246,12 +250,7 @@ git_revisions_set_committer_info (GiggleRevision *revision, const gchar *line)
 	date = g_strdup (strarr[1]);
 	g_strfreev (strarr);
 
-	g_object_set (revision,
-		      "author", author,
-		      "date", git_revisions_get_time (date),
-		      NULL);
-
-	g_free (author);
+	*tm = git_revisions_get_time (date);
 	g_free (date);
 }
 
@@ -259,8 +258,12 @@ static void
 git_revisions_parse_revision_info (GiggleRevision  *revision,
 				   gchar          **lines)
 {
-	gint     i = 0;
-	GString *long_log = NULL;
+	gint       i = 0;
+	struct tm *tm = NULL;
+	gchar     *author, *short_log;
+	GString   *long_log = NULL;
+
+	author = short_log = NULL;
 
 	while (lines[i]) {
 		gchar* converted = NULL;
@@ -297,13 +300,15 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		}
 
 		if (g_str_has_prefix (converted, "author ")) {
-			git_revisions_set_committer_info (revision, converted + strlen ("author "));
+			git_revisions_get_committer_info (revision,
+							  converted + strlen ("author "),
+							  &author, &tm);
 		} else if (g_str_has_prefix (converted, " ")) {
 			g_strstrip (converted);
 
 			if (!long_log) {
 				/* no short log neither, get some */
-				g_object_set (revision, "short-log", converted, NULL);
+				short_log = g_strdup (converted);
 				long_log = g_string_new ("");
 			}
 
@@ -315,8 +320,17 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		i++;
 	}
 
-	if (long_log) {
-		g_object_set (revision, "long-log", long_log->str, NULL);
+	g_object_set (revision,
+		      "author", author,
+		      "date", tm,
+		      "short-log", short_log,
+		      "long-log", (long_log) ? long_log->str : NULL,
+		      NULL);
+
+	g_free (author);
+	g_free (short_log);
+
+	if (G_LIKELY (long_log)) {
 		g_string_free (long_log, TRUE);
 	}
 }

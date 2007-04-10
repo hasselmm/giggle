@@ -48,6 +48,10 @@ struct GiggleRevisionListPriv {
 	GtkTreeViewColumn *emblem_column;
 	GtkCellRenderer   *emblem_renderer;
 
+	GtkCellRenderer   *log_renderer;
+	GtkCellRenderer   *author_renderer;
+	GtkCellRenderer   *date_renderer;
+
 	GtkIconTheme      *icon_theme;
 
 	GtkWidget         *revision_tooltip;
@@ -241,7 +245,6 @@ static void
 giggle_revision_list_init (GiggleRevisionList *revision_list)
 {
 	GiggleRevisionListPriv *priv;
-	GtkCellRenderer        *cell;
 	GtkTreeSelection       *selection;
 	gint                    n_columns;
 	GtkActionGroup         *action_group;
@@ -295,8 +298,10 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list),
 				     priv->graph_column, -1);
 
-	cell = gtk_cell_renderer_text_new ();
-	g_object_set(cell,
+	priv->log_renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (
+		GTK_CELL_RENDERER_TEXT (priv->log_renderer), 1);
+	g_object_set(priv->log_renderer,
 		     "ellipsize", PANGO_ELLIPSIZE_END,
 		     NULL);
 
@@ -304,7 +309,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 		GTK_TREE_VIEW (revision_list),
 		-1,
 		_("Short Log"),
-		cell,
+		priv->log_renderer,
 		revision_list_cell_data_log_func,
 		revision_list,
 		NULL);
@@ -312,22 +317,26 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 		gtk_tree_view_get_column (GTK_TREE_VIEW (revision_list), n_columns - 1),
 		TRUE);
 
-	cell = gtk_cell_renderer_text_new ();
+	priv->author_renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (
+		GTK_CELL_RENDERER_TEXT (priv->author_renderer), 1);
 	gtk_tree_view_insert_column_with_data_func (
 		GTK_TREE_VIEW (revision_list),
 		-1,
 		_("Author"),
-		cell,
+		priv->author_renderer,
 		revision_list_cell_data_author_func,
 		revision_list,
 		NULL);
 
-	cell = gtk_cell_renderer_text_new ();
+	priv->date_renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (
+		GTK_CELL_RENDERER_TEXT (priv->date_renderer), 1);
 	gtk_tree_view_insert_column_with_data_func (
 		GTK_TREE_VIEW (revision_list),
 		-1,
 		_("Date"),
-		cell,
+		priv->date_renderer,
 		revision_list_cell_data_date_func,
 		revision_list,
 		NULL);
@@ -1479,6 +1488,14 @@ giggle_revision_list_set_compact_mode (GiggleRevisionList *list,
 		gtk_widget_modify_style (GTK_WIDGET (list), rc_style);
 		gtk_widget_set_name (GTK_WIDGET (list),
 				     (priv->compact_mode) ? "revision-list" : NULL);
+
+		gtk_cell_renderer_text_set_fixed_height_from_font (
+			GTK_CELL_RENDERER_TEXT (priv->log_renderer), 1);
+		gtk_cell_renderer_text_set_fixed_height_from_font (
+			GTK_CELL_RENDERER_TEXT (priv->author_renderer), 1);
+		gtk_cell_renderer_text_set_fixed_height_from_font (
+			GTK_CELL_RENDERER_TEXT (priv->date_renderer), 1);
+
 		g_object_notify (G_OBJECT (list), "compact-mode");
 	}
 }
