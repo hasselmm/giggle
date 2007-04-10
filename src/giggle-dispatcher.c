@@ -188,7 +188,6 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 
 	priv->channel = g_io_channel_unix_new (job->std_out);
 	g_io_channel_set_encoding (priv->channel, NULL, NULL);
-	g_io_channel_set_line_term (priv->channel, "\0", 1);
 	priv->output = g_string_new ("");
 	priv->length = 0;
 
@@ -196,7 +195,7 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	priv->current_job_read_id = g_io_add_watch (priv->channel, G_IO_IN,
 						    (GIOFunc) dispatcher_job_read_cb,
 						    dispatcher);
-	priv->current_job_wait_id = g_child_watch_add (job->pid, 
+	priv->current_job_wait_id = g_child_watch_add (job->pid,
 						       (GChildWatchFunc) dispatcher_job_finished_cb,
 						       dispatcher);
 	g_strfreev (argv);
@@ -320,6 +319,8 @@ dispatcher_job_finished_cb (GPid              pid,
 {
 	GiggleDispatcherPriv *priv;
 	DispatcherJob        *job;
+	gchar                *str;
+	gsize                 len;
 
 	priv = GET_PRIV (dispatcher);
 	job = priv->current_job;
@@ -328,6 +329,13 @@ dispatcher_job_finished_cb (GPid              pid,
 
 	g_source_remove (priv->current_job_read_id);
 	priv->current_job_read_id = 0;
+
+	g_io_channel_read_to_end (priv->channel, &str, &len, NULL);
+
+	if (str) {
+		g_string_append_len (priv->output, str, len);
+		g_free (str);
+	}
 
 	job->callback (dispatcher, job->id, NULL, 
 		       priv->output->str, priv->length, 
@@ -349,18 +357,31 @@ dispatcher_job_read_cb (GIOChannel       *source,
 	GiggleDispatcherPriv *priv;
 	gsize                 length;
 	gchar                *str;
+	gint                  count = 0;
+	GIOStatus             status;
+	GError               *error = NULL;
 
 	priv = GET_PRIV (dispatcher);
+	status = G_IO_STATUS_NORMAL;
 
-	while (g_io_channel_read_line (source, &str, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		g_string_append_len (priv->output, str, length);
-		priv->length += length;
-		g_free (str);
+	while (count < 10 && status == G_IO_STATUS_NORMAL) {
+		status = g_io_channel_read_line (source, &str, &length, NULL, &error);
+		count++;
+
+		if (str) {
+			g_string_append_len (priv->output, str, length);
+			priv->length += length;
+			g_free (str);
+		}
 	}
 
-	/* FIXME: should call dispatcher_job_failed()
-	 * if something unexpected happens
-	 */
+	if (status == G_IO_STATUS_ERROR) {
+		dispatcher_signal_job_failed (dispatcher, priv->current_job, error);
+		dispatcher_stop_current_job (dispatcher);
+		dispatcher_start_next_job (dispatcher);
+
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -390,7 +411,7 @@ giggle_dispatcher_execute (GiggleDispatcher      *dispatcher,
 	job->command = g_strdup (command);
 	job->callback = callback;
 	job->user_data = user_data;
-	
+
 	job->id = ++id;
 	job->pid = 0;
 	job->std_out = 0;

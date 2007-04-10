@@ -49,8 +49,19 @@ struct GiggleFileListPriv {
 
 	GtkWidget    *diff_window;
 
+	GHashTable   *idle_jobs;
+
 	guint         show_all : 1;
 	guint         compact_mode : 1;
+};
+
+typedef struct IdleLoaderData IdleLoaderData;
+
+struct IdleLoaderData {
+	GiggleFileList *list;
+	gchar          *directory;
+	gchar          *rel_path;
+	GtkTreeIter     parent_iter;
 };
 
 static void       file_list_finalize           (GObject        *object);
@@ -64,6 +75,7 @@ static void       file_list_set_property       (GObject        *object,
 						GParamSpec     *pspec);
 static gboolean   file_list_button_press       (GtkWidget      *widget,
 						GdkEventButton *event);
+static void       file_list_project_loaded     (GiggleFileList *list);
 
 static void       file_list_directory_changed  (GObject        *object,
 						GParamSpec     *pspec,
@@ -120,6 +132,8 @@ static void       file_list_cell_pixbuf_func          (GtkCellLayout   *cell_lay
 						       GtkTreeModel    *tree_model,
 						       GtkTreeIter     *iter,
 						       gpointer         data);
+static void       file_list_idle_data_free            (IdleLoaderData  *data);
+
 
 G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW)
 
@@ -142,6 +156,7 @@ enum {
 
 enum {
 	PATH_SELECTED,
+	PROJECT_LOADED,
 	LAST_SIGNAL
 };
 
@@ -184,6 +199,7 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 	object_class->set_property = file_list_set_property;
 
 	widget_class->button_press_event = file_list_button_press;
+	class->project_loaded = file_list_project_loaded;
 
 	g_object_class_install_property (object_class,
 					 PROP_SHOW_ALL,
@@ -210,27 +226,34 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 			      G_TYPE_NONE,
 			      1, G_TYPE_STRING);
 
+	signals[PROJECT_LOADED] =
+		g_signal_new ("project-loaded",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleFileListClass, project_loaded),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
+
 	g_type_class_add_private (object_class, sizeof (GiggleFileListPriv));
 }
 
 static void
-giggle_file_list_init (GiggleFileList *list)
+file_list_create_store (GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
-	GtkCellRenderer    *renderer;
-	GtkTreeViewColumn  *column;
-	GtkActionGroup     *action_group;
-	GtkTreeSelection   *selection;
 
 	priv = GET_PRIV (list);
 
-	priv->git = giggle_git_get ();
-	g_signal_connect (priv->git, "notify::project-dir",
-			  G_CALLBACK (file_list_directory_changed), list);
-	g_signal_connect_swapped (priv->git, "notify::git-dir",
-				  G_CALLBACK (file_list_files_status_changed), list);
+	gtk_tree_view_set_model (GTK_TREE_VIEW (list), NULL);
 
-	priv->icon_theme = gtk_icon_theme_get_default ();
+	if (priv->store) {
+		g_object_unref (priv->store);
+	}
+
+	if (priv->filter_model) {
+		g_object_unref (priv->filter_model);
+	}
 
 	priv->store = gtk_tree_store_new (LAST_COL, G_TYPE_STRING, G_TYPE_STRING, GIGGLE_TYPE_GIT_LIST_FILES_STATUS,
 					  GIGGLE_TYPE_GIT_IGNORE, G_TYPE_BOOLEAN, G_TYPE_BOOLEAN);
@@ -246,13 +269,35 @@ giggle_file_list_init (GiggleFileList *list)
 
 	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (priv->store),
 					      COL_NAME, GTK_SORT_ASCENDING);
+}
 
-	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
+static void
+giggle_file_list_init (GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkCellRenderer    *renderer;
+	GtkTreeViewColumn  *column;
+	GtkActionGroup     *action_group;
+	GtkTreeSelection   *selection;
+
+	priv = GET_PRIV (list);
+
+	priv->idle_jobs = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+						 (GDestroyNotify) file_list_idle_data_free,
+						 (GDestroyNotify) g_source_remove);
+
+	priv->git = giggle_git_get ();
+	g_signal_connect (priv->git, "notify::project-dir",
+			  G_CALLBACK (file_list_directory_changed), list);
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
+				  G_CALLBACK (file_list_files_status_changed), list);
+
+	priv->icon_theme = gtk_icon_theme_get_default ();
 
 	gtk_tree_view_set_search_equal_func (GTK_TREE_VIEW (list),
 					     file_list_search_equal_func,
 					     NULL, NULL);
-	
+
 	column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_title (column, _("Project"));
 
@@ -274,7 +319,6 @@ giggle_file_list_init (GiggleFileList *list)
 					    list, NULL);
 
 	gtk_tree_view_append_column (GTK_TREE_VIEW (list), column);
-	file_list_populate (list);
 
 	/* create the popup menu */
 	action_group = gtk_action_group_new ("PopupActions");
@@ -283,7 +327,7 @@ giggle_file_list_init (GiggleFileList *list)
 				      G_N_ELEMENTS (menu_items), list);
 	gtk_action_group_add_toggle_actions (action_group, toggle_menu_items,
 					     G_N_ELEMENTS (toggle_menu_items), list);
-	
+
 	priv->ui_manager = gtk_ui_manager_new ();
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 
@@ -327,6 +371,8 @@ file_list_finalize (GObject *object)
 	g_object_unref (priv->filter_model);
 
 	g_object_unref (priv->ui_manager);
+
+	g_hash_table_destroy (priv->idle_jobs);
 
 	G_OBJECT_CLASS (giggle_file_list_parent_class)->finalize (object);
 }
@@ -446,7 +492,7 @@ file_list_button_press (GtkWidget      *widget,
 		gtk_action_set_sensitive (action, ignore);
 		action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/PopupMenu/Unignore");
 		gtk_action_set_sensitive (action, unignore);
-		
+
 		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
 				NULL, NULL, event->button, event->time);
 
@@ -461,18 +507,35 @@ file_list_button_press (GtkWidget      *widget,
 			selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
 			rows = gtk_tree_selection_get_selected_rows (selection, &model);
 
-			g_assert (rows != NULL);
+			if (rows) {
+				gtk_tree_model_get_iter (model, &iter, rows->data);
 
-			/* there should be just one item selected */
-			gtk_tree_model_get_iter (model, &iter, rows->data);
-
-			file_list_get_path_and_ignore_for_iter (list, &iter, &file_path, NULL);
-			g_signal_emit (widget, signals[PATH_SELECTED], 0, file_path);
-			g_free (file_path);
+				file_list_get_path_and_ignore_for_iter (list, &iter, &file_path, NULL);
+				g_signal_emit (widget, signals[PATH_SELECTED], 0, file_path);
+				g_free (file_path);
+			}
 		}
 	}
 
 	return TRUE;
+}
+
+static void
+file_list_project_loaded (GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkTreePath        *path;
+
+	priv = GET_PRIV (list);
+	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
+
+	/* expand the project folder */
+	path = gtk_tree_path_new_first ();
+	gtk_tree_view_expand_row (GTK_TREE_VIEW (list), path, FALSE);
+	gtk_tree_path_free (path);
+
+	/* update files status */
+	file_list_files_status_changed (list);
 }
 
 static void
@@ -486,7 +549,10 @@ file_list_directory_changed (GObject    *object,
 	list = GIGGLE_FILE_LIST (user_data);
 	priv = GET_PRIV (list);
 
-	gtk_tree_store_clear (priv->store);
+	/* remove old directory idles */
+	g_hash_table_remove_all (priv->idle_jobs);
+
+	file_list_create_store (list);
 	file_list_populate (list);
 }
 
@@ -608,6 +674,53 @@ file_list_diff_file (GtkAction      *action,
 	gtk_widget_show (priv->diff_window);
 }
 
+static gboolean
+file_list_populate_dir_idle (gpointer user_data)
+{
+	GiggleFileListPriv *priv;
+	GiggleFileList     *list;
+	IdleLoaderData     *data;
+	GiggleGitIgnore    *git_ignore;
+	gchar              *full_path;
+
+	data = (IdleLoaderData *) user_data;
+	list = g_object_ref (data->list);
+	priv = GET_PRIV (list);
+
+	full_path = g_build_filename (data->directory, data->rel_path, NULL);
+	git_ignore = giggle_git_ignore_new (full_path);
+
+	gtk_tree_store_set (priv->store, &data->parent_iter,
+			    COL_GIT_IGNORE, git_ignore,
+			    -1);
+
+	file_list_populate_dir (data->list, data->directory,
+				data->rel_path, &data->parent_iter);
+
+	/* remove this data from the table */
+	g_hash_table_remove (priv->idle_jobs, data);
+
+	if (g_hash_table_size (priv->idle_jobs) == 0) {
+		/* no remaining jobs */
+		g_signal_emit (list, signals[PROJECT_LOADED], 0);
+	}
+
+	g_object_unref (git_ignore);
+	g_object_unref (list);
+	g_free (full_path);
+
+	return FALSE;
+}
+
+static void
+file_list_idle_data_free (IdleLoaderData *data)
+{
+	g_free (data->directory);
+	g_free (data->rel_path);
+	g_object_unref (data->list);
+	g_free (data);
+}
+
 static void
 file_list_add_element (GiggleFileList *list,
 		       const gchar    *directory,
@@ -618,7 +731,6 @@ file_list_add_element (GiggleFileList *list,
 	GiggleFileListPriv *priv;
 	GtkTreeIter         iter;
 	gboolean            is_dir;
-	GiggleGitIgnore    *git_ignore = NULL;
 	gchar              *full_path;
 
 	priv = GET_PRIV (list);
@@ -630,18 +742,26 @@ file_list_add_element (GiggleFileList *list,
 			       &iter,
 			       parent_iter);
 
-	if (is_dir) {
-		file_list_populate_dir (list, directory, rel_path, &iter);
-		git_ignore = giggle_git_ignore_new (full_path);
-	}
-
 	gtk_tree_store_set (priv->store, &iter,
 			    COL_NAME, (name) ? name : full_path,
 			    COL_REL_PATH, rel_path,
-			    COL_GIT_IGNORE, git_ignore,
 			    -1);
-	if (git_ignore) {
-		g_object_unref (git_ignore);
+
+	if (is_dir) {
+		IdleLoaderData *data;
+		guint           idle_id;
+
+		data = g_new0 (IdleLoaderData, 1);
+		data->list = g_object_ref (list);
+		data->directory = g_strdup (directory);
+		data->rel_path = g_strdup (rel_path);
+		data->parent_iter = iter;
+
+		idle_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+					   file_list_populate_dir_idle,
+					   data, NULL);
+
+		g_hash_table_insert (priv->idle_jobs, data, GUINT_TO_POINTER (idle_id));
 	}
 
 	g_free (full_path);
@@ -679,17 +799,13 @@ file_list_populate (GiggleFileList *list)
 {
 	GiggleFileListPriv *priv;
 	const gchar        *directory;
-	GtkTreePath        *path;
 
 	priv = GET_PRIV (list);
 	directory = giggle_git_get_project_dir (priv->git);
 
-	file_list_add_element (list, directory, "", NULL, NULL);
-
-	/* expand the project folder */
-	path = gtk_tree_path_new_first ();
-	gtk_tree_view_expand_row (GTK_TREE_VIEW (list), path, FALSE);
-	gtk_tree_path_free (path);
+	if (directory) {
+		file_list_add_element (list, directory, "", NULL, NULL);
+	}
 }
 
 static void
@@ -860,7 +976,7 @@ file_list_search_equal_func (GtkTreeModel *model,
 	gchar    *normalized_key, *normalized_str;
 	gchar    *casefold_key, *casefold_str;
 	gboolean  ret;
-	
+
 	gtk_tree_model_get (model, iter, column, &str, -1);
 
 	normalized_key = g_utf8_normalize (key, -1, G_NORMALIZE_ALL);

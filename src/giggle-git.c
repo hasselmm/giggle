@@ -377,7 +377,7 @@ giggle_git_get_description_file (const GiggleGit *git)
 static void
 giggle_git_update_description (GiggleGit *git)
 {
-	// FIXME: read .git/description into description; install a file watch
+	/* FIXME: read .git/description into description; install a file watch */
 	GiggleGitPriv *priv;
 	GError        *error;
 	gchar* description;
@@ -455,7 +455,7 @@ giggle_git_get_description (GiggleGit *git)
 
 void
 giggle_git_write_description (GiggleGit    *git,
-			      const gchar  *description) // FIXME: add GError?
+			      const gchar  *description) /* FIXME: add GError? */
 {
 	GiggleGitPriv *priv;
 	GError        *error;
@@ -535,7 +535,8 @@ giggle_git_set_directory (GiggleGit    *git,
 		priv->project_dir = NULL;
 	} else {
 		/* .../giggle/.git
-		 *            ^    */
+		 *            ^
+		 */
 		if(*(--suffix) == G_DIR_SEPARATOR) {
 			*suffix = '\0';
 			priv->project_dir = g_strdup (tmp_dir);
@@ -555,7 +556,7 @@ giggle_git_set_directory (GiggleGit    *git,
 		if (suffix) {
 			*suffix = '\0';
 			tmp_dir = g_path_get_basename (priv->git_dir);
-			*suffix = '.'; // restore
+			*suffix = '.'; /* restore */
 		} else {
 			tmp_dir = NULL;
 		}

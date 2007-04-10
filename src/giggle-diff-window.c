@@ -171,6 +171,7 @@ static void
 diff_window_map (GtkWidget *widget)
 {
 	GiggleDiffWindowPriv *priv;
+	GtkTextBuffer        *buffer;
 	GList                *files;
 
 	priv = GET_PRIV (widget);
@@ -178,6 +179,9 @@ diff_window_map (GtkWidget *widget)
 	files = diff_window_copy_list (priv->files);
 	giggle_diff_view_diff_current (GIGGLE_DIFF_VIEW (priv->diff_view), files);
 	gtk_widget_grab_focus (priv->commit_textview);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->commit_textview));
+	gtk_text_buffer_set_text (buffer, "", -1);
 
 	GTK_WIDGET_CLASS (giggle_diff_window_parent_class)->map (widget);
 }
