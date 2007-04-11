@@ -192,9 +192,11 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	priv->length = 0;
 
 	priv->current_job = job;
-	priv->current_job_read_id = g_io_add_watch (priv->channel, G_IO_IN,
-						    (GIOFunc) dispatcher_job_read_cb,
-						    dispatcher);
+	priv->current_job_read_id = g_io_add_watch_full (priv->channel,
+							 G_PRIORITY_HIGH_IDLE,
+							 G_IO_IN,
+							 (GIOFunc) dispatcher_job_read_cb,
+							 dispatcher, NULL);
 	priv->current_job_wait_id = g_child_watch_add (job->pid,
 						       (GChildWatchFunc) dispatcher_job_finished_cb,
 						       dispatcher);
@@ -337,8 +339,8 @@ dispatcher_job_finished_cb (GPid              pid,
 		g_free (str);
 	}
 
-	job->callback (dispatcher, job->id, NULL, 
-		       priv->output->str, priv->length, 
+	job->callback (dispatcher, job->id, NULL,
+		       priv->output->str, priv->length,
 		       job->user_data);
 
 	dispatcher_job_free (job);
