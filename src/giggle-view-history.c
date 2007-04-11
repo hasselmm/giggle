@@ -83,6 +83,8 @@ static void     view_history_revision_list_selection_changed_cb (GiggleRevisionL
 static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionList *list,
 								 GdkEventKey        *event,
 								 GiggleViewHistory  *view);
+static void     view_history_file_list_status_changed           (GiggleFileList     *list,
+								 GiggleViewHistory  *view);
 
 static gboolean view_history_search                             (GiggleSearchable      *searchable,
 								 const gchar           *search_term,
@@ -208,9 +210,41 @@ view_history_git_changed (GiggleViewHistory *view)
 }
 
 static void
+view_history_set_busy (GtkWidget *widget,
+		       gboolean   busy)
+{
+	if (!GTK_WIDGET_REALIZED (widget)) {
+		return;
+	}
+
+	if (busy) {
+		GdkCursor *cursor;
+
+		cursor = gdk_cursor_new (GDK_WATCH);
+		gdk_window_set_cursor (widget->window, cursor);
+		gdk_cursor_unref (cursor);
+	} else {
+		gdk_window_set_cursor (widget->window, NULL);
+	}
+}
+
+static void
 view_history_git_dir_notify (GiggleViewHistory *view)
 {
+	GiggleViewHistoryPriv *priv;
+	GtkTextBuffer         *buffer;
+
+	priv = GET_PRIV (view);
+
 	view_history_update_revisions (view);
+	view_history_set_busy (priv->file_list, TRUE);
+
+	/* empty views */
+	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view), NULL, NULL);
+	giggle_revision_view_set_revision (GIGGLE_REVISION_VIEW (priv->revision_view), NULL);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_view));
+	gtk_text_buffer_set_text (buffer, "", -1);
 }
 
 static void
@@ -274,6 +308,8 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	g_signal_connect (priv->file_list, "path-selected",
 			  G_CALLBACK (view_history_path_selected), view);
+	g_signal_connect (priv->file_list, "status-changed",
+			  G_CALLBACK (view_history_file_list_status_changed), view);
 
 	gtk_paned_pack1 (GTK_PANED (priv->main_hpaned), priv->file_list_sw, FALSE, FALSE);
 
@@ -490,6 +526,13 @@ view_history_revision_list_key_press_cb (GiggleRevisionList *list,
 	return FALSE;
 }
 
+static void
+view_history_file_list_status_changed (GiggleFileList    *list,
+				       GiggleViewHistory *view)
+{
+	view_history_set_busy (GTK_WIDGET (list), FALSE);
+}
+
 static gboolean
 view_history_search (GiggleSearchable      *searchable,
 		     const gchar           *search_term,
@@ -695,6 +738,7 @@ view_history_get_revisions_cb (GiggleGit    *git,
 			revisions = revisions->next;
 		}
 
+		view_history_set_busy (GTK_WIDGET (priv->revision_list), FALSE);
 		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list),
 						GTK_TREE_MODEL (store));
 		g_object_unref (store);
@@ -735,6 +779,7 @@ view_history_update_revisions (GiggleViewHistory  *view)
 
 	priv = GET_PRIV (view);
 
+	view_history_set_busy (GTK_WIDGET (priv->revision_list), TRUE);
 	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), NULL);
 
 	/* get revision list */

@@ -46,6 +46,7 @@ struct _GiggleFileListClass {
 
 	void (* path_selected) (GiggleFileList *list, const gchar *path);
 	void (* project_loaded) (GiggleFileList *list);
+	void (* status_changed) (GiggleFileList *list);
 };
 
 GType              giggle_file_list_get_type          (void);
