@@ -76,6 +76,7 @@ static void       file_list_set_property       (GObject        *object,
 static gboolean   file_list_button_press       (GtkWidget      *widget,
 						GdkEventButton *event);
 static void       file_list_project_loaded     (GiggleFileList *list);
+static void       file_list_status_changed     (GiggleFileList *list);
 
 static void       file_list_directory_changed  (GObject        *object,
 						GParamSpec     *pspec,
@@ -157,6 +158,7 @@ enum {
 enum {
 	PATH_SELECTED,
 	PROJECT_LOADED,
+	STATUS_CHANGED,
 	LAST_SIGNAL
 };
 
@@ -200,6 +202,7 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 
 	widget_class->button_press_event = file_list_button_press;
 	class->project_loaded = file_list_project_loaded;
+	class->status_changed = file_list_status_changed;
 
 	g_object_class_install_property (object_class,
 					 PROP_SHOW_ALL,
@@ -231,6 +234,15 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (GiggleFileListClass, project_loaded),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
+
+	signals[STATUS_CHANGED] =
+		g_signal_new ("status-changed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleFileListClass, status_changed),
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
@@ -523,8 +535,19 @@ file_list_button_press (GtkWidget      *widget,
 static void
 file_list_project_loaded (GiggleFileList *list)
 {
+	/* update files status */
+	file_list_files_status_changed (list);
+}
+
+static void
+file_list_status_changed (GiggleFileList *list)
+{
 	GiggleFileListPriv *priv;
 	GtkTreePath        *path;
+
+	if (gtk_tree_view_get_model (GTK_TREE_VIEW (list))) {
+		return;
+	}
 
 	priv = GET_PRIV (list);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (list), priv->filter_model);
@@ -533,9 +556,6 @@ file_list_project_loaded (GiggleFileList *list)
 	path = gtk_tree_path_new_first ();
 	gtk_tree_view_expand_row (GTK_TREE_VIEW (list), path, FALSE);
 	gtk_tree_path_free (path);
-
-	/* update files status */
-	file_list_files_status_changed (list);
 }
 
 static void
@@ -628,6 +648,7 @@ file_list_files_callback (GiggleGit *git,
 		gtk_widget_destroy (dialog);
 	} else {
 		file_list_update_files_status (list, NULL, GIGGLE_GIT_LIST_FILES (priv->job));
+		g_signal_emit (list, signals[STATUS_CHANGED], 0);
 	}
 
 	g_object_unref (priv->job);
