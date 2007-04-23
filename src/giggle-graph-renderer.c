@@ -383,7 +383,7 @@ get_initial_status_foreach (gpointer key,
 	n_color = GPOINTER_TO_INT (value);
 	n_path = GPOINTER_TO_INT (key);
 
-	path_state = g_new0 (GiggleGraphRendererPathState, 1);
+	path_state = g_slice_new0 (GiggleGraphRendererPathState);
 	path_state->n_path = n_path;
 	path_state->lower_n_color = n_color;
 	path_state->upper_n_color = n_color;
@@ -406,9 +406,16 @@ get_initial_status (GHashTable *visible_paths)
 }
 
 static void
+free_path_state (GiggleGraphRendererPathState *path_state)
+{
+	g_slice_free (GiggleGraphRendererPathState, path_state);
+}
+
+static void
 free_paths_state (GPtrArray *array)
 {
-	g_ptr_array_free (array, TRUE);
+	g_ptr_array_foreach (array, (GFunc) free_path_state, NULL);
+	g_ptr_array_free (array, FALSE);
 }
 
 static void
@@ -433,7 +440,7 @@ giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
 
 	while (children) {
 		rev = GIGGLE_REVISION (children->data);
-		path_state = g_new0 (GiggleGraphRendererPathState, 1);
+		path_state = g_slice_new0 (GiggleGraphRendererPathState);
 		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, rev));
 
 		if (!n_path) {
