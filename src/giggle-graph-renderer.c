@@ -31,7 +31,8 @@
 #define PATH_SPACE(font_size) (font_size + 3)
 #define DOT_RADIUS(font_size) (font_size / 2)
 #define LINE_WIDTH(font_size) ((font_size / 6) << 1) /* we want the closest even number <= size/3 */
-#define NEXT_COLOR(n_color)   ((n_color + 1) % G_N_ELEMENTS (colors))
+#define NEXT_COLOR(n_color)   ((n_color % G_N_ELEMENTS (colors)) + 1)
+#define INVALID_COLOR         0
 
 typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
 
@@ -44,8 +45,9 @@ struct GiggleGraphRendererPrivate {
 typedef struct GiggleGraphRendererPathState GiggleGraphRendererPathState;
 
 struct GiggleGraphRendererPathState {
-	GdkColor *upper_color;
-	GdkColor *lower_color;
+	gushort upper_n_color : 8;
+	gushort lower_n_color : 8;
+	gushort n_path;
 };
 
 enum {
@@ -54,6 +56,8 @@ enum {
 };
 
 static GdkColor colors[] = {
+	/* invalid color */
+	{ 0x0, 0x0000, 0x0000, 0x0000 },
 	/* light palette */
 	{ 0x0, 0xfc00, 0xe900, 0x4f00 }, /* butter */
 	{ 0x0, 0xfc00, 0xaf00, 0x3e00 }, /* orange */
@@ -239,23 +243,6 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 }
 
 static void
-get_list_foreach (gpointer  key,
-		  gpointer  value,
-		  GList    **list)
-{
-	*list = g_list_prepend (*list, key);
-}
-
-static GList*
-get_list (GHashTable *table)
-{
-	GList *list = NULL;
-
-	g_hash_table_foreach (table, (GHFunc) get_list_foreach, &list);
-	return list;
-}
-
-static void
 giggle_graph_renderer_render (GtkCellRenderer *cell,
 			      GdkWindow       *window,
 			      GtkWidget       *widget,
@@ -267,12 +254,13 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	GiggleGraphRendererPrivate   *priv;
 	GiggleGraphRendererPathState *path_state;
 	GiggleRevision               *revision;
-	GHashTable                   *paths_state;
+	GArray                       *paths_state;
+	GHashTable                   *table;
 	cairo_t                      *cr;
 	gint                          x, y, h;
 	gint                          cur_pos, pos;
-	GList                        *children, *paths, *path;
-	gint                          size;
+	GList                        *children;
+	gint                          size, i;
 
 	priv = GIGGLE_GRAPH_RENDERER (cell)->_priv;
 
@@ -287,43 +275,41 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	revision = priv->revision;
 	size = PANGO_PIXELS (pango_font_description_get_size (widget->style->font_desc));
 
+	table = g_hash_table_new (g_direct_hash, g_direct_equal);
 	paths_state = g_object_get_qdata (G_OBJECT (revision), revision_paths_state_quark);
 	children = giggle_revision_get_children (revision);
 	cur_pos = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
-	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
-	paths = path = get_list (paths_state);
 	cairo_set_line_width (cr, LINE_WIDTH (size));
 
 	/* paint paths */
-	while (path) {
-		pos = GPOINTER_TO_INT (path->data);
-		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
+	for (i = 0; i < paths_state->len; i++) {
+		path_state = & g_array_index (paths_state, GiggleGraphRendererPathState, i);
+		g_hash_table_insert (table, GINT_TO_POINTER ((gint) path_state->n_path), path_state);
+		pos = path_state->n_path;
 
-		if (path_state->lower_color &&
+		if (path_state->lower_n_color != INVALID_COLOR &&
 		    (pos != cur_pos || giggle_revision_get_parents (revision))) {
-			gdk_cairo_set_source_color (cr, path_state->lower_color);
+			gdk_cairo_set_source_color (cr, &colors[path_state->lower_n_color]);
 			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + h);
 			cairo_stroke  (cr);
 		}
 
-		if (path_state->upper_color) {
-			gdk_cairo_set_source_color (cr, path_state->upper_color);
+		if (path_state->upper_n_color != INVALID_COLOR) {
+			gdk_cairo_set_source_color (cr, &colors[path_state->upper_n_color]);
 			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y);
 			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_stroke  (cr);
 		}
-
-		path = path->next;
 	}
 
 	/* paint connections between paths */
 	while (children) {
 		pos = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, children->data));
-		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (pos));
+		path_state = g_hash_table_lookup (table, GINT_TO_POINTER (pos));
 
-		if (path_state->upper_color) {
-			gdk_cairo_set_source_color (cr, path_state->upper_color);
+		if (path_state->upper_n_color != INVALID_COLOR) {
+			gdk_cairo_set_source_color (cr, &colors[path_state->upper_n_color]);
 			cairo_move_to (cr,
 				       x + (cur_pos * PATH_SPACE (size)),
 				       y + (h / 2));
@@ -345,8 +331,8 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	cairo_stroke (cr);
 
 	/* paint internal circle */
-	path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (cur_pos));
-	gdk_cairo_set_source_color (cr, path_state->lower_color);
+	path_state = g_hash_table_lookup (table, GINT_TO_POINTER (cur_pos));
+	gdk_cairo_set_source_color (cr, &colors[path_state->lower_n_color]);
 	cairo_arc (cr,
 		   x + (cur_pos * PATH_SPACE (size)),
 		   y + (h / 2),
@@ -355,7 +341,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	cairo_stroke (cr);
 
 	cairo_destroy (cr);
-	g_list_free (paths);
+	g_hash_table_destroy (table);
 }
 
 GtkCellRenderer *
@@ -389,20 +375,39 @@ get_initial_status_foreach (gpointer key,
 			    gpointer value,
 			    gpointer user_data)
 {
-	GiggleGraphRendererPathState *path_state;
-	GHashTable *table = (GHashTable *) user_data;
+	GiggleGraphRendererPathState  path_state;
+	GArray                       *array;
+	gint                          n_color, n_path;
 
-	path_state = g_new0 (GiggleGraphRendererPathState, 1);
-	path_state->lower_color = value;
-	path_state->upper_color = value;
-	g_hash_table_insert (table, key, path_state);
+	array = (GArray *) user_data;
+	n_color = GPOINTER_TO_INT (value);
+	n_path = GPOINTER_TO_INT (key);
+
+	path_state.n_path = n_path;
+	path_state.lower_n_color = n_color;
+	path_state.upper_n_color = n_color;
+
+	g_array_append_val (array, path_state);
+}
+
+static GArray *
+get_initial_status (GHashTable *visible_paths)
+{
+	GArray *array;
+	guint      size;
+
+	size = g_hash_table_size (visible_paths);
+	array = g_array_sized_new (FALSE, TRUE, sizeof (GiggleGraphRendererPathState), size);
+
+	g_hash_table_foreach (visible_paths, (GHFunc) get_initial_status_foreach, array);
+
+	return array;
 }
 
 static void
-get_initial_status (GHashTable *paths,
-		    GHashTable *visible_paths)
+free_paths_state (GArray *array)
 {
-	g_hash_table_foreach (visible_paths, (GHFunc) get_initial_status_foreach, paths);
+	g_array_free (array, FALSE);
 }
 
 static void
@@ -411,23 +416,23 @@ giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
 						GHashTable          *visible_paths,
 						gint                *n_color)
 {
-	GiggleGraphRendererPathState *path_state;
+	GiggleGraphRendererPathState  path_state;
 	GiggleGraphRendererPrivate   *priv;
-	GHashTable                   *paths_state;
+	GiggleRevision               *rev;
+	GArray                       *paths_state;
 	GList                        *children;
 	gboolean                      current_path_reused = FALSE;
 	gboolean                      update_color;
-	gint                          n_path;
+	gint                          n_path, i;
 
 	priv = renderer->_priv;
 	children = giggle_revision_get_children (revision);
 	update_color = (g_list_length (children) > 1);
-	paths_state = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
-	get_initial_status (paths_state, visible_paths);
+	paths_state = get_initial_status (visible_paths);
 
 	while (children) {
-		path_state = g_new0 (GiggleGraphRendererPathState, 1);
-		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, children->data));
+		rev = GIGGLE_REVISION (children->data);
+		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, rev));
 
 		if (!n_path) {
 			/* there wasn't a path for this revision, choose one */
@@ -438,22 +443,25 @@ giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
 				find_free_path (visible_paths, &priv->n_paths, &n_path);
 			}
 
-			g_hash_table_insert (priv->paths_info, children->data, GINT_TO_POINTER (n_path));
-			path_state->lower_color = g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path));
+			g_hash_table_insert (priv->paths_info, rev, GINT_TO_POINTER (n_path));
+			path_state.lower_n_color =
+				GPOINTER_TO_INT (g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path)));
 
 			if (update_color) {
-				*n_color = NEXT_COLOR (*n_color);
-				path_state->upper_color = &colors[*n_color];
+				path_state.upper_n_color = *n_color = NEXT_COLOR (*n_color);
 			} else {
-				path_state->upper_color = path_state->lower_color;
+				path_state.upper_n_color = path_state.lower_n_color;
 			}
 		} else {
-			path_state->lower_color = g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path));
-			path_state->upper_color = path_state->lower_color;
+			path_state.lower_n_color =
+				GPOINTER_TO_INT (g_hash_table_lookup (visible_paths, GINT_TO_POINTER (n_path)));
+
+			path_state.upper_n_color = path_state.lower_n_color;
 		}
 
-		g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), path_state->upper_color);
-		g_hash_table_insert (paths_state, GINT_TO_POINTER (n_path), path_state);
+		path_state.n_path = n_path;
+		g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), GINT_TO_POINTER ((gint) path_state.upper_n_color));
+		g_array_append_val (paths_state, path_state);
 
 		children = children->next;
 	}
@@ -462,12 +470,20 @@ giggle_graph_renderer_calculate_revision_state (GiggleGraphRenderer *renderer,
 		/* current path is a dead end, remove it from the visible paths table */
 		n_path = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
 		g_hash_table_remove (visible_paths, GINT_TO_POINTER (n_path));
-		path_state = g_hash_table_lookup (paths_state, GINT_TO_POINTER (n_path));
-		path_state->upper_color = NULL;
+
+		for (i = 0; i < paths_state->len; i++) {
+			path_state = g_array_index (paths_state, GiggleGraphRendererPathState, i);
+
+			if (path_state.n_path == n_path) {
+				path_state.upper_n_color = INVALID_COLOR;
+				((GiggleGraphRendererPathState *) paths_state->data)[i] = path_state;
+				break;
+			}
+		}
 	}
 
 	g_object_set_qdata_full (G_OBJECT (revision), revision_paths_state_quark,
-				 paths_state, (GDestroyNotify) g_hash_table_destroy);
+				 paths_state, (GDestroyNotify) free_paths_state);
 }
 
 void
@@ -512,7 +528,7 @@ giggle_graph_renderer_validate_model (GiggleGraphRenderer *renderer,
 				n_color = NEXT_COLOR (n_color);
 				find_free_path (visible_paths, &priv->n_paths, &n_path);
 				g_hash_table_insert (priv->paths_info, revision, GINT_TO_POINTER (n_path));
-				g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), &colors[n_color]);
+				g_hash_table_insert (visible_paths, GINT_TO_POINTER (n_path), GINT_TO_POINTER (n_color));
 			}
 
 			giggle_graph_renderer_calculate_revision_state (renderer, revision, visible_paths, &n_color);
