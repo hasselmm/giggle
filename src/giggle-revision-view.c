@@ -23,6 +23,8 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
+#include "giggle-git.h"
+#include "giggle-git-log.h"
 #include "giggle-revision-view.h"
 #include "giggle-revision.h"
 #include "giggle-searchable.h"
@@ -35,6 +37,9 @@ struct GiggleRevisionViewPriv {
 	GtkWidget      *date;
 	GtkWidget      *sha;
 	GtkWidget      *log;
+
+	GiggleGit      *git;
+	GiggleJob      *job;
 
 	GtkTextMark    *search_mark;
 };
@@ -105,6 +110,8 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	GtkTextIter             iter;
 
 	priv = GET_PRIV (revision_view);
+
+	priv->git = giggle_git_get ();
 
 	g_object_set (revision_view,
 		      "column-spacing", 12,
@@ -293,11 +300,34 @@ revision_view_search (GiggleSearchable      *searchable,
 }
 
 static void
+revision_view_update_log_cb  (GiggleGit *git,
+			      GiggleJob *job,
+			      GError    *error,
+			      gpointer   user_data)
+{
+	GiggleRevisionViewPriv *priv;
+	GtkTextBuffer          *buffer;
+	const gchar            *log;
+
+	priv = GET_PRIV (user_data);
+
+	/* FIXME: error reporting missing */
+	if (!error) {
+		log = giggle_git_log_get_log (GIGGLE_GIT_LOG (job));
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
+		gtk_text_buffer_set_text (buffer, log, -1);
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
 revision_view_update (GiggleRevisionView *view)
 {
 	GiggleRevisionViewPriv *priv;
 	GtkTextBuffer          *buffer;
-	gchar                  *sha, *log;
+	gchar                  *sha;
 	struct tm              *tm;
 	gchar                   str[256];
 
@@ -306,13 +336,8 @@ revision_view_update (GiggleRevisionView *view)
 	if (priv->revision) {
 		g_object_get (priv->revision,
 			      "sha", &sha, 
-			      "long-log", &log,
 			      "date", &tm,
 			      NULL);
-
-		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
-		gtk_text_buffer_set_text (buffer, log, -1);
-		g_free (log);
 
 		gtk_label_set_text (GTK_LABEL (priv->sha), sha);
 		g_free (sha);
@@ -321,6 +346,18 @@ revision_view_update (GiggleRevisionView *view)
 			strftime (str, sizeof (str), "%c", tm);
 			gtk_label_set_text (GTK_LABEL (priv->date), str);
 		}
+
+		if (priv->job) {
+			giggle_git_cancel_job (priv->git, priv->job);
+			g_object_unref (priv->job);
+		}
+
+		priv->job = giggle_git_log_new (priv->revision);
+
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    revision_view_update_log_cb,
+				    view);
 	} else {
 		gtk_label_set_text (GTK_LABEL (priv->sha), NULL);
 		gtk_label_set_text (GTK_LABEL (priv->date), NULL);
