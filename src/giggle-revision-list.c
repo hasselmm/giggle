@@ -25,6 +25,7 @@
 
 #include "giggle-git.h"
 #include "giggle-job.h"
+#include "giggle-git-log.h"
 #include "giggle-git-diff.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-revision-tooltip.h"
@@ -1109,6 +1110,32 @@ diff_matches_cb (GiggleGit *git,
 	g_main_loop_quit (data->main_loop);
 }
 
+static void
+log_matches_cb (GiggleGit *git,
+		 GiggleJob *job,
+		 GError    *error,
+		 gpointer   user_data)
+{
+	RevisionSearchData     *data;
+	GiggleRevisionListPriv *priv;
+	const gchar            *log;
+
+	data = (RevisionSearchData *) user_data;
+	priv = GET_PRIV (data->list);
+
+	if (error) {
+		data->match = FALSE;
+	} else {
+		log = giggle_git_log_get_log (GIGGLE_GIT_LOG (job));
+		data->match = (strstr (log, data->search_term) != NULL);
+	}
+
+	g_object_unref (priv->job);
+	priv->job = NULL;
+
+	g_main_loop_quit (data->main_loop);
+}
+
 static gboolean
 revision_diff_matches (GiggleRevisionList *list,
 		       GiggleRevision     *revision,
@@ -1160,6 +1187,46 @@ revision_diff_matches (GiggleRevisionList *list,
 }
 
 static gboolean
+revision_log_matches (GiggleRevisionList *list,
+		      GiggleRevision     *revision,
+		      const gchar        *search_term)
+{
+	GiggleRevisionListPriv *priv;
+	RevisionSearchData     *data;
+	gboolean                match;
+
+	priv = GET_PRIV (list);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_log_new (revision);
+
+	data = g_slice_new0 (RevisionSearchData);
+	data->main_loop = g_main_loop_ref (priv->main_loop);
+	data->search_term = search_term;
+	data->list = list;
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    log_matches_cb,
+			    data);
+
+	/* wait here */
+	g_main_loop_run (data->main_loop);
+
+	/* At this point the match job has already returned */
+	g_main_loop_unref (data->main_loop);
+	match = data->match;
+	g_slice_free (RevisionSearchData, data);
+
+	return match;
+}
+
+static gboolean
 revision_matches (GiggleRevisionList *list,
 		  GiggleRevision     *revision,
 		  const gchar        *search_term,
@@ -1168,8 +1235,8 @@ revision_matches (GiggleRevisionList *list,
 	gboolean match = FALSE;
 
 	match = (revision_property_matches (revision, "author", search_term) ||
-		 revision_property_matches (revision, "long-log", search_term) ||
-		 revision_property_matches (revision, "sha", search_term));
+		 revision_property_matches (revision, "sha", search_term) ||
+		 revision_log_matches (list, revision, search_term));
 
 	if (!match && full_search) {
 		match = revision_diff_matches (list, revision, search_term);

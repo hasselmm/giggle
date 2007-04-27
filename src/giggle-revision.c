@@ -32,7 +32,6 @@ struct GiggleRevisionPriv {
 	gchar              *author;
 	struct tm          *date;
 	gchar              *short_log;
-	gchar              *long_log;
 
 	GList              *descendent_branches;
 
@@ -63,8 +62,7 @@ enum {
 	PROP_SHA,
 	PROP_AUTHOR,
 	PROP_DATE,
-	PROP_SHORT_LOG,
-	PROP_LONG_LOG
+	PROP_SHORT_LOG
 };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION, GiggleRevisionPriv))
@@ -113,15 +111,6 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 				     NULL,
 				     G_PARAM_READWRITE));
 
-	g_object_class_install_property (
-		object_class,
-		PROP_LONG_LOG,
-		g_param_spec_string ("long-log",
-				     "Long log",
-				     "Long log of the revision",
-				     NULL,
-				     G_PARAM_READWRITE));
-
 	g_type_class_add_private (object_class, sizeof (GiggleRevisionPriv));
 }
 
@@ -143,7 +132,6 @@ revision_finalize (GObject *object)
 	g_free (priv->sha);
 	g_free (priv->author);
 	g_free (priv->short_log);
-	g_free (priv->long_log);
 
 	if (priv->date) {
 		g_free (priv->date);
@@ -186,9 +174,6 @@ revision_get_property (GObject    *object,
 	case PROP_SHORT_LOG:
 		g_value_set_string (value, priv->short_log);
 		break;
-	case PROP_LONG_LOG:
-		g_value_set_string (value, priv->long_log);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -223,10 +208,6 @@ revision_set_property (GObject      *object,
 	case PROP_SHORT_LOG:
 		g_free (priv->short_log);
 		priv->short_log = g_strdup (g_value_get_string (value));
-		break;
-	case PROP_LONG_LOG:
-		g_free (priv->long_log);
-		priv->long_log = g_strdup (g_value_get_string (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -288,18 +269,6 @@ giggle_revision_get_short_log (GiggleRevision *revision)
 	priv = GET_PRIV (revision);
 
 	return priv->short_log;
-}
-
-const gchar *
-giggle_revision_get_long_log  (GiggleRevision *revision)
-{
-	GiggleRevisionPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
-
-	priv = GET_PRIV (revision);
-
-	return priv->long_log;
 }
 
 static void

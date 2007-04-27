@@ -261,7 +261,6 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 	gint       i = 0;
 	struct tm *tm = NULL;
 	gchar     *author, *short_log;
-	GString   *long_log = NULL;
 
 	author = short_log = NULL;
 
@@ -303,16 +302,9 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 			git_revisions_get_committer_info (revision,
 							  converted + strlen ("author "),
 							  &author, &tm);
-		} else if (g_str_has_prefix (converted, " ")) {
+		} else if (!short_log && g_str_has_prefix (converted, " ")) {
 			g_strstrip (converted);
-
-			if (!long_log) {
-				/* no short log neither, get some */
-				short_log = g_strdup (converted);
-				long_log = g_string_new ("");
-			}
-
-			g_string_append_printf (long_log, "%s\n", converted);
+			short_log = g_strdup (converted);
 		}
 
 		g_free (converted);
@@ -324,15 +316,10 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		      "author", author,
 		      "date", tm,
 		      "short-log", short_log,
-		      "long-log", (long_log) ? long_log->str : NULL,
 		      NULL);
 
 	g_free (author);
 	g_free (short_log);
-
-	if (G_LIKELY (long_log)) {
-		g_string_free (long_log, TRUE);
-	}
 }
 
 static GiggleRevision*
