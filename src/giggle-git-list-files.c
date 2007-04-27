@@ -104,6 +104,7 @@ git_list_files_char_to_status (gchar status)
 		return GIGGLE_GIT_FILE_STATUS_OTHER;
 	default:
 		g_assert_not_reached ();
+		return GIGGLE_GIT_FILE_STATUS_OTHER;
 	}
 }
 
