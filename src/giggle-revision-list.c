@@ -105,6 +105,7 @@ enum {
 
 static guint signals [LAST_SIGNAL] = { 0 };
 
+#define EMBLEM_SIZE 16
 
 static void revision_list_finalize                (GObject *object);
 static void giggle_revision_list_searchable_init  (GiggleSearchableIface *iface);
@@ -131,17 +132,17 @@ static void revision_list_cell_data_emblem_func   (GtkCellLayout     *layout,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_log_func      (GtkTreeViewColumn *column,
+static void revision_list_cell_data_log_func      (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_author_func   (GtkTreeViewColumn *column,
+static void revision_list_cell_data_author_func   (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_date_func     (GtkTreeViewColumn *column,
+static void revision_list_cell_data_date_func     (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
@@ -247,10 +248,13 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 {
 	GiggleRevisionListPriv *priv;
 	GtkTreeSelection       *selection;
-	gint                    n_columns;
 	GtkActionGroup         *action_group;
+	GtkTreeViewColumn      *column;
+	gint                    font_size;
 
 	priv = GET_PRIV (revision_list);
+	font_size = pango_font_description_get_size (GTK_WIDGET (revision_list)->style->font_desc);
+	font_size = PANGO_PIXELS (font_size);
 
 	/* yes, it's a hack */
 	priv->first_revision = (GiggleRevision *) 0x1;
@@ -260,15 +264,22 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	priv->git = giggle_git_get ();
 	priv->main_loop = g_main_loop_new (NULL, FALSE);
 
+	gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (revision_list), TRUE);
+	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (revision_list), TRUE);
+
 	/* emblems renderer */
 	priv->emblem_column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_sizing (priv->emblem_column,
+					 GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_min_width (priv->emblem_column,
+					    EMBLEM_SIZE + (2 * GTK_WIDGET (revision_list)->style->xthickness));
 	g_object_ref_sink (priv->emblem_column);
 
 	priv->emblem_renderer = gtk_cell_renderer_pixbuf_new ();
 	g_object_ref_sink (priv->emblem_renderer);
 
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->emblem_column),
-				    priv->emblem_renderer, FALSE);
+				    priv->emblem_renderer, TRUE);
 
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->emblem_column),
 					    priv->emblem_renderer,
@@ -282,6 +293,8 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	/* graph renderer */
 	priv->graph_column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_resizable (priv->graph_column, TRUE);
+	gtk_tree_view_column_set_sizing (priv->graph_column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_min_width (priv->graph_column, font_size * 10);
 	g_object_ref_sink (priv->graph_column);
 
 	priv->graph_renderer = giggle_graph_renderer_new ();
@@ -299,6 +312,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list),
 				     priv->graph_column, -1);
 
+	/* log cell renderer */
 	priv->log_renderer = gtk_cell_renderer_text_new ();
 	gtk_cell_renderer_text_set_fixed_height_from_font (
 		GTK_CELL_RENDERER_TEXT (priv->log_renderer), 1);
@@ -306,41 +320,65 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 		     "ellipsize", PANGO_ELLIPSIZE_END,
 		     NULL);
 
-	n_columns = gtk_tree_view_insert_column_with_data_func (
-		GTK_TREE_VIEW (revision_list),
-		-1,
-		_("Short Log"),
-		priv->log_renderer,
-		revision_list_cell_data_log_func,
-		revision_list,
-		NULL);
-	gtk_tree_view_column_set_expand (
-		gtk_tree_view_get_column (GTK_TREE_VIEW (revision_list), n_columns - 1),
-		TRUE);
+	column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_title (column, _("Short Log"));
+	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_min_width (column, font_size * 10);
+	gtk_tree_view_column_set_expand (column, TRUE);
+	gtk_tree_view_column_set_resizable (column, TRUE);
 
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
+				    priv->log_renderer, TRUE);
+
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
+					    priv->log_renderer,
+					    revision_list_cell_data_log_func,
+					    revision_list,
+					    NULL);
+
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
+
+	/* Author cell renderer */
 	priv->author_renderer = gtk_cell_renderer_text_new ();
 	gtk_cell_renderer_text_set_fixed_height_from_font (
 		GTK_CELL_RENDERER_TEXT (priv->author_renderer), 1);
-	gtk_tree_view_insert_column_with_data_func (
-		GTK_TREE_VIEW (revision_list),
-		-1,
-		_("Author"),
-		priv->author_renderer,
-		revision_list_cell_data_author_func,
-		revision_list,
-		NULL);
 
+	column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_title (column, _("Author"));
+	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_fixed_width (column, font_size * 14);
+	gtk_tree_view_column_set_resizable (column, TRUE);
+
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
+				    priv->author_renderer, TRUE);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
+					    priv->author_renderer,
+					    revision_list_cell_data_author_func,
+					    revision_list,
+					    NULL);
+
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
+
+	/* Date cell renderer */
 	priv->date_renderer = gtk_cell_renderer_text_new ();
 	gtk_cell_renderer_text_set_fixed_height_from_font (
 		GTK_CELL_RENDERER_TEXT (priv->date_renderer), 1);
-	gtk_tree_view_insert_column_with_data_func (
-		GTK_TREE_VIEW (revision_list),
-		-1,
-		_("Date"),
-		priv->date_renderer,
-		revision_list_cell_data_date_func,
-		revision_list,
-		NULL);
+
+	column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_title (column, _("Date"));
+	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_min_width (column, font_size * 14);
+	gtk_tree_view_column_set_resizable (column, TRUE);
+
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
+				    priv->date_renderer, TRUE);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
+					    priv->date_renderer,
+					    revision_list_cell_data_date_func,
+					    revision_list,
+					    NULL);
+
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (revision_list));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
@@ -830,7 +868,7 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 	    (giggle_revision_get_tags (revision) ||
 	     giggle_revision_get_branch_heads (revision))) {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
-						   "gtk-info", 16, 0, NULL);
+						   "gtk-info", EMBLEM_SIZE, 0, NULL);
 	}
 
 	g_object_set (cell,
@@ -847,11 +885,11 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 }
 
 static void
-revision_list_cell_data_log_func (GtkTreeViewColumn *column,
-				  GtkCellRenderer   *cell,
-				  GtkTreeModel      *model,
-				  GtkTreeIter       *iter,
-				  gpointer           data)
+revision_list_cell_data_log_func (GtkCellLayout   *layout,
+				  GtkCellRenderer *cell,
+				  GtkTreeModel    *model,
+				  GtkTreeIter     *iter,
+				  gpointer         data)
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
@@ -878,11 +916,11 @@ revision_list_cell_data_log_func (GtkTreeViewColumn *column,
 }
 
 static void
-revision_list_cell_data_author_func (GtkTreeViewColumn *column,
-				     GtkCellRenderer   *cell,
-				     GtkTreeModel      *model,
-				     GtkTreeIter       *iter,
-				     gpointer           data)
+revision_list_cell_data_author_func (GtkCellLayout   *layout,
+				     GtkCellRenderer *cell,
+				     GtkTreeModel    *model,
+				     GtkTreeIter     *iter,
+				     gpointer         data)
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
@@ -961,11 +999,11 @@ revision_list_get_formatted_time (const struct tm *rev_tm)
 }
 
 static void
-revision_list_cell_data_date_func (GtkTreeViewColumn *column,
-				   GtkCellRenderer   *cell,
-				   GtkTreeModel      *model,
-				   GtkTreeIter       *iter,
-				   gpointer           data)
+revision_list_cell_data_date_func (GtkCellLayout   *layout,
+				   GtkCellRenderer *cell,
+				   GtkTreeModel    *model,
+				   GtkTreeIter     *iter,
+				   gpointer         data)
 {
 	GiggleRevisionListPriv *priv;
 	GiggleRevision         *revision;
