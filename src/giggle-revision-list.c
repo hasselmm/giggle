@@ -704,7 +704,6 @@ revision_list_button_press (GtkWidget      *widget,
 		GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->button_press_event (widget, event);
 
 		if (event->button == 1 &&
-		    event->state == 0 &&
 		    event->type == GDK_2BUTTON_PRESS) {
 			if (!gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (widget), event->x, event->y,
 							    &path, NULL, NULL, NULL)) {
