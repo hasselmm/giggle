@@ -1,3 +1,36 @@
+Giggle 0.3, 2007-05-09
+----------------------
+
+Giggle is a graphical frontend for the git directory tracker (think of gitk on GTK+).
+
+Bugs closed since the last release:
+
+  - [GGL-61] - Problem with gitignore
+  - [GGL-37] - Integrate "git-ls-files -t" in file view
+  - [GGL-41] - Improved rendering of "graph"-column for projects with lots of branches
+  - [GGL-47] - Add the branch name to the revision info
+  - [GGL-49] - Make it possible to add the graph from the revision list.
+  - [GGL-56] - Make the current "Show local diff" dialog more commit specific
+  - [GGL-58] - Execute jobs in an idle
+  - [GGL-54] - Show current working directory in the revision list
+
+Other Changes:
+
+  - Be a lot more memory & cpu friendly with large repositories (Carlos)
+  - Build Fixes (Richard)
+
+Updated translations:
+
+  - ca (Gil Forcada)
+  - pl (Łukasz Jernaś)
+  - sv (Richard Hult)
+
+Downloads:
+
+  http://ftp.imendio.com/pub/imendio/giggle/src/
+  git://kenny.imendio.com/projects/giggle.git
+
+
 Giggle 0.2, 2007-03-29
 ----------------------
 
