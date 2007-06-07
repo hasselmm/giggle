@@ -34,13 +34,9 @@ typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
 	GtkWidget   * label;
-#ifdef OLD_LIST
-	GtkWidget   * scrolled_window;
-	GtkWidget   * treeview;
-#else
-	GtkWidget   * list_label;
+	GtkWidget   * content_box;
 	GtkWidget   * more_button;
-#endif
+
 	GtkListStore* liststore;
 };
 
@@ -66,6 +62,12 @@ static void     dummy_set_property        (GObject           *object,
 					   const GValue      *value,
 					   GParamSpec        *pspec);
 
+static void     short_list_size_request   (GtkWidget      *widget,
+					   GtkRequisition *requisition);
+static void     short_list_size_allocate  (GtkWidget      *widget,
+					   GtkAllocation  *allocation);
+
+
 G_DEFINE_TYPE (GiggleShortList, giggle_short_list, GTK_TYPE_VBOX)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_SHORT_LIST, GiggleShortListPriv))
@@ -73,11 +75,15 @@ G_DEFINE_TYPE (GiggleShortList, giggle_short_list, GTK_TYPE_VBOX)
 static void
 giggle_short_list_class_init (GiggleShortListClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize     = dummy_finalize;
 	object_class->get_property = dummy_get_property;
 	object_class->set_property = dummy_set_property;
+
+	widget_class->size_request = short_list_size_request;
+	widget_class->size_allocate = short_list_size_allocate;
 
 	g_object_class_install_property (object_class,
 					 PROP_LABEL,
@@ -96,6 +102,118 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 			      G_TYPE_OBJECT);
 
 	g_type_class_add_private (object_class, sizeof (GiggleShortListPriv));
+}
+
+static void
+short_list_size_request (GtkWidget      *widget,
+			 GtkRequisition *requisition)
+{
+	GiggleShortListPriv *priv;
+	GtkRequisition       req;
+	gint                 border_width, spacing;
+
+	priv = GET_PRIV (widget);
+	border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
+	spacing = gtk_box_get_spacing (GTK_BOX (widget));
+
+	gtk_widget_size_request (priv->label, &req);
+	*requisition = req;
+
+	gtk_widget_size_request (priv->content_box, &req);
+
+	gtk_widget_size_request (priv->more_button, &req);
+	requisition->width = MAX (requisition->width, req.width) + (2 * border_width);
+	requisition->height += req.width + spacing + (2 * border_width);
+}
+
+static void
+short_list_size_allocate (GtkWidget     *widget,
+			  GtkAllocation *allocation)
+{
+	GiggleShortListPriv *priv;
+	GtkAllocation        child_allocation;
+	GList               *children, *list;
+	gint                 border_width, spacing;
+	gint                 content_height = 0;
+
+	priv = GET_PRIV (widget);
+	border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
+	spacing = gtk_box_get_spacing (GTK_BOX (widget));
+	widget->allocation = *allocation;
+
+	/* FIXME: we're not taking content_box spacing into
+	 * account, but we're setting it to 0 in init() anyway...
+	 */
+
+	/* from now we'll use allocation to calculate
+	 * children allocation, it's safe to remove borders
+	 */
+	allocation->x += border_width;
+	allocation->y += border_width;
+	allocation->width -= 2 * border_width;
+	allocation->height -= 2 * border_width;
+
+	child_allocation.x = allocation->x;
+	child_allocation.width = allocation->width;
+
+	/* allocate label */
+	child_allocation.y = allocation->y;
+	child_allocation.height = priv->label->requisition.height;
+	gtk_widget_size_allocate (priv->label, &child_allocation);
+
+	allocation->y += priv->label->requisition.height + spacing;
+	allocation->height -= priv->label->requisition.height + spacing;
+
+	children = list = gtk_container_get_children (GTK_CONTAINER (priv->content_box));
+
+	while (list) {
+		content_height += GTK_WIDGET (list->data)->requisition.height;
+		list = list->next;
+	}
+
+	if (content_height > allocation->height) {
+		/* just show the elements that fit in the allocation */
+		child_allocation.y = allocation->y;
+		child_allocation.height = allocation->height - priv->more_button->requisition.height;
+		gtk_widget_size_allocate (priv->content_box, &child_allocation);
+
+		allocation->y += child_allocation.height + spacing;
+		allocation->height -= child_allocation.height + spacing;
+
+		list = children;
+		content_height = child_allocation.height;
+
+		while (list) {
+			if (content_height > GTK_WIDGET (list->data)->requisition.height) {
+				gtk_widget_set_child_visible (GTK_WIDGET (list->data), TRUE);
+			} else {
+				gtk_widget_set_child_visible (GTK_WIDGET (list->data), FALSE);
+			}
+
+			content_height -= GTK_WIDGET (list->data)->requisition.height;
+			list = list->next;
+		}
+
+		/* allocate button */
+		child_allocation.y = allocation->y;
+		child_allocation.height = priv->more_button->requisition.height;
+		gtk_widget_size_allocate (priv->more_button, &child_allocation);
+		gtk_widget_set_child_visible (priv->more_button, TRUE);
+	} else {
+		/* show all the contents and hide the button */
+		child_allocation.y = allocation->y;
+		child_allocation.height = allocation->height;
+		gtk_widget_size_allocate (priv->content_box, &child_allocation);
+
+		list = children;
+
+		while (list) {
+			gtk_widget_set_child_visible (GTK_WIDGET (list->data), TRUE);
+			list = list->next;
+		}
+
+		gtk_widget_set_child_visible (priv->more_button, FALSE);
+	}
 }
 
 static void
@@ -143,6 +261,7 @@ short_list_show_dialog (GiggleShortList* self)
 					      NULL);
 
 	scrolled = gtk_scrolled_window_new (NULL, NULL);
+	gtk_container_set_border_width (GTK_CONTAINER (scrolled), 7);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
@@ -159,6 +278,7 @@ short_list_show_dialog (GiggleShortList* self)
 
 	gtk_container_add (GTK_CONTAINER (scrolled), treeview);
 	gtk_widget_show_all (scrolled);
+	gtk_window_set_default_size (GTK_WINDOW (dialog), 300, 300);
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (dialog);
 }
@@ -166,44 +286,43 @@ short_list_show_dialog (GiggleShortList* self)
 static gboolean
 short_list_update_label_idle (GiggleShortList* self)
 {
-	GString    * string;
-	GtkTreeIter  iter;
-	gint         i;
 	GiggleShortListPriv *priv;
+	GtkTreeIter          iter;
+	gboolean             valid;
 
 	priv = GET_PRIV (self);
 
-	string = g_string_new ("");
+	/* empty content_box */
+	gtk_container_foreach (GTK_CONTAINER (priv->content_box),
+			       (GtkCallback) gtk_widget_destroy, NULL);
 
-	for (i = 0; i < 5; i++) {
-		GObject* object = NULL;
-		gchar* label = NULL;
-		if (!gtk_tree_model_iter_nth_child (GTK_TREE_MODEL (priv->liststore), &iter, NULL, i)) {
-			break;
-		}
+	valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL (priv->liststore), &iter);
+
+	while (valid) {
+		GtkWidget *label;
+		GObject   *object = NULL;
+		gchar     *text = NULL;
 
 		gtk_tree_model_get (GTK_TREE_MODEL (priv->liststore), &iter,
 				    GIGGLE_SHORT_LIST_COL_OBJECT, &object,
 				    -1);
 
-		g_signal_emit (self, giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT], 0,
-			       object, &label);
-		g_string_append_printf (string, (i > 0) ? "\n%s" : "%s", label);
-		g_free (label);
-
 		if (object) {
+			g_signal_emit (self, giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT], 0,
+				       object, &text);
+
+			label = gtk_label_new (text);
+			gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+			gtk_widget_show (label);
+			gtk_box_pack_start (GTK_BOX (priv->content_box), label, FALSE, FALSE, 0);
+
+			g_free (text);
 			g_object_unref (object);
 		}
+
+		valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (priv->liststore), &iter);
 	}
 
-	gtk_label_set_text (GTK_LABEL (priv->list_label), string->str);
-	g_string_free (string, TRUE);
-
-	if (gtk_tree_model_iter_n_children (GTK_TREE_MODEL (priv->liststore), NULL) > 5) {
-		gtk_widget_show (priv->more_button);
-	} else {
-		gtk_widget_hide (priv->more_button);
-	}
 	return FALSE;
 }
 
@@ -241,16 +360,14 @@ giggle_short_list_init (GiggleShortList *self)
 
 	pango_attr_list_unref (attributes);
 
+	priv->content_box = gtk_vbox_new (FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (self), priv->content_box, TRUE, TRUE, 0);
+
 	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
 					      G_TYPE_OBJECT);
 
-	priv->list_label = gtk_label_new ("some items\nother items\n...");
-	gtk_misc_set_alignment (GTK_MISC (priv->list_label), 0.0, 0.0);
-	gtk_widget_show (priv->list_label);
-	gtk_box_pack_start (GTK_BOX (self), priv->list_label, TRUE, TRUE, 0);
-
 	priv->more_button = gtk_button_new_with_label (_("Show all..."));
-	gtk_box_pack_start (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
+	gtk_box_pack_end (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
 	g_signal_connect_swapped (priv->more_button, "clicked",
 				  G_CALLBACK (short_list_show_dialog), self);
 
@@ -320,4 +437,3 @@ giggle_short_list_get_liststore (GiggleShortList* self)
 
 	return GET_PRIV (self)->liststore;
 }
-
