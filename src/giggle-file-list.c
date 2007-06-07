@@ -466,7 +466,7 @@ file_list_button_press (GtkWidget      *widget,
 			return TRUE;
 		}
 
-		if (event->state != 0) {
+		if ((event->state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) != 0) {
 			/* we want shift+click and ctrl+click behave as always here */
 			GTK_WIDGET_CLASS (giggle_file_list_parent_class)->button_press_event (widget, event);
 		} else if (!gtk_tree_selection_path_is_selected (selection, path)) {
