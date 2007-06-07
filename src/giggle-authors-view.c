@@ -86,7 +86,7 @@ authors_view_job_callback (GiggleGit *git,
 		GtkListStore *store;
 		GtkTreeIter   iter;
 
-		store = giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view));
+		store = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS, G_TYPE_OBJECT);
 		authors = giggle_git_authors_get_list (GIGGLE_GIT_AUTHORS (job));
 
 		for(; authors; authors = g_list_next (authors)) {
@@ -95,6 +95,9 @@ authors_view_job_callback (GiggleGit *git,
 					    GIGGLE_SHORT_LIST_COL_OBJECT, authors->data,
 					    -1);
 		}
+
+		giggle_short_list_set_model (GIGGLE_SHORT_LIST (view), GTK_TREE_MODEL (store));
+		g_object_unref (store);
 	}
 
 	g_object_unref (priv->job);
@@ -107,8 +110,6 @@ authors_view_update (GiggleAuthorsView *view)
 	GiggleAuthorsViewPriv *priv;
 
 	priv = GET_PRIV (view);
-
-	gtk_list_store_clear (giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view)));
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);

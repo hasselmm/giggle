@@ -38,7 +38,11 @@ typedef GtkVBox                     GiggleShortList;
 typedef struct GiggleShortListClass GiggleShortListClass;
 
 GType		      giggle_short_list_get_type (void);
-GtkListStore *        giggle_short_list_get_liststore(GiggleShortList* self);
+
+GtkTreeModel         *giggle_short_list_get_model (GiggleShortList *short_list);
+void                  giggle_short_list_set_model (GiggleShortList *short_list,
+						   GtkTreeModel    *model);
+
 
 struct GiggleShortListClass {
 	GtkVBoxClass vbox_class;

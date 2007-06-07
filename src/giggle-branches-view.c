@@ -86,7 +86,7 @@ branches_view_job_callback (GiggleGit *git,
 		GtkListStore *store;
 		GtkTreeIter   iter;
 
-		store = giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view));
+		store = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS, G_TYPE_OBJECT);
 		branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
 
 		for(; branches; branches = g_list_next (branches)) {
@@ -95,6 +95,9 @@ branches_view_job_callback (GiggleGit *git,
 					    GIGGLE_SHORT_LIST_COL_OBJECT, branches->data,
 					    -1);
 		}
+
+		giggle_short_list_set_model (GIGGLE_SHORT_LIST (view), GTK_TREE_MODEL (store));
+		g_object_unref (store);
 	}
 
 	g_object_unref (priv->job);
@@ -107,8 +110,6 @@ branches_view_update (GiggleBranchesView *view)
 	GiggleBranchesViewPriv *priv;
 
 	priv = GET_PRIV (view);
-
-	gtk_list_store_clear (giggle_short_list_get_liststore (GIGGLE_SHORT_LIST (view)));
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);

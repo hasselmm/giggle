@@ -37,12 +37,13 @@ struct GiggleShortListPriv {
 	GtkWidget   * content_box;
 	GtkWidget   * more_button;
 
-	GtkListStore* liststore;
+	GtkTreeModel* model;
 };
 
 enum {
 	PROP_0,
-	PROP_LABEL
+	PROP_LABEL,
+	PROP_MODEL
 };
 
 enum {
@@ -92,6 +93,13 @@ giggle_short_list_class_init (GiggleShortListClass *class)
 							      "The text of the displayed label",
 							      NULL,
 							      G_PARAM_WRITABLE));
+	g_object_class_install_property (object_class,
+					 PROP_MODEL,
+					 g_param_spec_object ("model",
+							      "Model",
+							      "Model to fill the list",
+							      GTK_TYPE_TREE_MODEL,
+							      G_PARAM_READWRITE));
 
 	giggle_short_list_signals[SIGNAL_DISPLAY_OBJECT] =
 		g_signal_new ("display-object", GIGGLE_TYPE_SHORT_LIST,
@@ -267,7 +275,7 @@ short_list_show_dialog (GiggleShortList* self)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolled, TRUE, TRUE, 0);
 
-	treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (priv->liststore));
+	treeview = gtk_tree_view_new_with_model (priv->model);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview), FALSE);
 
 	renderer = gtk_cell_renderer_text_new ();
@@ -296,14 +304,14 @@ short_list_update_label_idle (GiggleShortList* self)
 	gtk_container_foreach (GTK_CONTAINER (priv->content_box),
 			       (GtkCallback) gtk_widget_destroy, NULL);
 
-	valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL (priv->liststore), &iter);
+	valid = gtk_tree_model_get_iter_first (priv->model, &iter);
 
 	while (valid) {
 		GtkWidget *label;
 		GObject   *object = NULL;
 		gchar     *text = NULL;
 
-		gtk_tree_model_get (GTK_TREE_MODEL (priv->liststore), &iter,
+		gtk_tree_model_get (priv->model, &iter,
 				    GIGGLE_SHORT_LIST_COL_OBJECT, &object,
 				    -1);
 
@@ -320,7 +328,7 @@ short_list_update_label_idle (GiggleShortList* self)
 			g_object_unref (object);
 		}
 
-		valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (priv->liststore), &iter);
+		valid = gtk_tree_model_iter_next (priv->model, &iter);
 	}
 
 	return FALSE;
@@ -363,22 +371,10 @@ giggle_short_list_init (GiggleShortList *self)
 	priv->content_box = gtk_vbox_new (FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (self), priv->content_box, TRUE, TRUE, 0);
 
-	priv->liststore = gtk_list_store_new (GIGGLE_SHORT_LIST_N_COLUMNS,
-					      G_TYPE_OBJECT);
-
 	priv->more_button = gtk_button_new_with_label (_("Show all..."));
 	gtk_box_pack_end (GTK_BOX (self), priv->more_button, FALSE, FALSE, 0);
 	g_signal_connect_swapped (priv->more_button, "clicked",
 				  G_CALLBACK (short_list_show_dialog), self);
-
-	g_signal_connect_swapped (priv->liststore, "row-changed",
-				  G_CALLBACK (short_list_update_label), self);
-	g_signal_connect_swapped (priv->liststore, "row-deleted",
-				  G_CALLBACK (short_list_update_label), self);
-	g_signal_connect_swapped (priv->liststore, "row-inserted",
-				  G_CALLBACK (short_list_update_label), self);
-	g_signal_connect_swapped (priv->liststore, "rows-reordered",
-				  G_CALLBACK (short_list_update_label), self);
 }
 
 static void
@@ -387,8 +383,8 @@ dummy_finalize (GObject *object)
 	GiggleShortListPriv *priv;
 
 	priv = GET_PRIV (object);
-	
-	g_object_unref (priv->liststore);
+
+	g_object_unref (priv->model);
 
 	G_OBJECT_CLASS (giggle_short_list_parent_class)->finalize (object);
 }
@@ -404,6 +400,9 @@ dummy_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_MODEL:
+		g_value_set_object (value, priv->model);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -424,16 +423,43 @@ dummy_set_property (GObject      *object,
 	case PROP_LABEL:
 		gtk_label_set_text (GTK_LABEL (priv->label), g_value_get_string (value));
 		break;
+	case PROP_MODEL:
+		if (priv->model) {
+			g_object_unref (priv->model);
+			priv->model = NULL;
+		}
+
+		giggle_short_list_set_model (GIGGLE_SHORT_LIST (object),
+					     g_value_get_object (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
 }
 
-GtkListStore*
-giggle_short_list_get_liststore (GiggleShortList* self)
+GtkTreeModel *
+giggle_short_list_get_model (GiggleShortList *short_list)
 {
-	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (self), NULL);
+	GiggleShortListPriv *priv;
 
-	return GET_PRIV (self)->liststore;
+	g_return_val_if_fail (GIGGLE_IS_SHORT_LIST (short_list), NULL);
+
+	priv = GET_PRIV (short_list);
+	return priv->model;
+}
+
+void
+giggle_short_list_set_model (GiggleShortList *short_list,
+			     GtkTreeModel    *model)
+{
+	GiggleShortListPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_SHORT_LIST (short_list));
+	g_return_if_fail (GTK_IS_TREE_MODEL (model));
+
+	priv = GET_PRIV (short_list);
+	priv->model = g_object_ref (model);
+
+	short_list_update_label (short_list);
 }
