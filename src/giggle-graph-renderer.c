@@ -280,6 +280,7 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 	children = giggle_revision_get_children (revision);
 	cur_pos = GPOINTER_TO_INT (g_hash_table_lookup (priv->paths_info, revision));
 	cairo_set_line_width (cr, LINE_WIDTH (size));
+	cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND);
 
 	/* paint paths */
 	for (i = 0; i < paths_state->len; i++) {
@@ -316,6 +317,12 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 			cairo_line_to (cr,
 				       x + (pos * PATH_SPACE (size)),
 				       y + (h / 2));
+
+			/* redraw the upper part of the path before
+			 * stroking to get a rounded connection
+			 */
+			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y);
+
 			cairo_stroke  (cr);
 		}
 
