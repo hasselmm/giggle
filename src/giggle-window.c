@@ -113,6 +113,8 @@ static void window_action_history_go_back         (GtkAction         *action,
 						   GiggleWindow      *window);
 static void window_action_history_go_forward      (GtkAction         *action,
 						   GiggleWindow      *window);
+static void window_action_history_refresh         (GtkAction         *action,
+						   GiggleWindow      *window);
 static void window_directory_changed_cb           (GiggleGit         *git,
 						   GParamSpec        *arg,
 						   GiggleWindow      *window);
@@ -216,6 +218,10 @@ static const GtkActionEntry action_entries[] = {
 	  N_("_Forward"), "<alt>Right", NULL,
 	  G_CALLBACK (window_action_history_go_forward)
 	},
+	{ "RefreshHistory", GTK_STOCK_REFRESH,
+	  N_("_Refresh"), "F5", NULL,
+	  G_CALLBACK (window_action_history_refresh)
+	},
 };
 
 static const gchar *ui_layout =
@@ -243,6 +249,8 @@ static const gchar *ui_layout =
 	"      <menuitem action='CompactMode'/>"
 	"      <menuitem action='ViewFileList'/>"
 	"      <menuitem action='ViewGraph'/>"
+	"      <separator/>"
+	"      <menuitem action='RefreshHistory'/>"
 	"    </menu>"
 	"    <menu action='GoMenu'>"
 	"      <menuitem action='BackHistory'/>"
@@ -255,6 +263,7 @@ static const gchar *ui_layout =
 	"  <toolbar name='MainToolbar'>"
 	"    <toolitem action='BackHistory'/>"
 	"    <toolitem action='ForwardHistory'/>"
+	"    <toolitem action='RefreshHistory'/>"
 	"  </toolbar>"
 	"</ui>";
 
@@ -1108,6 +1117,18 @@ window_action_history_go_forward (GtkAction    *action,
 	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
 
 	giggle_history_go_forward (GIGGLE_HISTORY (page));
+}
+
+static void
+window_action_history_refresh (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	const gchar      *directory;
+
+	priv = GET_PRIV (window);
+	directory = giggle_git_get_directory (priv->git);
+	giggle_window_set_directory (window, g_strdup(directory));
 }
 
 GtkWidget *
