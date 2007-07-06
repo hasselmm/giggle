@@ -1,7 +1,6 @@
 AM_CPPFLAGS =					\
 	-I$(top_srcdir)				\
 	-DGLADEDIR=\""$(datadir)/giggle/glade"\"\
-	-DLOCALEDIR=\""$(datadir)/locale"\"	\
 	$(GIGGLE_CFLAGS) 			\
 	$(WARN_CFLAGS)
 
