@@ -1,0 +1,530 @@
+# Catalan translation of giggle.
+# Copyright (C) 2007 Imendio AB
+# This file is distributed under the same license as the giggle package.
+# Guilhem Bonnefille <guilhem.bonnefille@gmail.com>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: giggle 0.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-03-29 17:53+0200\n"
+"PO-Revision-Date: 2007-06-29 23:24+0100\n"
+"Last-Translator: Guilhem Bonnefille <guilhem.bonnefille@gmail.com>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../data/main-window.glade.h:1
+msgid "<b>Branches</b>"
+msgstr "<b>Branches</b>"
+
+#: ../data/main-window.glade.h:2
+msgid "Name:"
+msgstr "Nom:"
+
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
+msgid "Personal Details"
+msgstr "Informations personnelles"
+
+#: ../data/main-window.glade.h:4
+msgid "URL:"
+msgstr "URL:"
+
+#: ../data/main-window.glade.h:5
+msgid "_Email:"
+msgstr "_Courrier électronique :"
+
+#: ../data/main-window.glade.h:6
+msgid "_Name:"
+msgstr "_Nom:"
+
+#: ../data/giggle.desktop.in.h:1
+msgid "Giggle"
+msgstr "Giggle"
+
+#: ../data/giggle.desktop.in.h:2
+msgid "Git repository viewer"
+msgstr "Explorateur de dépôt Git"
+
+#: ../src/eggfindbar.c:157
+msgid "Search string"
+msgstr "Rechercher une chaîne"
+
+#: ../src/eggfindbar.c:158
+msgid "The name of the string to be found"
+msgstr "Le nom de la chaîne à rechercher"
+
+#: ../src/eggfindbar.c:171
+msgid "Case sensitive"
+msgstr "Sensible à la casse"
+
+#: ../src/eggfindbar.c:172
+msgid "TRUE for a case sensitive search"
+msgstr "TRUE pour une recherche sensible à la casse"
+
+#: ../src/eggfindbar.c:179
+msgid "Highlight color"
+msgstr ""
+
+#: ../src/eggfindbar.c:180
+msgid "Color of highlight for all matches"
+msgstr ""
+
+#: ../src/eggfindbar.c:186
+msgid "Current color"
+msgstr "Couleur courante"
+
+#: ../src/eggfindbar.c:187
+msgid "Color of highlight for the current match"
+msgstr ""
+
+#: ../src/eggfindbar.c:320
+msgid "Find:"
+msgstr "Rechercher :"
+
+#: ../src/eggfindbar.c:329
+msgid "Find Previous"
+msgstr "Recherche du précédent"
+
+#: ../src/eggfindbar.c:332
+msgid "Find previous occurrence of the search string"
+msgstr "Recherche l'occurrence précédente chaîne souhaitée"
+
+#: ../src/eggfindbar.c:337
+msgid "Find Next"
+msgstr "Recherche du suivant"
+
+#: ../src/eggfindbar.c:340
+msgid "Find next occurrence of the search string"
+msgstr "Recherche de l'occurrence suivante de la chaîne souhaitée"
+
+#: ../src/eggfindbar.c:348
+msgid "C_ase Sensitive"
+msgstr "Sensible à la c_asse"
+
+#: ../src/eggfindbar.c:351
+msgid "Toggle case sensitive search"
+msgstr "Basculer la sensibilité à la casse lors de la recherche"
+
+# c-format
+#: ../src/giggle-authors-view.c:80
+msgid ""
+"An error ocurred when retrieving authors list:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en récupérant la liste des auteurs :\n"
+"%s"
+
+#: ../src/giggle-authors-view.c:147
+msgid "Authors:"
+msgstr "Auteurs :"
+
+# c-format
+#: ../src/giggle-branches-view.c:80
+msgid ""
+"An error ocurred when retrieving branches list:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en récupérant la liste des branches :\n"
+"%s"
+
+#: ../src/giggle-branches-view.c:147
+msgid "Branches:"
+msgstr "Branches :"
+
+# c-format
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1334
+msgid ""
+"An error ocurred when retrieving different files list:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en récupérant la liste des fichiers modifiés :\n"
+"%s"
+
+#: ../src/giggle-diff-tree-view.c:139
+msgid "Changed files"
+msgstr "Fichiers modifiés"
+
+#: ../src/giggle-diff-view.c:258
+#, c-format
+msgid ""
+"An error ocurred when retrieving a diff:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en récupérant une différence :\n"
+"%s"
+
+#: ../src/giggle-diff-window.c:102
+msgid "Revision log:"
+msgstr "Journal des révisions :"
+
+#: ../src/giggle-diff-window.c:128
+msgid "Co_mmit"
+msgstr "Confir_mer le changement"
+
+# c-format
+#: ../src/giggle-diff-window.c:199
+msgid ""
+"An error ocurred when committing:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produit lors de la confirmation :\n"
+"%s"
+
+#: ../src/giggle-file-list.c:146
+msgid "_Diff"
+msgstr "_Diff"
+
+#: ../src/giggle-file-list.c:147
+msgid "A_dd file to repository"
+msgstr "Ajouter un fichier au _dépot"
+
+#: ../src/giggle-file-list.c:148
+msgid "_Add to .gitignore"
+msgstr "_Ajouter un fichier à .gitignore"
+
+#: ../src/giggle-file-list.c:149
+msgid "_Remove from .gitignore"
+msgstr "Supp_rimer de .gitignore"
+
+#: ../src/giggle-file-list.c:153
+msgid "_Show all files"
+msgstr "Afficher tou_s les fichiers"
+
+#: ../src/giggle-file-list.c:252
+msgid "Project"
+msgstr "Projet"
+
+# c-format
+#: ../src/giggle-file-list.c:563
+msgid ""
+"An error ocurred when retrieving the file list:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en récupérant la liste des fichiers :\n"
+"%s"
+
+# c-format
+#: ../src/giggle-file-list.c:733
+msgid ""
+"An error ocurred when adding a file to git:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite en ajoutant un fichier :\n"
+"%s"
+
+#: ../src/giggle-file-list.c:1021
+msgid "Delete glob pattern?"
+msgstr "Supprimer le patron de 'glob' ?"
+
+#: ../src/giggle-file-list.c:1024
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
+msgstr ""
+
+#: ../src/giggle-personal-details-window.c:127
+msgid "There was an error setting the configuration"
+msgstr "Il y a eu une erreur lors de l'enregistrement de la configuration"
+
+#: ../src/giggle-personal-details-window.c:180
+msgid "There was an error getting the configuration"
+msgstr "Il y a eu une erreur lors de la récupération de la configuration"
+
+#: ../src/giggle-remote-editor.c:157
+msgid "Double click to add mapping..."
+msgstr ""
+
+#: ../src/giggle-remote-editor.c:183
+msgid "Branches"
+msgstr "Branches"
+
+#: ../src/giggle-remote-editor.c:378
+msgid "Unnamed"
+msgstr "Sans nom"
+
+#: ../src/giggle-remotes-view.c:114
+msgid "Double click to add remote..."
+msgstr "Double clic pour ajouter un site distant"
+
+#: ../src/giggle-remotes-view.c:206
+msgid "Name"
+msgstr "Nom"
+
+#: ../src/giggle-remotes-view.c:213
+msgid "URL"
+msgstr "URL"
+
+#: ../src/giggle-revision-view.c:114
+msgid "Date:"
+msgstr "Date :"
+
+#: ../src/giggle-revision-view.c:132
+msgid "SHA:"
+msgstr "SHA:"
+
+#: ../src/giggle-revision-view.c:150
+msgid "Change Log:"
+msgstr "Journal des modifications :"
+
+#: ../src/giggle-revision-list.c:165
+msgid "Create _Branch"
+msgstr "Créer une _branche"
+
+#: ../src/giggle-revision-list.c:166
+msgid "Create _Tag"
+msgstr "Créer une é_tiquette"
+
+#: ../src/giggle-revision-list.c:272
+msgid "Graph"
+msgstr "Graphe"
+
+#: ../src/giggle-revision-list.c:292
+msgid "Short Log"
+msgstr "Résumé des modifications"
+
+#: ../src/giggle-revision-list.c:305
+msgid "Author"
+msgstr "Auteur"
+
+#: ../src/giggle-revision-list.c:315
+msgid "Date"
+msgstr "Date"
+
+#: ../src/giggle-revision-list.c:582
+#, c-format
+msgid "Delete branch \"%s\""
+msgstr "Supprimer la branche «%s»"
+
+#: ../src/giggle-revision-list.c:585
+#, c-format
+msgid "Delete tag \"%s\""
+msgstr "Supprimer l'étiquette «%s»"
+
+#: ../src/giggle-revision-list.c:766
+msgid "Uncommitted changes"
+msgstr "Modifications non confirmées"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:824
+msgid "%I:%M %p"
+msgstr "%H:%M"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:837
+msgid "%a %I:%M %p"
+msgstr "%a %H:%M"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:849
+msgid "%b %d %I:%M %p"
+msgstr "%b %d %H:%M"
+
+#. it's older
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:854
+msgid "%b %d %Y"
+msgstr "%b %d %Y"
+
+#: ../src/giggle-revision-list.c:1203
+msgid "Enter branch name:"
+msgstr "Saisir le nom de la branche :"
+
+#: ../src/giggle-revision-list.c:1254
+msgid "Enter tag name:"
+msgstr "Saisir le nom de l'étiquette :"
+
+#: ../src/giggle-revision-tooltip.c:255
+msgid "Branch"
+msgstr "Branche"
+
+#: ../src/giggle-revision-tooltip.c:261
+msgid "Tag"
+msgstr "Etiquette"
+
+#: ../src/giggle-short-list.c:139
+msgid "Details"
+msgstr "Détails"
+
+#: ../src/giggle-short-list.c:252
+msgid "Show all..."
+msgstr "Afficher tous..."
+
+#. revision view
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:222
+msgid "Revision _information"
+msgstr "_Information sur la révision"
+
+#. diff view
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:231
+msgid "_Differences"
+msgstr "_Différences"
+
+# c-format
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:440
+#: ../src/giggle-view-history.c:533
+msgid ""
+"An error ocurred when getting the revisions list:\n"
+"%s"
+msgstr ""
+"Une erreur s'est produite lors de la récupération de la liste des révisions :\n"
+"%s"
+
+#: ../src/giggle-view-summary.c:118
+msgid "<b>Description:</b>"
+msgstr "<b>Description :</b>"
+
+#: ../src/giggle-view-summary.c:152
+msgid "<b>Remotes:</b>"
+msgstr "<b>Distantes :</b>"
+
+#: ../src/giggle-window.c:130
+msgid "_Compact Mode"
+msgstr "Mode _compact"
+
+#: ../src/giggle-window.c:134
+msgid "Show Project _Tree"
+msgstr "Afficher l'_arbre du projet"
+
+#: ../src/giggle-window.c:141
+msgid "_Project"
+msgstr "_Projet"
+
+#: ../src/giggle-window.c:145
+msgid "_Edit"
+msgstr "_Editer"
+
+#: ../src/giggle-window.c:149
+msgid "_Go"
+msgstr "_Aller"
+
+#: ../src/giggle-window.c:153
+msgid "_View"
+msgstr "_Affichage"
+
+#: ../src/giggle-window.c:157
+msgid "_Help"
+msgstr "_Aide"
+
+#: ../src/giggle-window.c:161
+msgid "_Open"
+msgstr "_Ouvrir"
+
+#: ../src/giggle-window.c:161
+msgid "Open a GIT repository"
+msgstr "Ouvrir un dépôt Git"
+
+#: ../src/giggle-window.c:165
+msgid "_Save patch"
+msgstr "_Sauver un patch"
+
+#: ../src/giggle-window.c:165
+msgid "Save a patch"
+msgstr "Enregistrer un fichier patch"
+
+#: ../src/giggle-window.c:169
+msgid "_Diff current changes"
+msgstr "Voir les _différences courantes"
+
+#: ../src/giggle-window.c:169
+msgid "Diff current changes"
+msgstr "Voir les différences courantes en local"
+
+#: ../src/giggle-window.c:173
+msgid "_Quit"
+msgstr "_Quitter"
+
+#: ../src/giggle-window.c:173
+msgid "Quit the application"
+msgstr "Quitter l'application"
+
+#: ../src/giggle-window.c:177
+msgid "Edit Personal _Details"
+msgstr "Mo_difier les informations personnelles"
+
+#: ../src/giggle-window.c:177
+msgid "Edit Personal details"
+msgstr "Modifier les informations personnelles"
+
+#: ../src/giggle-window.c:181
+msgid "_Find..."
+msgstr "_Rechercher..."
+
+#: ../src/giggle-window.c:181
+msgid "Find..."
+msgstr "Rechercher..."
+
+#: ../src/giggle-window.c:185
+msgid "Find _Next"
+msgstr "Rechercher le _suivant"
+
+#: ../src/giggle-window.c:185
+msgid "Find next"
+msgstr "Rechercher le suivant"
+
+#: ../src/giggle-window.c:189
+msgid "Find _Previous"
+msgstr "Rechercher le _précédent"
+
+#: ../src/giggle-window.c:189
+msgid "Find previous"
+msgstr "Rechercher le précédent"
+
+#: ../src/giggle-window.c:193
+msgid "_About"
+msgstr "_A propos"
+
+#: ../src/giggle-window.c:193
+msgid "About this application"
+msgstr "A propos de cette application"
+
+#: ../src/giggle-window.c:199
+msgid "_Back"
+msgstr "_Retour"
+
+#: ../src/giggle-window.c:203
+msgid "_Forward"
+msgstr "_Suivant"
+
+#: ../src/giggle-window.c:334
+msgid "Search inside _diffs"
+msgstr "Rechercher dans les _différences"
+
+#: ../src/giggle-window.c:367
+#, c-format
+msgid "The directory '%s' does not look like a GIT repository."
+msgstr "Le répertoire '%s' n'est pas un dépôt Git"
+
+#: ../src/giggle-window.c:510
+msgid "History"
+msgstr "Historique"
+
+#: ../src/giggle-window.c:528
+msgid "Summary"
+msgstr "Résumé"
+
+#: ../src/giggle-window.c:724
+msgid "Select GIT repository"
+msgstr "Choisir un dépôt Git"
+
+#: ../src/giggle-window.c:759
+msgid "Save patch file"
+msgstr "Enregistrer un fichier patch"
+
+#: ../src/giggle-window.c:779
+#, c-format
+msgid ""
+"An error ocurred when saving to file:\n"
+"%s"
+msgstr ""
+"Une erreur est survenue lors de la sauvegarde dans un fichier :\n"
+"%s"
+
+#: ../src/giggle-window.c:987
+msgid "translator-credits"
+msgstr "Guilhèm Bonnefille <guilhem.bonnefille@gmail.com>"
+
