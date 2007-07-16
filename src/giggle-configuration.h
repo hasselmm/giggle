@@ -55,6 +55,7 @@ struct GiggleConfigurationClass {
 enum GiggleConfigurationField {
 	CONFIG_FIELD_NAME,
 	CONFIG_FIELD_EMAIL,
+	CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 	CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
 	CONFIG_FIELD_COMPACT_MODE
 };
@@ -69,9 +70,15 @@ void                    giggle_configuration_update        (GiggleConfiguration 
 
 G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
+gboolean                giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
+								GiggleConfigurationField  field);
+
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
 							    const gchar              *value);
+void                    giggle_configuration_set_boolean_field (GiggleConfiguration      *configuration,
+								GiggleConfigurationField  field,
+								gboolean                  value);
 void                    giggle_configuration_commit        (GiggleConfiguration      *configuration,
 							    GiggleConfigurationFunc   func,
 							    gpointer                  data);

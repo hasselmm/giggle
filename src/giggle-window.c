@@ -64,6 +64,8 @@ struct GiggleWindowPriv {
 	GtkWidget           *diff_current_window;
 
 	GiggleConfiguration *configuration;
+
+	gboolean             maximized : 1;
 };
 
 enum {
@@ -73,6 +75,8 @@ enum {
 
 
 static void window_finalize                       (GObject           *object);
+static gboolean window_state_event                (GtkWidget           *widget,
+						   GdkEventWindowState *event);
 
 static void window_add_widget_cb                  (GtkUIManager      *merge,
 						   GtkWidget         *widget,
@@ -268,8 +272,10 @@ static void
 giggle_window_class_init (GiggleWindowClass *class)
 {
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = window_finalize;
+	widget_class->window_state_event = window_state_event;
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -388,7 +394,7 @@ window_configuration_committed (GiggleConfiguration *configuration,
 }
 
 static void
-save_state_and_exit (GiggleWindow *window)
+save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	gboolean          compact;
@@ -404,10 +410,14 @@ save_state_and_exit (GiggleWindow *window)
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf);
 
+	giggle_configuration_set_boolean_field (priv->configuration,
+						CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
+						priv->maximized);
+
 	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
-	giggle_configuration_set_field (priv->configuration,
-					CONFIG_FIELD_COMPACT_MODE,
-					compact ? "true" : "false");
+	giggle_configuration_set_boolean_field (priv->configuration,
+						CONFIG_FIELD_COMPACT_MODE,
+						compact);
 
 	giggle_configuration_commit (priv->configuration,
 				     window_configuration_committed,
@@ -419,7 +429,7 @@ window_delete_event_cb (GtkWidget *widget,
 			GdkEvent  *event,
 			gpointer   user_data)
 {
-	save_state_and_exit (GIGGLE_WINDOW (widget));
+	save_state (GIGGLE_WINDOW (widget));
 	gtk_widget_hide (widget);
 	return TRUE;
 }
@@ -429,17 +439,14 @@ window_bind_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	GtkAction *action;
-	const char *geom_str, *compact_str;
-	gboolean compact = FALSE, found_geometry = FALSE;
+	const char *geom_str;
+	gboolean compact, found_geometry = FALSE;
 
 	priv = GET_PRIV (window);
 	g_assert (priv->configuration);
 
-	compact_str = giggle_configuration_get_field (priv->configuration, CONFIG_FIELD_COMPACT_MODE);
-	if (compact_str) {
-		compact = strcmp (compact_str, "true") == 0;
-	}
 	/* set the toggle menu item to indicate the current compact setting */
+	compact = giggle_configuration_get_boolean_field (priv->configuration, CONFIG_FIELD_COMPACT_MODE);
 	action = gtk_ui_manager_get_action (priv->ui_manager, COMPACT_MODE);
 	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), compact);
 	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), compact);
@@ -451,6 +458,10 @@ window_bind_state (GiggleWindow *window)
 
 	if (!found_geometry) {
 		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
+	}
+
+	if (giggle_configuration_get_boolean_field (priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED)) {
+		gtk_window_maximize (GTK_WINDOW (window));
 	}
 
 	gtk_widget_show (GTK_WIDGET (window));
@@ -543,7 +554,7 @@ window_finalize (GObject *object)
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (object);
-	
+
 	g_object_unref (priv->ui_manager);
 	g_object_unref (priv->git);
 	g_object_unref (priv->recent_manager);
@@ -551,6 +562,19 @@ window_finalize (GObject *object)
 	g_object_unref (priv->configuration);
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->finalize (object);
+}
+
+static gboolean
+window_state_event (GtkWidget           *widget,
+		    GdkEventWindowState *event)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (widget);
+
+	priv->maximized = ((event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED) == GDK_WINDOW_STATE_MAXIMIZED);
+
+	return FALSE;
 }
 
 static void
@@ -714,7 +738,7 @@ static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-	save_state_and_exit (window);
+	save_state (window);
 	gtk_widget_hide (GTK_WIDGET (window));
 }
 

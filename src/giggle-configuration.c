@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <string.h>
 #include "giggle-configuration.h"
 #include "giggle-git.h"
 #include "giggle-git-read-config.h"
@@ -30,6 +31,7 @@
 static const gchar *fields[] = {
 	"user.name",
 	"user.email",
+	"giggle.main-window-maximized",
 	"giggle.main-window-geometry",
 	"giggle.compact-mode",
 	NULL
@@ -272,6 +274,23 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 	return g_hash_table_lookup (priv->config, fields[field]);
 }
 
+gboolean
+giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
+					GiggleConfigurationField  field)
+{
+	const gchar *str;
+
+	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
+
+	str = giggle_configuration_get_field (configuration, field);
+
+	if (str) {
+		return (strcmp (str, "true") == 0);
+	}
+
+	return FALSE;
+}
+
 void
 giggle_configuration_set_field (GiggleConfiguration      *configuration,
 				GiggleConfigurationField  field,
@@ -294,6 +313,17 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 
 	/* insert the key in the changed keys list */
 	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field]));
+}
+
+void
+giggle_configuration_set_boolean_field (GiggleConfiguration      *configuration,
+					GiggleConfigurationField  field,
+					gboolean                  value)
+{
+	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
+
+	giggle_configuration_set_field (configuration, field,
+					(value) ? "true" : "false");
 }
 
 void
