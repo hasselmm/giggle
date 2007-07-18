@@ -65,7 +65,7 @@ struct GiggleWindowPriv {
 
 	GiggleConfiguration *configuration;
 
-	gboolean             maximized : 1;
+	guint                maximized : 1;
 };
 
 enum {
