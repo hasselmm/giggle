@@ -1,0 +1,508 @@
+# Vietnamese translation for giggle
+# Copyright (C) 2007 Nguyễn Thái Ngọc Duy
+# This file is distributed under the same license as the PACKAGE package.
+# Nguyễn Thái Ngọc Duy <pclouds@gmail.com>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: giggle master\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-07-30 20:56-0400\n"
+"PO-Revision-Date: 2007-07-30 21:27-0400\n"
+"Last-Translator: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>\n"
+"Language-Team: Vietnamese <vi-vn@googlegroups.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ../data/giggle.desktop.in.h:1
+msgid "Giggle"
+msgstr "Giggle"
+
+#: ../data/giggle.desktop.in.h:2
+msgid "Git repository viewer"
+msgstr "Trình xem kho Git"
+
+#: ../data/main-window.glade.h:1
+msgid "<b>Branches</b>"
+msgstr "<b>Nhánh</b>"
+
+#: ../data/main-window.glade.h:2
+msgid "Name:"
+msgstr "Tên:"
+
+#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+msgid "Personal Details"
+msgstr "Thông tin cá nhân"
+
+#: ../data/main-window.glade.h:4
+msgid "URL:"
+msgstr "URL:"
+
+#: ../data/main-window.glade.h:5
+msgid "_Email:"
+msgstr "_Email:"
+
+#: ../data/main-window.glade.h:6
+msgid "_Name:"
+msgstr "_Tên:"
+
+#: ../src/eggfindbar.c:320
+msgid "Find:"
+msgstr "Tìm:"
+
+#: ../src/eggfindbar.c:329
+msgid "Find Previous"
+msgstr "Tìm ngược"
+
+#: ../src/eggfindbar.c:332
+msgid "Find previous occurrence of the search string"
+msgstr "Tìm lần xuất trước đó của chuỗi"
+
+#: ../src/eggfindbar.c:337
+msgid "Find Next"
+msgstr "Tìm tiếp"
+
+#: ../src/eggfindbar.c:340
+msgid "Find next occurrence of the search string"
+msgstr "Tìm lần xuất hiện kế tiếp của chuỗi"
+
+#: ../src/eggfindbar.c:348
+msgid "C_ase Sensitive"
+msgstr "_Phân biệt hoa/thường"
+
+#: ../src/eggfindbar.c:351
+msgid "Toggle case sensitive search"
+msgstr "Bật tắt phân biệt hoa thường"
+
+#: ../src/giggle-authors-view.c:80
+#, c-format
+msgid ""
+"An error ocurred when retrieving authors list:\n"
+"%s"
+msgstr ""
+"Lỗi khi nhận danh sách tác giả:\n"
+"%s"
+
+#: ../src/giggle-authors-view.c:146
+msgid "Authors:"
+msgstr "Tác giả:"
+
+#: ../src/giggle-branches-view.c:80
+#, c-format
+msgid ""
+"An error ocurred when retrieving branches list:\n"
+"%s"
+msgstr ""
+"Lỗi khi nhận danh sách nhánh:\n"
+"%s"
+
+#: ../src/giggle-branches-view.c:146
+msgid "Branches:"
+msgstr "Nhánh:"
+
+#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1513
+#, c-format
+msgid ""
+"An error ocurred when retrieving different files list:\n"
+"%s"
+msgstr ""
+"Lỗi khi nhận danh sách tập tin khác biệt:\n"
+"%s"
+
+#: ../src/giggle-diff-tree-view.c:139
+msgid "Changed files"
+msgstr "Tập tin thay đổi:"
+
+#: ../src/giggle-diff-view.c:259
+#, c-format
+msgid ""
+"An error ocurred when retrieving a diff:\n"
+"%s"
+msgstr ""
+"Lỗi khi nhận diff:\n"
+"%s"
+
+#: ../src/giggle-diff-window.c:81
+msgid "Commit changes"
+msgstr "Commit các thay đổi"
+
+#: ../src/giggle-diff-window.c:103
+msgid "Revision log:"
+msgstr "Tóm tắt phiên bản:"
+
+#: ../src/giggle-diff-window.c:133
+msgid "Co_mmit"
+msgstr "Co_mmit"
+
+#: ../src/giggle-diff-window.c:206
+#, c-format
+msgid ""
+"An error ocurred when committing:\n"
+"%s"
+msgstr ""
+"Lỗi khi commit:\n"
+"%s"
+
+#: ../src/giggle-file-list.c:168
+msgid "_Commit Changes"
+msgstr "_Commit các thay đổi"
+
+#: ../src/giggle-file-list.c:169
+msgid "A_dd file to repository"
+msgstr "_Thêm tập tin vào kho"
+
+#: ../src/giggle-file-list.c:170
+msgid "_Add to .gitignore"
+msgstr "_Thêm vào .gitignore"
+
+#: ../src/giggle-file-list.c:171
+msgid "_Remove from .gitignore"
+msgstr "_Loại khỏi .gitignore"
+
+#: ../src/giggle-file-list.c:175
+msgid "_Show all files"
+msgstr "_Hiện mọi tập tin"
+
+#: ../src/giggle-file-list.c:314
+msgid "Project"
+msgstr "Dự án"
+
+#: ../src/giggle-file-list.c:644
+#, c-format
+msgid ""
+"An error ocurred when retrieving the file list:\n"
+"%s"
+msgstr ""
+"Lỗi khi nhận danh sách tập tin:\n"
+"%s"
+
+#: ../src/giggle-file-list.c:851
+#, c-format
+msgid ""
+"An error ocurred when adding a file to git:\n"
+"%s"
+msgstr ""
+"Lỗi khi thêm tập tin vào git:\n"
+"%s"
+
+#: ../src/giggle-file-list.c:1139
+msgid "Delete glob pattern?"
+msgstr "Xoá tập tin theo mẫu chứ?"
+
+#: ../src/giggle-file-list.c:1142
+msgid ""
+"The selected file was shadowed by a glob pattern that may be hiding other "
+"files, delete it?"
+msgstr "Tập tin được chọn bị che bởi mẫu có thể ảnh hưởng nhiều tập tin khác, xoá chứ?"
+
+#: ../src/giggle-personal-details-window.c:127
+msgid "There was an error setting the configuration"
+msgstr "Lỗi thiết lập cấu hình"
+
+#: ../src/giggle-personal-details-window.c:180
+msgid "There was an error getting the configuration"
+msgstr "Lỗi lấy cấu hình"
+
+#: ../src/giggle-remote-editor.c:157
+msgid "Double click to add mapping..."
+msgstr "Nhấp đúp để thêm ánh xạ..."
+
+#: ../src/giggle-remote-editor.c:183
+msgid "Branches"
+msgstr "Nhánh"
+
+#: ../src/giggle-remote-editor.c:378
+msgid "Unnamed"
+msgstr "Không tên"
+
+#: ../src/giggle-remotes-view.c:114
+msgid "Double click to add remote..."
+msgstr "Nhấp đúp để thêm remote..."
+
+#: ../src/giggle-remotes-view.c:206
+msgid "Name"
+msgstr "Tên"
+
+#: ../src/giggle-remotes-view.c:213
+msgid "URL"
+msgstr "URL"
+
+#: ../src/giggle-revision-list.c:178
+msgid "Commit"
+msgstr "Commit"
+
+#: ../src/giggle-revision-list.c:179
+msgid "Create _Branch"
+msgstr "Tạo _nhánh"
+
+#: ../src/giggle-revision-list.c:180
+msgid "Create _Tag"
+msgstr "Tạo _tag"
+
+#: ../src/giggle-revision-list.c:303
+msgid "Graph"
+msgstr "Đồ thị"
+
+#: ../src/giggle-revision-list.c:324
+msgid "Short Log"
+msgstr "Tóm tắt ngắn"
+
+#: ../src/giggle-revision-list.c:347
+msgid "Author"
+msgstr "Tác giả"
+
+#: ../src/giggle-revision-list.c:368
+msgid "Date"
+msgstr "Ngày"
+
+#: ../src/giggle-revision-list.c:634
+#, c-format
+msgid "Delete branch \"%s\""
+msgstr "Xoá nhánh \"%s\""
+
+#: ../src/giggle-revision-list.c:637
+#, c-format
+msgid "Delete tag \"%s\""
+msgstr "Xoá tag \"%s\""
+
+#: ../src/giggle-revision-list.c:909
+msgid "Uncommitted changes"
+msgstr "Thay đổi chưa commit"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:967
+msgid "%I:%M %p"
+msgstr "%I:%M %p"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:980
+msgid "%a %I:%M %p"
+msgstr "%a %I:%M %p"
+
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:992
+msgid "%b %d %I:%M %p"
+msgstr "%d %b %I:%M %p"
+
+#. it's older
+#. TRANSLATORS: it's a strftime format string
+#: ../src/giggle-revision-list.c:997
+msgid "%b %d %Y"
+msgstr "%d %b %Y"
+
+#: ../src/giggle-revision-list.c:1420
+msgid "Enter branch name:"
+msgstr "Nhập tên nhánh:"
+
+#: ../src/giggle-revision-list.c:1471
+msgid "Enter tag name:"
+msgstr "Nhập tên tag:"
+
+#: ../src/giggle-revision-tooltip.c:255 ../src/giggle-view-history.c:453
+msgid "Branch"
+msgid_plural "Branches"
+msgstr[0] "Nhánh"
+
+#: ../src/giggle-revision-tooltip.c:261
+msgid "Tag"
+msgstr "Tag"
+
+#: ../src/giggle-revision-view.c:121
+msgid "Date:"
+msgstr "Ngày:"
+
+#: ../src/giggle-revision-view.c:139
+msgid "SHA:"
+msgstr "SHA:"
+
+#: ../src/giggle-revision-view.c:157
+msgid "Change Log:"
+msgstr "Tóm tắt:"
+
+#: ../src/giggle-short-list.c:265
+msgid "Details"
+msgstr "Chi tiết"
+
+#: ../src/giggle-short-list.c:374
+msgid "Show all..."
+msgstr "Hiện đầy đủ..."
+
+#. revision view
+#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:177
+msgid "Revision _information"
+msgstr "Thông tin _phiên bản"
+
+#. diff view
+#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:343
+msgid "_Differences"
+msgstr "_Khác biệt"
+
+#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:629
+#: ../src/giggle-view-history.c:722
+#, c-format
+msgid ""
+"An error ocurred when getting the revisions list:\n"
+"%s"
+msgstr ""
+"Lỗi khi lấy danh sách phiên bản:\n"
+"%s"
+
+#: ../src/giggle-view-summary.c:118
+msgid "<b>Description:</b>"
+msgstr "<b>Mô tả:</b>"
+
+#: ../src/giggle-view-summary.c:152
+msgid "<b>Remotes:</b>"
+msgstr "<b>Remote:</b>"
+
+#: ../src/giggle-window.c:132
+msgid "_Compact Mode"
+msgstr "_Chế độ cô đọng"
+
+#: ../src/giggle-window.c:136
+msgid "Show Project _Tree"
+msgstr "Hiện _cây dự án"
+
+#: ../src/giggle-window.c:140
+msgid "Show revision tree"
+msgstr "Hiện cây phiên bản"
+
+#: ../src/giggle-window.c:147
+msgid "_Project"
+msgstr "_Dự án"
+
+#: ../src/giggle-window.c:151
+msgid "_Edit"
+msgstr "_Sửa"
+
+#: ../src/giggle-window.c:155
+msgid "_Go"
+msgstr "Đ_i"
+
+#: ../src/giggle-window.c:159
+msgid "_View"
+msgstr "_Xem"
+
+#: ../src/giggle-window.c:163
+msgid "_Help"
+msgstr "Trợ _giúp"
+
+#: ../src/giggle-window.c:167
+msgid "_Open"
+msgstr "_Mở"
+
+#: ../src/giggle-window.c:167
+msgid "Open a GIT repository"
+msgstr "Mở kho GIT"
+
+#: ../src/giggle-window.c:171
+msgid "_Save patch"
+msgstr "_Lưu patch"
+
+#: ../src/giggle-window.c:171
+msgid "Save a patch"
+msgstr "Lưu patch"
+
+#: ../src/giggle-window.c:175
+msgid "_Diff current changes"
+msgstr "_Diff các thay đổi hiện tại"
+
+#: ../src/giggle-window.c:175
+msgid "Diff current changes"
+msgstr "Diff các thay đổi hiện tại"
+
+#: ../src/giggle-window.c:179
+msgid "_Quit"
+msgstr "T_hoát"
+
+#: ../src/giggle-window.c:179
+msgid "Quit the application"
+msgstr "Thoát ứng dụng"
+
+#: ../src/giggle-window.c:183
+msgid "Edit Personal _Details"
+msgstr "_Sửa thông tin cá nhân"
+
+#: ../src/giggle-window.c:183
+msgid "Edit Personal details"
+msgstr "Sửa thông tin cá nhân"
+
+#: ../src/giggle-window.c:187
+msgid "_Find..."
+msgstr "_Tìm..."
+
+#: ../src/giggle-window.c:187
+msgid "Find..."
+msgstr "Tìm..."
+
+#: ../src/giggle-window.c:191
+msgid "Find _Next"
+msgstr "Tìm _tiếp"
+
+#: ../src/giggle-window.c:191
+msgid "Find next"
+msgstr "Tìm tiếp"
+
+#: ../src/giggle-window.c:195
+msgid "Find _Previous"
+msgstr "Tìm _ngược"
+
+#: ../src/giggle-window.c:195
+msgid "Find previous"
+msgstr "Tìm ngược"
+
+#: ../src/giggle-window.c:199
+msgid "_About"
+msgstr "_Giới thiệu"
+
+#: ../src/giggle-window.c:199
+msgid "About this application"
+msgstr "Giới thiệu về ứng dụng này"
+
+#: ../src/giggle-window.c:205
+msgid "_Back"
+msgstr "_Lùi"
+
+#: ../src/giggle-window.c:209
+msgid "_Forward"
+msgstr "_Tới"
+
+#: ../src/giggle-window.c:341
+msgid "Search inside _diffs"
+msgstr "Tìm trong _diff"
+
+#: ../src/giggle-window.c:374
+#, c-format
+msgid "The directory '%s' does not look like a GIT repository."
+msgstr "Thư mục '%s' trông không giống kho GIT."
+
+#: ../src/giggle-window.c:517
+msgid "History"
+msgstr "Lược sử"
+
+#: ../src/giggle-window.c:535
+msgid "Summary"
+msgstr "Tóm tắt"
+
+#: ../src/giggle-window.c:732
+msgid "Select GIT repository"
+msgstr "Chọn kho GIT"
+
+#: ../src/giggle-window.c:767
+msgid "Save patch file"
+msgstr "Lưu tập tin patch"
+
+#: ../src/giggle-window.c:787
+#, c-format
+msgid ""
+"An error ocurred when saving to file:\n"
+"%s"
+msgstr ""
+"Lỗi khi lưu tập tin:\n"
+"%s"
+
+#: ../src/giggle-window.c:1008
+msgid "translator-credits"
+msgstr "Nguyễn Thái Ngọc Duy"
