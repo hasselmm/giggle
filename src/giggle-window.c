@@ -65,7 +65,10 @@ struct GiggleWindowPriv {
 
 	GiggleConfiguration *configuration;
 
-	guint                maximized : 1;
+	gint                 width;
+	gint                 height;
+	gint                 x;
+	gint                 y;
 };
 
 enum {
@@ -75,8 +78,8 @@ enum {
 
 
 static void window_finalize                       (GObject           *object);
-static gboolean window_state_event                (GtkWidget           *widget,
-						   GdkEventWindowState *event);
+static gboolean window_configure_event            (GtkWidget           *widget,
+						   GdkEventConfigure   *event);
 
 static void window_add_widget_cb                  (GtkUIManager      *merge,
 						   GtkWidget         *widget,
@@ -275,7 +278,7 @@ giggle_window_class_init (GiggleWindowClass *class)
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = window_finalize;
-	widget_class->window_state_event = window_state_event;
+	widget_class->configure_event = window_configure_event;
 
 	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
 }
@@ -398,21 +401,19 @@ save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	gboolean          compact;
-	gint              w, h, x, y;
 	gchar             buf[25];
+	gboolean          maximized;
 
 	priv = GET_PRIV (window);
 
-	gtk_window_get_size (GTK_WINDOW (window), &w, &h);
-	gtk_window_get_position (GTK_WINDOW (window), &x, &y);
-
-	g_snprintf (buf, sizeof (buf), "%dx%d+%d+%d", w, h, x, y);
+	g_snprintf (buf, sizeof (buf), "%dx%d+%d+%d", priv->width, priv->height, priv->x, priv->y);
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf);
 
+	maximized = gdk_window_get_state (GTK_WIDGET (window)->window) & GDK_WINDOW_STATE_MAXIMIZED;
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
-						priv->maximized);
+						maximized);
 
 	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
 	giggle_configuration_set_boolean_field (priv->configuration,
@@ -565,16 +566,17 @@ window_finalize (GObject *object)
 }
 
 static gboolean
-window_state_event (GtkWidget           *widget,
-		    GdkEventWindowState *event)
+window_configure_event (GtkWidget         *widget,
+			GdkEventConfigure *event)
 {
-	GiggleWindowPriv *priv;
+	GiggleWindowPriv *priv = GET_PRIV (widget);
 
-	priv = GET_PRIV (widget);
+	if (! (gdk_window_get_state (widget->window) & GDK_WINDOW_STATE_MAXIMIZED)) {
+		gtk_window_get_size (GTK_WINDOW (widget), &priv->width, &priv->height);
+		gtk_window_get_position (GTK_WINDOW (widget), &priv->x, &priv->y);
+	}
 
-	priv->maximized = ((event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED) == GDK_WINDOW_STATE_MAXIMIZED);
-
-	return FALSE;
+	return GTK_WIDGET_CLASS (giggle_window_parent_class)->configure_event (widget, event);;
 }
 
 static void
@@ -828,7 +830,7 @@ window_action_diff_cb (GtkAction    *action,
 
 	if (!priv->diff_current_window) {
 		priv->diff_current_window = giggle_diff_window_new ();
- 
+
 		gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
 					      GTK_WINDOW (window));
 		g_signal_connect (priv->diff_current_window, "delete-event",
