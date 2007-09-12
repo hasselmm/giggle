@@ -1128,7 +1128,7 @@ window_action_history_refresh (GtkAction    *action,
 
 	priv = GET_PRIV (window);
 	directory = giggle_git_get_directory (priv->git);
-	giggle_window_set_directory (window, g_strdup(directory));
+	giggle_window_set_directory (window, directory);
 }
 
 GtkWidget *
