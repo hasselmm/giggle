@@ -74,6 +74,10 @@ GList            * giggle_revision_get_tags          (GiggleRevision   *revision
 void               giggle_revision_add_tag           (GiggleRevision   *revision,
 						      GiggleRef        *tag);
 
+GList            * giggle_revision_get_remotes       (GiggleRevision   *revision);
+void               giggle_revision_add_remote        (GiggleRevision   *revision,
+						      GiggleRef        *tag);
+
 GList            * giggle_revision_get_descendent_branches (GiggleRevision *revision);
 
 

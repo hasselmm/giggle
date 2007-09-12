@@ -613,7 +613,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 	GtkTreePath           *path;
 	GtkTreeIter            iter;
 	gboolean               valid;
-	GList                 *branches, *tags;
+	GList                 *branches, *tags, *remotes;
 	gboolean               changed;
 
 	view = GIGGLE_VIEW_HISTORY (user_data);
@@ -636,6 +636,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 		valid = gtk_tree_model_get_iter_first (model, &iter);
 		branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
 		tags = giggle_git_refs_get_tags (GIGGLE_GIT_REFS (job));
+		remotes = giggle_git_refs_get_remotes (GIGGLE_GIT_REFS (job));
 
 		while (valid) {
 			gtk_tree_model_get (model, &iter,
@@ -645,6 +646,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 			if (revision) {
 				changed = view_history_add_refs (revision, branches, giggle_revision_add_branch_head);
 				changed |= view_history_add_refs (revision, tags, giggle_revision_add_tag);
+				changed |= view_history_add_refs (revision, remotes, giggle_revision_add_remote);
 
 				if (changed) {
 					path = gtk_tree_model_get_path (model, &iter);

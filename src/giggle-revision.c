@@ -37,6 +37,7 @@ struct GiggleRevisionPriv {
 
 	GList              *branch_heads;
 	GList              *tags;
+	GList              *remotes;
 
 	GList              *parents;
 	GList              *children;
@@ -145,6 +146,9 @@ revision_finalize (GObject *object)
 
 	g_list_foreach (priv->tags, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->tags);
+
+	g_list_foreach (priv->remotes, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->remotes);
 
 	g_list_free (priv->descendent_branches);
 
@@ -448,6 +452,33 @@ giggle_revision_add_tag (GiggleRevision *revision,
 
 	priv->tags = g_list_prepend (priv->tags,
 				     g_object_ref (tag));
+}
+
+GList *
+giggle_revision_get_remotes (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+
+	return priv->remotes;
+}
+
+void
+giggle_revision_add_remote (GiggleRevision *revision,
+			    GiggleRef      *remote)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_REF (remote));
+
+	priv = GET_PRIV (revision);
+
+	priv->remotes = g_list_prepend (priv->remotes,
+					g_object_ref (remote));
 }
 
 GList*

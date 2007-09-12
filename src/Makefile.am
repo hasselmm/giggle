@@ -110,6 +110,8 @@ giggle_SOURCES =				\
 	giggle-sysdeps.h                        \
 	giggle-tag.c				\
 	giggle-tag.h				\
+	giggle-remote-ref.c			\
+	giggle-remote-ref.h			\
 	giggle-tree-view-helpers.c		\
 	giggle-tree-view-helpers.h		\
 	giggle-view.c				\

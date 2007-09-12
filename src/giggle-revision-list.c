@@ -775,7 +775,8 @@ revision_list_motion_notify (GtkWidget      *widget,
 		goto failed;
 	}
 
-	if (!giggle_revision_get_tags (revision) &&
+	if (!giggle_revision_get_remotes (revision) &&
+	    !giggle_revision_get_tags (revision) &&
 	    !giggle_revision_get_branch_heads (revision)) {
 		goto failed;
 	}
@@ -865,6 +866,7 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 
 	if (revision &&
 	    (giggle_revision_get_tags (revision) ||
+	     giggle_revision_get_remotes (revision) ||
 	     giggle_revision_get_branch_heads (revision))) {
 		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
 						   "gtk-info", EMBLEM_SIZE, 0, NULL);

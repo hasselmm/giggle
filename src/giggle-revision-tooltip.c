@@ -231,7 +231,7 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 				      GiggleRevision        *revision)
 {
 	GiggleRevisionTooltipPriv *priv;
-	GList                     *branches, *tags;
+	GList                     *branches, *tags, *remotes;
 	GString                   *str;
 
 	g_return_if_fail (GIGGLE_IS_REVISION_TOOLTIP (tooltip));
@@ -251,14 +251,21 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 
 	branches = giggle_revision_get_branch_heads (revision);
 	tags = giggle_revision_get_tags (revision);
+	remotes = giggle_revision_get_remotes (revision);
 
 	revision_tooltip_add_refs (str, _("Branch"), branches);
 
-	if (branches && tags) {
+	if (branches && (tags || remotes)) {
 		g_string_append (str, "\n");
 	}
 
 	revision_tooltip_add_refs (str, _("Tag"), tags);
+
+	if ((branches || tags) && remotes) {
+		g_string_append (str, "\n");
+	}
+
+	revision_tooltip_add_refs (str, _("Remote"), remotes);
 
 	gtk_label_set_markup (GTK_LABEL (priv->label), str->str);
 	g_object_notify (G_OBJECT (tooltip), "revision");

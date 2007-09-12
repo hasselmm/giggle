@@ -49,6 +49,7 @@ GType	     giggle_git_refs_get_type      (void);
 GiggleJob *  giggle_git_refs_new           (void);
 GList *      giggle_git_refs_get_branches  (GiggleGitRefs     *refs);
 GList *      giggle_git_refs_get_tags      (GiggleGitRefs     *refs);
+GList *      giggle_git_refs_get_remotes   (GiggleGitRefs     *refs);
 
 G_END_DECLS
 

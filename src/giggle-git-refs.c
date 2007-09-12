@@ -25,12 +25,14 @@
 #include "giggle-git-refs.h"
 #include "giggle-branch.h"
 #include "giggle-tag.h"
+#include "giggle-remote-ref.h"
 
 typedef struct GiggleGitRefsPriv GiggleGitRefsPriv;
 
 struct GiggleGitRefsPriv {
 	GList *branches;
 	GList *tags;
+	GList *remotes;
 };
 
 static void     git_refs_finalize            (GObject           *object);
@@ -88,6 +90,9 @@ git_refs_finalize (GObject *object)
 
 	g_list_foreach (priv->tags, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->tags);
+
+	g_list_foreach (priv->remotes, (GFunc) g_object_unref, NULL);
+	g_list_free (priv->remotes);
 
 	G_OBJECT_CLASS (giggle_git_refs_parent_class)->finalize (object);
 }
@@ -161,6 +166,10 @@ git_refs_add_ref (GiggleJob   *job,
 		ref = giggle_tag_new (data[1] + strlen ("refs/tags/"));
 		g_object_set (ref, "sha", data[0], NULL);
 		priv->tags = g_list_prepend (priv->tags, ref);
+	} else if (g_str_has_prefix (data[1], "refs/remotes/")) {
+		ref = giggle_remote_ref_new (data[1] + strlen ("refs/remotes/"));
+		g_object_set (ref, "sha", data[0], NULL);
+		priv->remotes = g_list_prepend (priv->remotes, ref);
 	}
 
 	g_strfreev (data);
@@ -216,4 +225,16 @@ giggle_git_refs_get_tags (GiggleGitRefs *refs)
 	priv = GET_PRIV (refs);
 
 	return priv->tags;
+}
+
+GList *
+giggle_git_refs_get_remotes (GiggleGitRefs *refs)
+{
+	GiggleGitRefsPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_REFS (refs), NULL);
+
+	priv = GET_PRIV (refs);
+
+	return priv->remotes;
 }
