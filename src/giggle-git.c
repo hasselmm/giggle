@@ -523,6 +523,7 @@ giggle_git_set_directory (GiggleGit    *git,
 	GiggleGitPriv *priv;
 	gchar         *tmp_dir;
 	gchar         *suffix;
+	gchar         *dir;
 
 	g_return_val_if_fail (GIGGLE_IS_GIT (git), FALSE);
 	g_return_val_if_fail (directory != NULL, FALSE);
@@ -534,8 +535,9 @@ giggle_git_set_directory (GiggleGit    *git,
 	}
 
 	/* update working directory */
+	dir = g_strdup (directory);
 	g_free (priv->directory);
-	priv->directory = g_strdup (directory);
+	priv->directory = dir;
 
 	/* update git dir */
 	g_free (priv->git_dir);
