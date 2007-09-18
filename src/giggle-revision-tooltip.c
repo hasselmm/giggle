@@ -21,6 +21,7 @@
 #include <config.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "giggle-revision-tooltip.h"
 #include "giggle-revision.h"
@@ -205,11 +206,15 @@ giggle_revision_tooltip_new ()
 }
 
 static void
-revision_tooltip_add_refs (GString *str,
-			   gchar   *label,
-			   GList   *list)
+revision_tooltip_add_refs (GString  *str,
+			   gchar    *label,
+			   GList    *list)
 {
 	GiggleRef *ref;
+
+	if (strlen (str->str) > 0 &&
+	    g_list_length (list) > 0)
+		g_string_append (str, "\n");
 
 	while (list) {
 		ref = list->data;
@@ -254,17 +259,7 @@ giggle_revision_tooltip_set_revision (GiggleRevisionTooltip *tooltip,
 	remotes = giggle_revision_get_remotes (revision);
 
 	revision_tooltip_add_refs (str, _("Branch"), branches);
-
-	if (branches && (tags || remotes)) {
-		g_string_append (str, "\n");
-	}
-
 	revision_tooltip_add_refs (str, _("Tag"), tags);
-
-	if ((branches || tags) && remotes) {
-		g_string_append (str, "\n");
-	}
-
 	revision_tooltip_add_refs (str, _("Remote"), remotes);
 
 	gtk_label_set_markup (GTK_LABEL (priv->label), str->str);
