@@ -38,6 +38,10 @@
 #include "giggle-history.h"
 #include "eggfindbar.h"
 
+#ifdef HAVE_GTK_OSX
+#include "ige-mac-menu.h"
+#endif
+
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
@@ -329,6 +333,29 @@ window_create_menu (GiggleWindow *window)
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
+
+#ifdef HAVE_GTK_OSX
+	{
+		GtkWidget *menu;
+		GtkWidget *item;
+
+		menu = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar");
+
+		ige_mac_menu_set_menubar (GTK_MENU_SHELL (menu));
+		gtk_widget_hide (menu);
+
+		item = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar/ProjectMenu/Quit");
+		ige_mac_menu_set_quit_item (GTK_MENU_ITEM (item));
+
+		item = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar/HelpMenu/About");
+		ige_mac_menu_set_about_item (GTK_MENU_ITEM (item), _("About Giggle"));
+
+		/*ige_mac_menu_set_prefs_item (GTK_MENU_ITEM (item), _("Preferences"));*/
+	}
+#endif
 
 	/* create recent repositories resources */
 	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");

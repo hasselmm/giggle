@@ -15,8 +15,15 @@ h_files = 					\
 	giggle-remote-branch.h			\
 	giggle-git-list-files.h
 
+if HAVE_GTK_OSX
+GTK_OSX_SOURCES = 				\
+	ige-mac-menu.c				\
+	ige-mac-menu.h
+endif
+
 giggle_SOURCES =				\
 	$(BUILT_SOURCES)			\
+	$(GTK_OSX_SOURCES)			\
 	eggfindbar.c				\
 	eggfindbar.h				\
 	giggle-author.c				\
@@ -128,6 +135,9 @@ giggle_SOURCES =				\
 
 giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
+
+giggle_LDFLAGS =				\
+	$(GTK_OSX_LDFLAGS)
 
 noinst_PROGRAMS = 			        \
 	test-dispatcher                         \
