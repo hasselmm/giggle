@@ -81,6 +81,8 @@ if test "x$carbon_ok" = "xyes" -a "x$gdk_target" = "xquartz"; then
   AC_DEFINE(HAVE_GTK_OSX, 1, [define to 1 if Carbon is available])
   GTK_OSX_LDFLAGS="-framework Carbon"
   AC_SUBST(GTK_OSX_LDFLAGS)
+else
+  carbon_ok=no
 fi
 AM_CONDITIONAL(HAVE_GTK_OSX, test "x$carbon_ok" = "xyes")
 
