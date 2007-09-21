@@ -425,7 +425,6 @@ static void
 giggle_git_update_remotes (GiggleGit* git)
 {
 	GiggleGitPriv *priv;
-	GError        *error;
 	gchar         *path;
 	GDir          *dir;
 
@@ -437,13 +436,10 @@ giggle_git_update_remotes (GiggleGit* git)
 	priv->remotes = NULL;
 
 	/* list files and add them */
-	error = NULL;
 	path = g_build_filename (priv->git_dir, "remotes", NULL);
-	dir = g_dir_open (path, 0, &error);
+	dir = g_dir_open (path, 0, NULL);
 
-	if(error) {
-		g_warning ("Error loading remotes: %s", error->message);
-	} else {
+	if (dir) {
 		const gchar *file;
 
 		for(file = g_dir_read_name(dir); file; file = g_dir_read_name(dir)) {
