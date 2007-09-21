@@ -66,25 +66,8 @@ AC_SUBST([CONFIG_STATUS_DEPENDENCIES],['$(top_srcdir)/po/LINGUAS'])
 
 dnl -----------------------------------------------------------
 
-dnl  -----------------------
-dnl | GTK+ OS X check       |----------------------------------
-dnl  -----------------------
-gdk_target=`$PKG_CONFIG --variable=target gtk+-2.0`
-carbon_ok=no
-AC_MSG_CHECKING([checking for Mac OS X Carbon support])
-AC_TRY_CPP([
-#include <Carbon/Carbon.h>
-#include <CoreServices/CoreServices.h>
-], carbon_ok=yes)
-AC_MSG_RESULT($carbon_ok)
-if test "x$carbon_ok" = "xyes" -a "x$gdk_target" = "xquartz"; then
-  AC_DEFINE(HAVE_GTK_OSX, 1, [define to 1 if Carbon is available])
-  GTK_OSX_LDFLAGS="-framework Carbon"
-  AC_SUBST(GTK_OSX_LDFLAGS)
-else
-  carbon_ok=no
-fi
-AM_CONDITIONAL(HAVE_GTK_OSX, test "x$carbon_ok" = "xyes")
+dnl Check for GTK+ OS X support
+IMENDIO_GTK_OSX
 
 dnl  -----------------------
 dnl | GIT command detection |----------------------------------
@@ -126,5 +109,4 @@ AC_OUTPUT([
 echo
 echo "Prefix                 : $prefix"
 echo "GIT command path       : $GIT_COMMAND"
-echo "GTK+ platform          : $gdk_target"
 echo
