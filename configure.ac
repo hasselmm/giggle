@@ -64,15 +64,25 @@ IT_PROG_INTLTOOL([0.35.0])
 
 AC_SUBST([CONFIG_STATUS_DEPENDENCIES],['$(top_srcdir)/po/LINGUAS'])
 
-dnl -----------------------------------------------------------
 
-dnl Check for GTK+ OS X support
-IMENDIO_GTK_OSX
+dnl  -----------------------
+dnl | GTK+ platform check   |----------------------------------
+dnl  -----------------------
+IGE_PLATFORM_CHECK
+if test "x$IGE_PLATFORM" = xx11; then
+   PLATFORM_CFLAGS=
+   PLATFORM_LDFLAGS=
+else
+   PLATFORM_CFLAGS=
+   PLATFORM_LDFLAGS="-framework Carbon"
+fi
+AC_SUBST(PLATFORM_CFLAGS)
+AC_SUBST(PLATFORM_LDFLAGS)
+
 
 dnl  -----------------------
 dnl | GIT command detection |----------------------------------
 dnl  -----------------------
-
 AC_ARG_WITH([git-command],
 	    [AS_HELP_STRING([--with-git-command=PATH], [path to git command])])
 GIT_COMMAND=$with_git_command

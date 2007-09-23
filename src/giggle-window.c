@@ -38,7 +38,7 @@
 #include "giggle-history.h"
 #include "eggfindbar.h"
 
-#ifdef HAVE_GTK_OSX
+#ifdef HAVE_PLATFORM_OSX
 #include "ige-mac-menu.h"
 #endif
 
@@ -334,7 +334,7 @@ window_create_menu (GiggleWindow *window)
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
 
-#ifdef HAVE_GTK_OSX
+#ifdef HAVE_PLATFORM_OSX
 	{
 		GtkWidget *menu;
 		GtkWidget *item;

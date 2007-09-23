@@ -2,6 +2,7 @@ AM_CPPFLAGS =					\
 	-I$(top_srcdir)				\
 	-DGLADEDIR=\""$(datadir)/giggle/glade"\"\
 	$(GIGGLE_CFLAGS) 			\
+	$(PLATFORM_CFLAGS) 			\
 	$(WARN_CFLAGS)
 
 bin_PROGRAMS = giggle
@@ -15,7 +16,7 @@ h_files = 					\
 	giggle-remote-branch.h			\
 	giggle-git-list-files.h
 
-if HAVE_GTK_OSX
+if HAVE_PLATFORM_OSX
 GTK_OSX_SOURCES = 				\
 	ige-mac-menu.c				\
 	ige-mac-menu.h
@@ -137,7 +138,7 @@ giggle_LDADD = 					\
 	$(GIGGLE_LIBS)
 
 giggle_LDFLAGS =				\
-	$(GTK_OSX_LDFLAGS)
+	$(PLATFORM_LDFLAGS)
 
 noinst_PROGRAMS = 			        \
 	test-dispatcher                         \
