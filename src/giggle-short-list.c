@@ -384,7 +384,9 @@ dummy_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
-	g_object_unref (priv->model);
+	if (priv->model) {
+		g_object_unref (priv->model);
+	}
 
 	G_OBJECT_CLASS (giggle_short_list_parent_class)->finalize (object);
 }

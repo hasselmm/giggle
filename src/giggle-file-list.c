@@ -379,8 +379,13 @@ file_list_finalize (GObject *object)
 	}
 
 	g_object_unref (priv->git);
-	g_object_unref (priv->store);
-	g_object_unref (priv->filter_model);
+
+	if (priv->store) {
+		g_object_unref (priv->store);
+	}
+	if (priv->filter_model) {
+		g_object_unref (priv->filter_model);
+	}
 
 	g_object_unref (priv->ui_manager);
 
