@@ -24,17 +24,39 @@
 
 #include "giggle-window.h"
 
+static gboolean commit_flag = FALSE;
+
+static GOptionEntry options[] = {
+	{ "commit", 'c',
+	  0, G_OPTION_ARG_NONE, &commit_flag,
+	  N_("Only show the commit window"),
+	  NULL },
+	{ NULL }
+};
+
 int
 main (int argc, char **argv)
 {
-	GtkWidget *window;
-	gchar     *dir;
+	GtkWidget      *window;
+	gchar          *dir;
+	GOptionContext *context;
+	GError         *error = NULL;
 	
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	gtk_init (&argc, &argv);
+	context = g_option_context_new (_("- Giggle Git Frontend"));
+	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
+
+	if (!gtk_init_with_args (&argc, &argv,
+				 _("- Giggle Git Frontend"),
+				 options,
+				 GETTEXT_PACKAGE,
+				 &error)) {
+		g_printerr ("%s\n", error->message);
+		return 1;
+	}
 
 	g_set_application_name ("Giggle");
 
