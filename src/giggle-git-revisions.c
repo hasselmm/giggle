@@ -181,7 +181,6 @@ git_revisions_handle_output (GiggleJob   *job,
 			     gsize        output_len)
 {
 	GiggleGitRevisionsPriv *priv;
-	GiggleRevision         *revision;
 	GHashTable             *revisions_hash;
 	gchar                  *str;
 
@@ -192,6 +191,8 @@ git_revisions_handle_output (GiggleJob   *job,
 						g_free, g_object_unref);
 
 	while (strlen (str) > 0) {
+		GiggleRevision *revision;
+
 		revision = git_revisions_get_revision (str, revisions_hash);
 		priv->revisions = g_list_prepend (priv->revisions, revision);
 
