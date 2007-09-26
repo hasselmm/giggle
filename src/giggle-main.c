@@ -60,7 +60,6 @@ main (int argc, char **argv)
 
 	g_set_application_name ("Giggle");
 
-	window = giggle_window_new ();
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
@@ -69,6 +68,8 @@ main (int argc, char **argv)
 		dir = g_get_current_dir ();
 	}
 	g_unsetenv ("GIT_DIR");
+
+	window = giggle_window_new ();
 
 	if (giggle_git_test_dir (dir)) {
 		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
