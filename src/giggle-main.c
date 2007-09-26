@@ -24,12 +24,12 @@
 
 #include "giggle-window.h"
 
-static gboolean commit_flag = FALSE;
+static gboolean diff_window = FALSE;
 
 static GOptionEntry options[] = {
-	{ "commit", 'c',
-	  0, G_OPTION_ARG_NONE, &commit_flag,
-	  N_("Only show the commit window"),
+	{ "diff", 'd',
+	  0, G_OPTION_ARG_NONE, &diff_window,
+	  N_("Show the diff window"),
 	  NULL },
 	{ NULL }
 };
