@@ -46,11 +46,11 @@ main (int argc, char **argv)
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	context = g_option_context_new (_("- Giggle Git Frontend"));
+	context = g_option_context_new (NULL);
 	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
 
 	if (!gtk_init_with_args (&argc, &argv,
-				 _("- Giggle Git Frontend"),
+				 NULL,
 				 options,
 				 GETTEXT_PACKAGE,
 				 &error)) {
