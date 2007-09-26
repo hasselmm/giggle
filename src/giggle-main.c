@@ -77,6 +77,9 @@ main (int argc, char **argv)
 	g_free (dir);
 
 	/* window will show itself when it reads its initial size configuration */
+	if (diff_window) {
+		giggle_window_show_diff_window (GIGGLE_WINDOW (window));
+	}
 
 	gtk_main ();
 
