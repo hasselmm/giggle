@@ -334,29 +334,6 @@ window_create_menu (GiggleWindow *window)
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
 
-#ifdef HAVE_PLATFORM_OSX
-	{
-		GtkWidget *menu;
-		GtkWidget *item;
-
-		menu = gtk_ui_manager_get_widget (priv->ui_manager,
-						  "/MainMenubar");
-
-		ige_mac_menu_set_menubar (GTK_MENU_SHELL (menu));
-		gtk_widget_hide (menu);
-
-		item = gtk_ui_manager_get_widget (priv->ui_manager,
-						  "/MainMenubar/ProjectMenu/Quit");
-		ige_mac_menu_set_quit_item (GTK_MENU_ITEM (item));
-
-		item = gtk_ui_manager_get_widget (priv->ui_manager,
-						  "/MainMenubar/HelpMenu/About");
-		ige_mac_menu_set_about_item (GTK_MENU_ITEM (item), _("About Giggle"));
-
-		/*ige_mac_menu_set_prefs_item (GTK_MENU_ITEM (item), _("Preferences"));*/
-	}
-#endif
-
 	/* create recent repositories resources */
 	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
 	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, 0);
@@ -366,6 +343,30 @@ window_create_menu (GiggleWindow *window)
 				  G_CALLBACK (window_recent_repositories_update), window);
 
 	window_recent_repositories_update (window);
+
+#ifdef HAVE_PLATFORM_OSX
+	{
+		GtkWidget       *menu;
+		GtkWidget       *item;
+		IgeMacMenuGroup *group;
+
+		menu = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar");
+
+		ige_mac_menu_set_menu_bar (GTK_MENU_SHELL (menu));
+		gtk_widget_hide (menu);
+
+		item = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar/ProjectMenu/Quit");
+		ige_mac_menu_set_quit_menu_item (GTK_MENU_ITEM (item));
+
+		item = gtk_ui_manager_get_widget (priv->ui_manager,
+						  "/MainMenubar/HelpMenu/About");
+		group =  ige_mac_menu_add_app_menu_group ();
+		ige_mac_menu_add_app_menu_item  (group, GTK_MENU_ITEM (item),
+						 _("About Giggle"));
+	}
+#endif
 }
 
 static void
