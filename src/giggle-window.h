@@ -50,6 +50,7 @@ GtkWidget         *giggle_window_new           (void);
 GiggleGit *        giggle_window_get_git       (GiggleWindow *self);
 void               giggle_window_set_directory (GiggleWindow *self,
 						gchar const  *dir);
+void               giggle_window_show_diff_window (GiggleWindow *self);
 
 G_END_DECLS
 

@@ -503,6 +503,9 @@ window_bind_state (GiggleWindow *window)
 	}
 
 	gtk_widget_show (GTK_WIDGET (window));
+	if (priv->diff_current_window) {
+		gtk_widget_show (priv->diff_current_window);
+	}
 
 	/* set up a callback to save the new UI state on application exit */
 	g_signal_connect (GTK_WINDOW (window), "delete-event",
@@ -861,22 +864,7 @@ static void
 window_action_diff_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	if (!priv->diff_current_window) {
-		priv->diff_current_window = giggle_diff_window_new ();
-
-		gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
-					      GTK_WINDOW (window));
-		g_signal_connect (priv->diff_current_window, "delete-event",
-				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-		g_signal_connect_after (priv->diff_current_window, "response",
-					G_CALLBACK (gtk_widget_hide), NULL);
-	}
-
-	gtk_widget_show (priv->diff_current_window);
+	giggle_window_show_diff_window (window);
 }
 
 static void
@@ -1175,5 +1163,28 @@ giggle_window_get_git (GiggleWindow *self)
 	g_return_val_if_fail (GIGGLE_IS_WINDOW (self), NULL);
 
 	return GET_PRIV (self)->git;
+}
+
+void
+giggle_window_show_diff_window (GiggleWindow *self)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (self);
+
+	if (!priv->diff_current_window) {
+		priv->diff_current_window = giggle_diff_window_new ();
+
+		gtk_window_set_transient_for (GTK_WINDOW (priv->diff_current_window),
+					      GTK_WINDOW (self));
+		g_signal_connect (priv->diff_current_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->diff_current_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
+
+	if (GTK_WIDGET_REALIZED (self)) {
+		gtk_widget_show (priv->diff_current_window);
+	}
 }
 

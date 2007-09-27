@@ -24,21 +24,42 @@
 
 #include "giggle-window.h"
 
+static gboolean diff_window = FALSE;
+
+static GOptionEntry options[] = {
+	{ "diff", 'd',
+	  0, G_OPTION_ARG_NONE, &diff_window,
+	  N_("Show the diff window"),
+	  NULL },
+	{ NULL }
+};
+
 int
 main (int argc, char **argv)
 {
-	GtkWidget *window;
-	gchar     *dir;
+	GtkWidget      *window;
+	gchar          *dir;
+	GOptionContext *context;
+	GError         *error = NULL;
 	
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	gtk_init (&argc, &argv);
+	context = g_option_context_new (NULL);
+	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
+
+	if (!gtk_init_with_args (&argc, &argv,
+				 NULL,
+				 options,
+				 GETTEXT_PACKAGE,
+				 &error)) {
+		g_printerr ("%s\n", error->message);
+		return 1;
+	}
 
 	g_set_application_name ("Giggle");
 
-	window = giggle_window_new ();
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
@@ -48,12 +69,17 @@ main (int argc, char **argv)
 	}
 	g_unsetenv ("GIT_DIR");
 
+	window = giggle_window_new ();
+
 	if (giggle_git_test_dir (dir)) {
 		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
 	}
 	g_free (dir);
 
 	/* window will show itself when it reads its initial size configuration */
+	if (diff_window) {
+		giggle_window_show_diff_window (GIGGLE_WINDOW (window));
+	}
 
 	gtk_main ();
 
