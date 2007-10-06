@@ -1,6 +1,7 @@
 /* GTK+ Integration for the Mac OS X Menubar.
  *
  * Copyright (C) 2007 Pioneer Research Center USA, Inc.
+ * Copyright (C) 2007 Imendio AB
  *
  * For further information, see:
  * http://developer.imendio.com/projects/gtk-macosx/menubar
@@ -23,15 +24,14 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
-
 #include <Carbon/Carbon.h>
 
 #include "ige-mac-menu.h"
 
-
 /* TODO
  *
- * - Sync adding/removing/reordering items
+ * - Adding a standard Window menu (Minimize etc)?
+ * - Sync reordering items? Does that work now?
  * - Create on demand? (can this be done with gtk+? ie fill in menu
      items when the menu is opened)
  * - Figure out what to do per app/window...
