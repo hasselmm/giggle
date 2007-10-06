@@ -35,6 +35,8 @@ struct GiggleDiffTreeViewPriv {
 
 	GiggleGit    *git;
 	GiggleJob    *job;
+
+	guint         compact_mode :1;
 };
 
 enum {
@@ -130,6 +132,12 @@ giggle_diff_tree_view_init (GiggleDiffTreeView *view)
 	GtkCellRenderer        *renderer;
 
 	priv = GET_PRIV (view);
+
+	gtk_rc_parse_string ("style \"diff-tree-view-compact-style\""
+			     "{"
+			     "  GtkTreeView::vertical-separator = 0"
+			     "}"
+			     "widget \"*.file-list\" style \"diff-tree-view-compact-style\"");
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 
@@ -245,4 +253,51 @@ giggle_diff_tree_view_get_selection (GiggleDiffTreeView *view)
 	}
 
 	return file;
+}
+
+gboolean
+giggle_diff_tree_view_get_compact_mode (GiggleDiffTreeView *view)
+{
+	GiggleDiffTreeViewPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_DIFF_TREE_VIEW (view), FALSE);
+
+	priv = GET_PRIV (view);
+	return priv->compact_mode;
+}
+
+void
+giggle_diff_tree_view_set_compact_mode (GiggleDiffTreeView *view,
+					gboolean            compact_mode)
+{
+	GiggleDiffTreeViewPriv *priv;
+	GtkRcStyle             *rc_style;
+	gint                    size;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_TREE_VIEW (view));
+
+	priv = GET_PRIV (view);
+
+	if (compact_mode != priv->compact_mode) {
+		priv->compact_mode = (compact_mode == TRUE);
+
+		rc_style = gtk_widget_get_modifier_style (GTK_WIDGET (view));
+
+		if (rc_style->font_desc) {
+			/* free old font desc */
+			pango_font_description_free (rc_style->font_desc);
+			rc_style->font_desc = NULL;
+		}
+
+		if (priv->compact_mode) {
+			rc_style->font_desc = pango_font_description_copy (GTK_WIDGET (view)->style->font_desc);
+			size = pango_font_description_get_size (rc_style->font_desc);
+			pango_font_description_set_size (rc_style->font_desc,
+							 size * PANGO_SCALE_SMALL);
+		}
+
+		gtk_widget_modify_style (GTK_WIDGET (view), rc_style);
+		gtk_widget_set_name (GTK_WIDGET (view),
+				     (priv->compact_mode) ? "file-list" : NULL);
+	}
 }
