@@ -38,10 +38,16 @@ struct GiggleRevisionViewPriv {
 	GtkWidget      *sha;
 	GtkWidget      *log;
 
+	GtkWidget      *date_label;
+	GtkWidget      *sha_label;
+	GtkWidget      *log_label;
+
 	GiggleGit      *git;
 	GiggleJob      *job;
 
 	GtkTextMark    *search_mark;
+
+	guint           compact_mode : 1;
 };
 
 static void       giggle_revision_view_searchable_init (GiggleSearchableIface *iface);
@@ -73,6 +79,7 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevisionView, giggle_revision_view, GTK_TYPE_TABL
 enum {
 	PROP_0,
 	PROP_REVISION,
+	PROP_COMPACT_MODE
 };
 
 static void
@@ -92,6 +99,14 @@ giggle_revision_view_class_init (GiggleRevisionViewClass *class)
 							      GIGGLE_TYPE_REVISION,
 							      G_PARAM_READWRITE));
 
+	g_object_class_install_property (object_class,
+					 PROP_COMPACT_MODE,
+					 g_param_spec_boolean ("compact-mode",
+							       "Compact mode",
+							       "Whether to show the information in compact mode or not",
+							       FALSE,
+							       G_PARAM_READWRITE));
+
 	g_type_class_add_private (object_class, sizeof (GiggleRevisionViewPriv));
 }
 
@@ -105,7 +120,7 @@ static void
 giggle_revision_view_init (GiggleRevisionView *revision_view)
 {
 	GiggleRevisionViewPriv *priv;
-	GtkWidget              *label, *scrolled_window;
+	GtkWidget              *scrolled_window;
 	GtkTextBuffer          *buffer;
 	GtkTextIter             iter;
 
@@ -118,11 +133,11 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 		      "row-spacing", 6,
 		      NULL);
 
-	label = gtk_label_new (_("Date:"));
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_widget_show (label);
+	priv->date_label = gtk_label_new (_("Date:"));
+	gtk_misc_set_alignment (GTK_MISC (priv->date_label), 0.0, 0.5);
+	gtk_widget_show (priv->date_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), label,
+	gtk_table_attach (GTK_TABLE (revision_view), priv->date_label,
 			  0, 1, 0, 1,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -136,11 +151,11 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 			  1, 2, 0, 1,
 			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 
-	label = gtk_label_new (_("SHA:"));
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-	gtk_widget_show (label);
+	priv->sha_label = gtk_label_new (_("SHA:"));
+	gtk_misc_set_alignment (GTK_MISC (priv->sha_label), 0.0, 0.5);
+	gtk_widget_show (priv->sha_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), label,
+	gtk_table_attach (GTK_TABLE (revision_view), priv->sha_label,
 			  0, 1, 1, 2,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -154,11 +169,11 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 			  1, 2, 1, 2,
 			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 
-	label = gtk_label_new (_("Change Log:"));
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
-	gtk_widget_show (label);
+	priv->log_label = gtk_label_new (_("Change Log:"));
+	gtk_misc_set_alignment (GTK_MISC (priv->log_label), 0.0, 0.0);
+	gtk_widget_show (priv->log_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), label,
+	gtk_table_attach (GTK_TABLE (revision_view), priv->log_label,
 			  0, 1, 2, 3,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -215,6 +230,9 @@ revision_view_get_property (GObject    *object,
 	case PROP_REVISION:
 		g_value_set_object (value, priv->revision);
 		break;
+	case PROP_COMPACT_MODE:
+		g_value_set_boolean (value, priv->compact_mode);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -239,6 +257,10 @@ revision_view_set_property (GObject      *object,
 
 		priv->revision = (GiggleRevision *) g_value_dup_object (value);
 		revision_view_update (GIGGLE_REVISION_VIEW (object));
+		break;
+	case PROP_COMPACT_MODE:
+		giggle_revision_view_set_compact_mode (GIGGLE_REVISION_VIEW (object),
+						       g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -394,4 +416,64 @@ giggle_revision_view_get_revision (GiggleRevisionView *view)
 
 	priv = GET_PRIV (view);
 	return priv->revision;
+}
+
+static void
+revision_view_set_compact_mode (GtkWidget *widget,
+				gboolean   compact_mode)
+{
+	GtkRcStyle *rc_style;
+	gint        size;
+
+	rc_style = gtk_widget_get_modifier_style (widget);
+
+	if (rc_style->font_desc) {
+		/* free old font desc */
+		pango_font_description_free (rc_style->font_desc);
+		rc_style->font_desc = NULL;
+	}
+
+	if (compact_mode) {
+		rc_style->font_desc = pango_font_description_copy (widget->style->font_desc);
+		size = pango_font_description_get_size (rc_style->font_desc);
+		pango_font_description_set_size (rc_style->font_desc,
+						 size * PANGO_SCALE_SMALL);
+	}
+
+	gtk_widget_modify_style (widget, rc_style);
+}
+
+gboolean
+giggle_revision_view_get_compact_mode (GiggleRevisionView *view)
+{
+	GiggleRevisionViewPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION_VIEW (view), FALSE);
+
+	priv = GET_PRIV (view);
+	return priv->compact_mode;
+}
+
+void
+giggle_revision_view_set_compact_mode (GiggleRevisionView *view,
+				       gboolean            compact_mode)
+{
+	GiggleRevisionViewPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REVISION_VIEW (view));
+
+	priv = GET_PRIV (view);
+
+	if (compact_mode != priv->compact_mode) {
+		priv->compact_mode = (compact_mode == TRUE);
+
+		revision_view_set_compact_mode (priv->date, compact_mode);
+		revision_view_set_compact_mode (priv->sha, compact_mode);
+		revision_view_set_compact_mode (priv->log, compact_mode);
+		revision_view_set_compact_mode (priv->date_label, compact_mode);
+		revision_view_set_compact_mode (priv->sha_label, compact_mode);
+		revision_view_set_compact_mode (priv->log_label, compact_mode);
+
+		g_object_notify (G_OBJECT (view), "compact-mode");
+	}
 }

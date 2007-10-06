@@ -52,7 +52,9 @@ GtkWidget *        giggle_revision_view_new               (void);
 void               giggle_revision_view_set_revision      (GiggleRevisionView *view,
 							   GiggleRevision     *revision);
 GiggleRevision *   giggle_revision_view_get_revision      (GiggleRevisionView *view);
-
+gboolean           giggle_revision_view_get_compact_mode  (GiggleRevisionView *view);
+void               giggle_revision_view_set_compact_mode (GiggleRevisionView  *view,
+							  gboolean             compact_mode);
 
 G_END_DECLS
 
