@@ -53,6 +53,7 @@ struct GiggleViewHistoryPriv {
 	GtkWidget *revision_hpaned;
 
 	GtkWidget *revision_view_expander;
+	GtkWidget *revision_expander_box;
 	GtkWidget *revision_expander_label;
 	GtkWidget *branches_label;
 
@@ -168,26 +169,27 @@ static GtkWidget *
 view_history_create_revision_expander (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
-	GtkWidget             *expander, *label;
+	GtkWidget             *expander;
 
 	priv = GET_PRIV (view);
 
-	priv->revision_expander_label = gtk_hbox_new (FALSE, 12);
+	priv->revision_expander_box = gtk_hbox_new (FALSE, 12);
 
-	label = gtk_label_new_with_mnemonic (_("Revision _information"));
-	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
-	gtk_box_pack_start (GTK_BOX (priv->revision_expander_label), label, FALSE, FALSE, 0);
+	priv->revision_expander_label = gtk_label_new_with_mnemonic (_("Revision _information"));
+	gtk_misc_set_alignment (GTK_MISC (priv->revision_expander_label), 0.0, 0.0);
+	gtk_box_pack_start (GTK_BOX (priv->revision_expander_box), 
+			    priv->revision_expander_label, FALSE, FALSE, 0);
 
 	priv->branches_label = gtk_label_new (NULL);
 	gtk_misc_set_alignment (GTK_MISC (priv->branches_label), 1.0, 0.0);
 	gtk_label_set_ellipsize (GTK_LABEL (priv->branches_label), PANGO_ELLIPSIZE_END);
-	gtk_box_pack_start (GTK_BOX (priv->revision_expander_label), priv->branches_label, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (priv->revision_expander_box), priv->branches_label, TRUE, TRUE, 0);
 
 	expander = gtk_expander_new (NULL);
-	gtk_expander_set_label_widget (GTK_EXPANDER (expander), priv->revision_expander_label);
+	gtk_expander_set_label_widget (GTK_EXPANDER (expander), priv->revision_expander_box);
 	gtk_widget_show_all (expander);
 
-	g_signal_connect (priv->revision_expander_label, "size-allocate",
+	g_signal_connect (priv->revision_expander_box, "size-allocate",
 			  G_CALLBACK (view_history_expander_label_size_allocation), view);
 
 	return expander;
@@ -844,11 +846,37 @@ giggle_view_history_new (void)
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY, NULL);
 }
 
+static void
+view_history_set_compact_mode (GtkWidget *widget,
+			       gboolean   compact_mode)
+{
+	GtkRcStyle *rc_style;
+	gint        size;
+
+	rc_style = gtk_widget_get_modifier_style (widget);
+
+	if (rc_style->font_desc) {
+		/* free old font desc */
+		pango_font_description_free (rc_style->font_desc);
+		rc_style->font_desc = NULL;
+	}
+
+	if (compact_mode) {
+		rc_style->font_desc = pango_font_description_copy (widget->style->font_desc);
+		size = pango_font_description_get_size (rc_style->font_desc);
+		pango_font_description_set_size (rc_style->font_desc,
+						 size * PANGO_SCALE_SMALL);
+	}
+
+	gtk_widget_modify_style (widget, rc_style);
+}
+
 void
 giggle_view_history_set_compact_mode (GiggleViewHistory *view,
 				      gboolean           compact_mode)
 {
 	GiggleViewHistoryPriv *priv;
+	GtkWidget             *label;
 
 	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
 
@@ -857,6 +885,15 @@ giggle_view_history_set_compact_mode (GiggleViewHistory *view,
 	giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (priv->file_list), compact_mode);
 	giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (priv->revision_list), compact_mode);
 	giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (priv->diff_view), compact_mode);
+	giggle_revision_view_set_compact_mode (GIGGLE_REVISION_VIEW (priv->revision_view), compact_mode);
+	giggle_diff_tree_view_set_compact_mode (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view), compact_mode);
+
+	view_history_set_compact_mode (priv->revision_expander_label, compact_mode);
+	view_history_set_compact_mode (priv->branches_label, compact_mode);
+
+	label = gtk_expander_get_label_widget (GTK_EXPANDER (priv->diff_view_expander));
+	view_history_set_compact_mode (label, compact_mode);
+
 	priv->compact_mode = compact_mode;
 }
 
