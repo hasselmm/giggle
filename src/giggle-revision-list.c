@@ -1114,10 +1114,13 @@ revision_property_matches (GiggleRevision *revision,
 			   const gchar    *search_term)
 {
 	gboolean  match;
-	gchar    *str;
+	gchar    *str, *casefold_str;
 
 	g_object_get (revision, property, &str, NULL);
-	match = strcasestr (str, search_term) != NULL;
+	casefold_str = g_utf8_casefold (str, -1);
+	match = strstr (casefold_str, search_term) != NULL;
+
+	g_free (casefold_str);
 	g_free (str);
 
 	return match;
@@ -1158,6 +1161,7 @@ log_matches_cb (GiggleGit *git,
 	RevisionSearchData     *data;
 	GiggleRevisionListPriv *priv;
 	const gchar            *log;
+	gchar                  *casefold_log;
 
 	data = (RevisionSearchData *) user_data;
 	priv = GET_PRIV (data->list);
@@ -1166,7 +1170,10 @@ log_matches_cb (GiggleGit *git,
 		data->match = FALSE;
 	} else {
 		log = giggle_git_log_get_log (GIGGLE_GIT_LOG (job));
-		data->match = (strstr (log, data->search_term) != NULL);
+		casefold_log = g_utf8_casefold (log, -1);
+		data->match = (strstr (casefold_log, data->search_term) != NULL);
+
+		g_free (casefold_log);
 	}
 
 	g_object_unref (priv->job);

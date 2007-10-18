@@ -55,6 +55,7 @@ giggle_searchable_search (GiggleSearchable      *searchable,
 			  gboolean               full_search)
 {
 	GiggleSearchableIface *iface;
+	gboolean result = FALSE;
 
 	g_return_val_if_fail (GIGGLE_IS_SEARCHABLE (searchable), FALSE);
 	g_return_val_if_fail (direction == GIGGLE_SEARCH_DIRECTION_NEXT ||
@@ -63,10 +64,16 @@ giggle_searchable_search (GiggleSearchable      *searchable,
 	iface = GIGGLE_SEARCHABLE_GET_IFACE (searchable);
 
 	if (iface->search) {
-		return (* iface->search) (searchable, search_term, direction, full_search);
+		gchar *casefold_search_term;
+
+		casefold_search_term = g_utf8_casefold (search_term, -1);
+		result = (* iface->search) (searchable, casefold_search_term,
+					    direction, full_search);
+
+		g_free (casefold_search_term);
 	}
 
-	return FALSE;
+	return result;
 }
 
 void

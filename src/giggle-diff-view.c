@@ -207,7 +207,7 @@ diff_view_do_search (GiggleDiffView *view,
 	GiggleDiffViewPriv *priv;
 	GtkTextBuffer      *buffer;
 	GtkTextIter         start_iter, end_iter;
-	gchar              *log;
+	gchar              *diff;
 	const gchar        *p;
 	glong               offset, len;
 	gboolean            match = FALSE;
@@ -216,11 +216,11 @@ diff_view_do_search (GiggleDiffView *view,
 
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
 	gtk_text_buffer_get_bounds (buffer, &start_iter, &end_iter);
-	log = gtk_text_buffer_get_text (buffer, &start_iter, &end_iter, FALSE);
+	diff = gtk_text_buffer_get_text (buffer, &start_iter, &end_iter, FALSE);
 
-	if ((p = strstr (log, search_term)) != NULL) {
+	if ((p = strstr (diff, search_term)) != NULL) {
 		match = TRUE;
-		offset = g_utf8_pointer_to_offset (log, p);
+		offset = g_utf8_pointer_to_offset (diff, p);
 		len = g_utf8_strlen (search_term, -1);
 
 		gtk_text_buffer_get_iter_at_offset (buffer, &start_iter, (gint) offset);
@@ -233,7 +233,7 @@ diff_view_do_search (GiggleDiffView *view,
 					      0.0, FALSE, 0.5, 0.5);
 	}
 
-	g_free (log);
+	g_free (diff);
 	return match;
 }
 

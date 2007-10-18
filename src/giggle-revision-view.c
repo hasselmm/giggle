@@ -276,23 +276,31 @@ revision_view_search (GiggleSearchable      *searchable,
 {
 	GiggleRevisionViewPriv *priv;
 	const gchar            *str, *p;
-	gchar                  *log;
+	gchar                  *log, *casefold_log, *casefold_str;
 	glong                   offset, len;
 	GtkTextBuffer          *buffer;
 	GtkTextIter             start_iter, end_iter;
+	gboolean                result = FALSE;
 
 	priv = GET_PRIV (searchable);
 
 	/* search in SHA label */
 	str = gtk_label_get_text (GTK_LABEL (priv->sha));
+	casefold_str = g_utf8_casefold (str, -1);
 
-	if ((p = strcasestr (str, search_term)) != NULL) {
-		offset = g_utf8_pointer_to_offset (str, p);
+	if ((p = strstr (casefold_str, search_term)) != NULL) {
+		offset = g_utf8_pointer_to_offset (casefold_str, p);
 		len = g_utf8_strlen (search_term, -1);
 
 		gtk_label_select_region (GTK_LABEL (priv->sha),
 					 (gint) offset, (gint) offset + len);
 
+		result = TRUE;
+	}
+
+	g_free (casefold_str);
+
+	if (result) {
 		return TRUE;
 	}
 
@@ -300,9 +308,10 @@ revision_view_search (GiggleSearchable      *searchable,
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->log));
 	gtk_text_buffer_get_bounds (buffer, &start_iter, &end_iter);
 	log = gtk_text_buffer_get_text (buffer, &start_iter, &end_iter, FALSE);
+	casefold_log = g_utf8_casefold (log, -1);
 
-	if ((p = strcasestr (log, search_term)) != NULL) {
-		offset = g_utf8_pointer_to_offset (log, p);
+	if ((p = strstr (casefold_log, search_term)) != NULL) {
+		offset = g_utf8_pointer_to_offset (casefold_log, p);
 		len = g_utf8_strlen (search_term, -1);
 
 		gtk_text_buffer_get_iter_at_offset (buffer, &start_iter, (gint) offset);
@@ -313,12 +322,13 @@ revision_view_search (GiggleSearchable      *searchable,
 		gtk_text_buffer_move_mark (buffer, priv->search_mark, &start_iter);
 		gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (priv->log), priv->search_mark,
 					      0.0, FALSE, 0.5, 0.5);
-		g_free (log);
-		return TRUE;
+		result = TRUE;
 	}
 
+	g_free (casefold_log);
 	g_free (log);
-	return FALSE;
+
+	return result;
 }
 
 static void
