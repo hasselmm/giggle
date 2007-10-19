@@ -197,7 +197,7 @@ static const GtkActionEntry action_entries[] = {
 	  G_CALLBACK (window_action_personal_details_cb)
 	},
 	{ "Find", GTK_STOCK_FIND,
-	  N_("_Find..."), NULL, N_("Find..."),
+	  N_("_Find..."), "slash", N_("Find..."),
 	  G_CALLBACK (window_action_find_cb)
 	},
 	{ "FindNext", NULL,
