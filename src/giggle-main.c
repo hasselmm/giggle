@@ -59,7 +59,7 @@ main (int argc, char **argv)
 	}
 
 	g_set_application_name ("Giggle");
-
+	gtk_window_set_default_icon_name (PACKAGE);
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));

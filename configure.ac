@@ -113,6 +113,7 @@ AC_OUTPUT([
 	Makefile 
 	src/Makefile
 	data/Makefile
+	pixmaps/Makefile
 	po/Makefile.in
 ])
 
