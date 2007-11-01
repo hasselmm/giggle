@@ -19,3 +19,5 @@ intltool-update
 intltool-update.in
 mkinstalldirs
 .*.sw?
+*.o
+.deps

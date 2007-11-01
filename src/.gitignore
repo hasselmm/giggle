@@ -1,10 +1,8 @@
 .libs
-.deps
 test-graph-renderer
 test-dispatcher
 test-giggle-git
 giggle
-*.o
 *.lo
 *.la
 giggle-marshal.[ch]
