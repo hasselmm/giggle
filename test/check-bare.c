@@ -23,10 +23,66 @@
  * if advised of the possibility of such damage.
  */
 
+#include <giggle-git.h>
+#include <giggle-git-refs.h>
+
+static gboolean passed = TRUE;
+
+static void
+callback (GiggleGit* git,
+	  GiggleJob* job,
+	  GError   * error,
+	  gpointer   loop)
+{
+	GMainLoop* mainloop = loop;
+	GList    * branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
+	gchar    * compare[] = {
+		"clean-makefile-am",
+		"master",
+		"multi-root-test",
+		"tests"
+	};
+	guint i;
+
+	for (i = 0; branches && i < G_N_ELEMENTS (compare); branches = branches->next, i++) {
+		if (strcmp (compare[i], giggle_ref_get_name (branches->data))) {
+			g_warning ("Branch %d was %s (expected: %s)",
+				   i, giggle_ref_get_name (branches->data), compare[i]);
+		}
+	}
+
+	g_main_loop_quit (loop);
+}
+
 int
 main (int   argc,
       char**argv)
 {
-	return 0;
+	GMainLoop* loop;
+	GiggleGit* git;
+	GiggleJob* job;
+	gchar* dir;
+
+	g_type_init ();
+
+	loop = g_main_loop_new (NULL, FALSE);
+
+	dir = g_build_filename (g_get_current_dir (),
+				g_getenv ("srcdir"),
+				"multi-root.git",
+				NULL);
+
+	git = giggle_git_get ();
+	g_return_val_if_fail (giggle_git_set_directory (git, dir, NULL), 1);
+
+	g_free (dir);
+
+	job = giggle_git_refs_new ();
+	giggle_git_run_job (git, job,
+			    callback, loop);
+
+	g_main_loop_run (loop);
+
+	return passed == TRUE ? 0 : 1;
 }
 
