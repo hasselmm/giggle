@@ -1,14 +1,14 @@
 SUBDIRS = src data po pixmaps
 
-INTLTOOL = 			\
-	intltool-extract.in 	\
-	intltool-merge.in 	\
+INTLTOOL = \
+	intltool-extract.in \
+	intltool-merge.in \
 	intltool-update.in
 
-EXTRA_DIST = 			\
+EXTRA_DIST = \
 	$(INTLTOOL)
 
-DISTCLEANFILES = 		\
-	intltool-extract	\
-	intltool-merge		\
+DISTCLEANFILES = \
+	intltool-extract \
+	intltool-merge \
 	intltool-update
