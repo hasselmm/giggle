@@ -1,4 +1,4 @@
-SUBDIRS = src data po pixmaps
+SUBDIRS = src data po pixmaps test
 
 INTLTOOL = \
 	intltool-extract.in \

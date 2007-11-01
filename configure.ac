@@ -115,6 +115,7 @@ AC_OUTPUT([
 	data/Makefile
 	pixmaps/Makefile
 	po/Makefile.in
+	test/Makefile
 ])
 
 echo
