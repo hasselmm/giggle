@@ -6,6 +6,7 @@ AM_CPPFLAGS =					\
 	$(WARN_CFLAGS)
 
 bin_PROGRAMS = giggle
+lib_LTLIBRARIES = libgiggle.la
 
 dist_ENUMS_TEMPLATES=				\
 	giggle-enums.c.in			\
@@ -22,7 +23,7 @@ GTK_OSX_SOURCES = 				\
 	ige-mac-menu.h
 endif
 
-giggle_SOURCES =				\
+libgiggle_la_SOURCES =				\
 	$(BUILT_SOURCES)			\
 	$(GTK_OSX_SOURCES)			\
 	eggfindbar.c				\
@@ -132,12 +133,23 @@ giggle_SOURCES =				\
 	giggle-view-summary.h			\
 	giggle-window.c				\
 	giggle-window.h				\
+	$(NULL)
+
+libgiggle_la_LIBADD=\
+	$(GIGGLE_LIBS)
+libgiggle_la_LDFLAGS=\
+	$(AM_LDFLAGS) \
+	-release $(PACKAGE_VERSION) \
+	$(NULL)
+
+giggle_SOURCES=\
 	giggle-main.c
 
-giggle_LDADD = 					\
-	$(GIGGLE_LIBS)
+LDADD=\
+	libgiggle.la \
+	$(libgiggle_la_LIBADD)
 
-giggle_LDFLAGS =				\
+AM_LDFLAGS=\
 	$(PLATFORM_LDFLAGS)
 
 noinst_PROGRAMS = 			        \
@@ -150,72 +162,14 @@ noinst_PROGRAMS = 			        \
 #	giggle-graph-renderer.c	giggle-graph-renderer.h	\
 #	test-graph-renderer.c
 
-#test_graph_renderer_LDADD =		        \
-#	$(GIGGLE_LIBS)
-
 test_dispatcher_SOURCES =                       \
-	giggle-dispatcher.c                     \
-	giggle-dispatcher.h                     \
-	giggle-error.c                          \
-	giggle-error.h                          \
-	giggle-sysdeps.c                        \
-	giggle-sysdeps.h                        \
 	test-dispatcher.c
 
-test_dispatcher_LDADD =                         \
-	$(GIGGLE_LIBS) 
-
 test_file_list_SOURCES =			\
-	$(BUILT_SOURCES)			\
-	giggle-branch.c				\
-	giggle-diff-view.c			\
-	giggle-diff-window.c			\
-	giggle-dispatcher.c			\
-	giggle-error.c				\
-	giggle-sysdeps.c			\
-	giggle-git.c				\
-	giggle-git-commit.c			\
-	giggle-git-add.c			\
-	giggle-git-diff.c			\
-	giggle-git-diff-tree.c			\
-	giggle-git-diff-tree.h			\
-	giggle-git-list-files.c			\
-	giggle-job.c				\
-	giggle-file-list.c			\
-	giggle-git-ignore.c			\
-	giggle-ref.c				\
-	giggle-ref.h				\
-	giggle-remote.c				\
-	giggle-remote.h				\
-	giggle-remote-branch.c			\
-	giggle-remote-branch.h			\
-	giggle-revision.c			\
-	giggle-revision.h			\
-	giggle-searchable.c			\
 	test-file-list.c
 
-test_file_list_LDADD =				\
-	$(GIGGLE_LIBS)
-
 test_giggle_git_SOURCES =                       \
-	$(BUILT_SOURCES)			\
-	giggle-branch.c				\
-	giggle-dispatcher.c                     \
-	giggle-error.c                          \
-	giggle-sysdeps.c                        \
-	giggle-ref.c				\
-	giggle-revision.c                       \
-	giggle-git.c                            \
-	giggle-git-diff.c                       \
-	giggle-job.c                            \
-	giggle-remote.c				\
-	giggle-remote.h				\
-	giggle-remote-branch.c			\
-	giggle-remote-branch.h			\
 	test-giggle-git.c
-
-test_giggle_git_LDADD =                         \
-	$(GIGGLE_LIBS)
 
 giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
 	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
