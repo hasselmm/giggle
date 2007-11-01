@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if test "x$srcdir" = "x"; then
+	srcdir=`pwd`
+fi
+
+export GIT_DIR="$srcdir/multi-root.git"
+
+../src/giggle
+
