@@ -21,3 +21,4 @@ mkinstalldirs
 .*.sw?
 *.o
 .deps
+.libs
