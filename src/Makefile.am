@@ -17,7 +17,7 @@ h_files = \
 	giggle-remote-branch.h \
 	giggle-git-list-files.h
 
-if HAVE_PLATFORM_OSX
+if IGE_PLATFORM_OSX
 GTK_OSX_SOURCES = \
 	ige-mac-menu.c \
 	ige-mac-menu.h
