@@ -570,6 +570,8 @@ menu_event_handler_func (EventHandlerCallRef  event_handler_call_ref,
   return CallNextEventHandler (event_handler_call_ref, event_ref);
 }
 
+static gboolean is_setup = FALSE;
+
 static void
 setup_menu_event_handler (void)
 {
@@ -581,6 +583,9 @@ setup_menu_event_handler (void)
     { kEventClassMenu, kEventMenuOpening },
     { kEventClassMenu, kEventMenuClosed }
   };
+
+  if (is_setup)
+    return;
 
   /* FIXME: We might have to install one per window? */
 
@@ -594,6 +599,7 @@ setup_menu_event_handler (void)
   RemoveEventHandler(menu_event_handler_ref);
   DisposeEventHandlerUPP(menu_event_handler_upp);
 #endif
+  is_setup = TRUE;
 }
 
 static void
@@ -799,6 +805,8 @@ ige_mac_menu_set_quit_menu_item (GtkMenuItem *menu_item)
   MenuItemIndex index;
 
   g_return_if_fail (GTK_IS_MENU_ITEM (menu_item));
+
+  setup_menu_event_handler ();
 
   if (GetIndMenuItemWithCommandID (NULL, kHICommandQuit, 1,
                                    &appmenu, &index) == noErr)
