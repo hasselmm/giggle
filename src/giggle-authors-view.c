@@ -152,7 +152,7 @@ authors_view_finalize (GObject *object)
 	GiggleAuthorsViewPriv *priv;
 
 	priv = GET_PRIV (object);
-	
+
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
 		g_object_unref (priv->job);
