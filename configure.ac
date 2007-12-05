@@ -30,7 +30,7 @@ dnl  ------------------
 PKG_CHECK_MODULES(GIGGLE, [
         glib-2.0 >= 2.12
 	gtk+-2.0 >= 2.10
-	gtksourceview-1.0 > 1.8
+	gtksourceview-2.0 > 2.0
 	libglade-2.0 > 2.4
 ])
 

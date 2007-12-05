@@ -106,7 +106,7 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	PangoFontDescription      *font_desc;
 	GtkTextBuffer             *buffer;
 	GtkSourceLanguage         *language;
-	GtkSourceLanguagesManager *manager;
+	GtkSourceLanguageManager  *manager;
 	GtkTextIter                iter;
 
 	priv = GET_PRIV (diff_view);
@@ -120,13 +120,12 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	gtk_widget_modify_font (GTK_WIDGET (diff_view), font_desc);
 	pango_font_description_free (font_desc);
 
-	manager = gtk_source_languages_manager_new ();
-	language = gtk_source_languages_manager_get_language_from_mime_type (
-		manager, "text/x-patch");
+	manager = gtk_source_language_manager_new ();
+	language = gtk_source_language_manager_get_language (manager, "diff");
 
 	if (language) {
 		buffer = GTK_TEXT_BUFFER (gtk_source_buffer_new_with_language (language));
-		gtk_source_buffer_set_highlight (GTK_SOURCE_BUFFER (buffer), TRUE);
+		gtk_source_buffer_set_highlight_syntax (GTK_SOURCE_BUFFER (buffer), TRUE);
 		gtk_text_view_set_buffer (GTK_TEXT_VIEW (diff_view), buffer);
 
 		gtk_text_buffer_get_start_iter (buffer, &iter);

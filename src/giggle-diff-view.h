@@ -24,7 +24,7 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include <gtksourceview/gtksourceview.h>
-#include <gtksourceview/gtksourcelanguagesmanager.h>
+#include <gtksourceview/gtksourcelanguagemanager.h>
 
 #include "giggle-revision.h"
 
