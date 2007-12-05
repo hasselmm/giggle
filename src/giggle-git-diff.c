@@ -29,6 +29,8 @@ struct GiggleGitDiffPriv {
 	GiggleRevision *rev2;
 
 	GList          *files;
+	GiggleRevision *patch_format;
+
 	gchar          *result;
 };
 
@@ -57,6 +59,7 @@ enum {
 	PROP_REV1,
 	PROP_REV2,
 	PROP_FILES,
+	PROP_PATCH_FORMAT
 };
 
 static void
@@ -92,6 +95,13 @@ giggle_git_diff_class_init (GiggleGitDiffClass *class)
 							       "Files",
 							       "Files list to make diff on",
 							       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_PATCH_FORMAT,
+					 g_param_spec_object ("patch-format",
+							      "Patch format",
+							      "The revision to output a patch format for",
+							      GIGGLE_TYPE_REVISION,
+							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitDiffPriv));
 }
@@ -121,6 +131,10 @@ git_diff_finalize (GObject *object)
 	g_list_foreach (priv->files, (GFunc) g_free, NULL);
 	g_list_free (priv->files);
 
+	if (priv->patch_format) {
+		g_object_unref (priv->patch_format);
+	}
+
 	G_OBJECT_CLASS (giggle_git_diff_parent_class)->finalize (object);
 }
 
@@ -143,6 +157,9 @@ git_diff_get_property (GObject    *object,
 		break;
 	case PROP_FILES:
 		g_value_set_pointer (value, priv->files);
+		break;
+	case PROP_PATCH_FORMAT:
+		g_value_set_object (value, priv->patch_format);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -184,6 +201,9 @@ git_diff_set_property (GObject      *object,
 	case PROP_FILES:
 		priv->files = g_value_get_pointer (value);
 		break;
+	case PROP_PATCH_FORMAT:
+		priv->patch_format = g_value_get_object (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -200,22 +220,39 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 	priv = GET_PRIV (job);
 	files = priv->files;
 
-	str = g_string_new (GIT_COMMAND " diff");
+	/* NOTE: 
+	 * Git currently (20071009) v1.5.2.1 only supports:
+	 *
+	 *   $ git format-patch
+	 *
+	 * for COMPLETE changes sets to a branch, you can't use this
+	 * command for a selection of files you have changed, also, it
+	 * only works for committed work, not uncommitted work AFAICS. 
+	 */
+	if (priv->patch_format) {
+		str = g_string_new (GIT_COMMAND " format-patch");
 
-	if (priv->rev1) {
-		g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev1));
-	}
+		g_string_append_printf (str, " %s -1", 
+					giggle_revision_get_sha (priv->patch_format));
+	} else {
+		str = g_string_new (GIT_COMMAND " diff");
 
-	if (priv->rev2) {
-		g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev2));
-	}
+		if (priv->rev1) {
+			g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev1));
+		}
+		
+		if (priv->rev2) {
+			g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev2));
+		}
 
-	while (files) {
-		g_string_append_printf (str, " %s", (gchar *) files->data);
-		files = files->next;
+		while (files) {
+			g_string_append_printf (str, " %s", (gchar *) files->data);
+			files = files->next;
+		}
 	}
 
 	*command_line = g_string_free (str, FALSE);
+	g_printerr ("using cmd line: '%s'\n", *command_line);
 	return TRUE;
 }
 
@@ -256,11 +293,54 @@ void
 giggle_git_diff_set_files (GiggleGitDiff *diff,
 			   GList         *files)
 {
+	GiggleGitDiffPriv *priv;
+
 	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
+
+	priv = GET_PRIV (diff);
+
+	if (priv->files) {
+		g_warning ("You have the 'patch-format' property set to TRUE. "
+			   "Use of the git-format-patch command does not allow specific files. "
+			   "These files will be ignored while 'patch-format' is TRUE.");
+	}
 
 	g_object_set (diff,
 		      "files", files,
 		      NULL);
+}
+
+void
+giggle_git_diff_set_patch_format (GiggleGitDiff  *diff,
+				  GiggleRevision *rev)
+{
+	GiggleGitDiffPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_GIT_DIFF (diff));
+	g_return_if_fail (GIGGLE_IS_REVISION (rev));
+
+	priv = GET_PRIV (diff);
+
+	if (priv->files) {
+		g_warning ("Use of the git-format-patch command does not allow specific files. "
+			   "You have files set for this GiggleGitDiff which will be ignored.");
+	}
+
+	g_object_set (diff,
+		      "patch-format", rev,
+		      NULL);
+}
+
+GiggleRevision *
+giggle_git_diff_get_patch_format (GiggleGitDiff *diff)
+{
+	GiggleGitDiffPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF (diff), NULL);
+
+	priv = GET_PRIV (diff);
+
+	return priv->patch_format;
 }
 
 const gchar *
@@ -274,4 +354,3 @@ giggle_git_diff_get_result (GiggleGitDiff *diff)
 
 	return priv->result;
 }
-

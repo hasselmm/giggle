@@ -46,19 +46,18 @@ struct GiggleGitDiffClass {
 	GiggleJobClass parent_class;
 };
 
-GType		      giggle_git_diff_get_type   (void);
+GType              giggle_git_diff_get_type         (void);
 
-GiggleJob *           giggle_git_diff_new           (void);
-
-void                  giggle_git_diff_set_revisions (GiggleGitDiff  *diff,
+GiggleJob *        giggle_git_diff_new              (void);
+void               giggle_git_diff_set_revisions    (GiggleGitDiff  *diff,
 						     GiggleRevision *rev1,
 						     GiggleRevision *rev2);
-
-void                  giggle_git_diff_set_files     (GiggleGitDiff  *diff,
+void               giggle_git_diff_set_files        (GiggleGitDiff  *diff,
 						     GList          *files);
-
-const gchar *         giggle_git_diff_get_result    (GiggleGitDiff  *diff);;
-
+void               giggle_git_diff_set_patch_format (GiggleGitDiff  *diff,
+						     GiggleRevision *rev);
+GiggleRevision    *giggle_git_diff_get_patch_format (GiggleGitDiff  *diff);
+const gchar *      giggle_git_diff_get_result       (GiggleGitDiff  *diff);
 
 G_END_DECLS
 

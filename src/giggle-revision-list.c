@@ -162,7 +162,8 @@ static void revision_list_create_branch           (GtkAction          *action,
 						   GiggleRevisionList *list);
 static void revision_list_create_tag              (GtkAction          *action,
 						   GiggleRevisionList *list);
-
+static void revision_list_create_patch            (GtkAction          *action,
+						   GiggleRevisionList *list);
 
 G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
@@ -173,11 +174,13 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE
 #define COMMIT_UI_PATH        "/ui/PopupMenu/Commit"
 #define CREATE_BRANCH_UI_PATH "/ui/PopupMenu/CreateBranch"
 #define CREATE_TAG_UI_PATH    "/ui/PopupMenu/CreateTag"
+#define CREATE_PATCH_UI_PATH  "/ui/PopupMenu/CreatePatch"
 
 static GtkActionEntry menu_items [] = {
 	{ "Commit",         NULL,                 N_("Commit"),         NULL, NULL, G_CALLBACK (revision_list_commit) },
 	{ "CreateBranch",   NULL,                 N_("Create _Branch"), NULL, NULL, G_CALLBACK (revision_list_create_branch) },
 	{ "CreateTag",      "stock_add-bookmark", N_("Create _Tag"),    NULL, NULL, G_CALLBACK (revision_list_create_tag) },
+	{ "CreatePatch",    NULL,                 N_("Create _Patch"),  NULL, NULL, G_CALLBACK (revision_list_create_patch) },
 };
 
 static const gchar *ui_description =
@@ -186,6 +189,8 @@ static const gchar *ui_description =
 	"    <menuitem action='Commit'/>"
 	"    <menuitem action='CreateBranch'/>"
 	"    <menuitem action='CreateTag'/>"
+	"    <separator/>"
+	"    <menuitem action='CreatePatch'/>"
 	"    <separator/>"
 	"    <placeholder name='Refs'/>"
 	"  </popup>"
@@ -611,16 +616,17 @@ revision_list_setup_popup (GiggleRevisionList *list,
 			   GiggleRevision     *revision)
 {
 	GiggleRevisionListPriv *priv;
+	GtkTreeSelection       *selection;
 	GtkAction              *action;
 
 	priv = GET_PRIV (list);
-
+	
 	/* clear action list */
 	revision_list_clear_popup_refs (list);
 
 	if (revision) {
 		action = gtk_ui_manager_get_action (priv->ui_manager, COMMIT_UI_PATH);
-		gtk_action_set_visible (action, FALSE);
+		gtk_action_set_visible (action, FALSE); 
 
 		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_BRANCH_UI_PATH);
 		gtk_action_set_visible (action, TRUE);
@@ -644,6 +650,16 @@ revision_list_setup_popup (GiggleRevisionList *list,
 
 		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_TAG_UI_PATH);
 		gtk_action_set_visible (action, FALSE);
+	}
+
+	/* We can always create a patch if there is something
+	 * selected, the big thing here is, we can have NO revision
+	 * but 1 item selected (i.e. when there are local changes.
+	 */
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	if (gtk_tree_selection_count_selected_rows (selection) > 0) {
+		action = gtk_ui_manager_get_action (priv->ui_manager, CREATE_PATCH_UI_PATH);
+		gtk_action_set_visible (action, TRUE);
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
@@ -715,6 +731,7 @@ revision_list_button_press (GtkWidget      *widget,
 			gtk_tree_model_get (model, &iter,
 					    COL_OBJECT, &revision,
 					    -1);
+			gtk_tree_path_free (path);
 
 			if (!revision) {
 				/* clicked on the uncommitted changes revision */
@@ -1499,6 +1516,206 @@ revision_list_create_tag (GtkAction          *action,
 	g_list_free (paths);
 	g_object_unref (revision);
 	gtk_widget_destroy (input_dialog);
+}
+
+static void
+revision_list_create_patch_callback (GiggleGit *git,
+				     GiggleJob *job,
+				     GError    *error,
+				     gpointer   user_data)
+{
+	GiggleRevisionList     *list;
+	GiggleRevisionListPriv *priv;
+	GtkWidget              *dialog;
+	gboolean                result_is_diff;
+	gboolean                show_success = TRUE; 
+	const gchar            *filename;
+	gchar                  *primary_str;
+		
+	list = GIGGLE_REVISION_LIST (user_data);
+	priv = GET_PRIV (list);
+
+	/* Then there is no patch format revision then we have a diff
+	 * not a filename in the _get_result() function const gchar *
+	 * returned.
+	 */
+	result_is_diff = giggle_git_diff_get_patch_format (GIGGLE_GIT_DIFF (priv->job)) == NULL;
+	if (result_is_diff) {
+		filename = g_object_get_data (G_OBJECT (priv->job), "create-patch-filename");
+	} else {
+		filename = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (priv->job));
+	}
+
+	/* Set up the dialog we show */
+	if (error) {
+		const gchar *secondary_str;
+		
+		show_success = FALSE;
+
+		if (result_is_diff) {
+			primary_str = g_strdup_printf (_("Could not save the patch as %s"), filename);
+		} else {
+			primary_str = g_strdup_printf (_("Could not create patch"));
+		}
+		
+		if (error->message) {
+			secondary_str = error->message;
+		} else {
+			secondary_str = _("No error was given");
+		}
+
+		dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+							     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+							     GTK_MESSAGE_ERROR,
+							     GTK_BUTTONS_OK,
+							     "<b>%s</b>",
+							     primary_str);
+		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+
+		g_free (primary_str);
+	} else if (result_is_diff) {
+		GError      *save_error = NULL;
+		const gchar *result;
+	
+		result = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (priv->job));
+		
+		show_success = g_file_set_contents (filename, result, -1, &save_error);
+		if (!show_success) {
+			const gchar *secondary_str;
+
+			primary_str = g_strdup_printf (_("Could not save the patch as %s"), filename);
+
+			if (save_error && save_error->message) {
+				secondary_str = save_error->message;
+			} else {
+				secondary_str = _("No error was given");
+			}
+
+			dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+								     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+								     GTK_MESSAGE_ERROR,
+								     GTK_BUTTONS_OK,
+								     "<b>%s</b>",
+								     primary_str);
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+
+			g_free (primary_str);
+			g_error_free (save_error);
+		}
+	} 
+
+	/* We didn't show any of the errors above, report the success */
+	if (show_success) {
+		gchar *dirname;
+		gchar *basename;
+		gchar *secondary_str;
+
+		dirname = g_path_get_dirname (filename);
+		basename = g_path_get_basename (filename);
+		
+		primary_str = g_strdup_printf (_("Patch saved as %s"), basename);
+		g_free (basename);
+		
+		if (!dirname || strcmp (dirname, ".") == 0) {
+			secondary_str = g_strdup_printf (_("Created in project directory"));
+			g_free (dirname);
+		} else {
+			secondary_str = g_strdup_printf (_("Created in directory %s"), dirname);
+			g_free (dirname);
+		}		
+		
+		dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+							     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+							     GTK_MESSAGE_INFO,
+							     GTK_BUTTONS_OK,
+							     "<b>%s</b>",
+							     primary_str);
+		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), 
+							  secondary_str);
+			
+		g_free (secondary_str);
+		g_free (primary_str);
+	}
+
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+	
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
+revision_list_create_patch (GtkAction          *action,
+			    GiggleRevisionList *list)
+{
+	GiggleRevisionListPriv *priv;
+	GtkTreeSelection       *selection;
+	GtkTreeIter             iter;
+	GtkTreeModel           *model;
+	GiggleRevision         *revision;
+	GList                  *paths;
+	GtkWidget              *dialog;
+	gchar                  *filename = NULL;
+
+	priv = GET_PRIV (list);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	paths = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	g_return_if_fail (paths != NULL);
+
+	gtk_tree_model_get_iter (model, &iter, (GtkTreePath *) paths->data);
+	gtk_tree_model_get (model, &iter, COL_OBJECT, &revision, -1);
+	g_list_foreach (paths, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free (paths);
+
+	/* If we don't have a revision, it means we selected the item
+	 * for uncommitted changes, and we can only do a diff here.
+	 */
+	if (!revision) {
+		dialog = gtk_file_chooser_dialog_new (_("Create Patch"), 
+						      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+						      GTK_FILE_CHOOSER_ACTION_SAVE,
+						      GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+						      GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+						      NULL);
+		gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (dialog), TRUE);
+		
+		if (gtk_dialog_run (GTK_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT) {
+			gtk_widget_destroy (dialog);
+			return;
+		}
+		
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		gtk_widget_destroy (dialog);
+		
+		if (!filename || filename[0] == '\0') {
+			return;
+		}
+	}
+	
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+		
+	priv->job = giggle_git_diff_new ();
+
+	if (!revision) {
+		g_object_set_data_full (G_OBJECT (priv->job), "create-patch-filename", filename, g_free);
+	} else {
+		giggle_git_diff_set_patch_format (GIGGLE_GIT_DIFF (priv->job), revision);
+	}
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    revision_list_create_patch_callback,
+			    list);
+
+	if (revision) {
+		g_object_unref (revision);
+	}
 }
 
 GtkWidget*

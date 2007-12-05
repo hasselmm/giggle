@@ -29,6 +29,7 @@
 #include "giggle-git-ignore.h"
 #include "giggle-git-list-files.h"
 #include "giggle-git-add.h"
+#include "giggle-git-diff.h"
 #include "giggle-git-diff-tree.h"
 #include "giggle-revision.h"
 #include "giggle-enums.h"
@@ -36,23 +37,26 @@
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 
 struct GiggleFileListPriv {
-	GiggleGit    *git;
-	GtkIconTheme *icon_theme;
+	GiggleGit      *git;
+	GtkIconTheme   *icon_theme;
 
-	GtkTreeStore *store;
-	GtkTreeModel *filter_model;
+	GtkTreeStore   *store;
+	GtkTreeModel   *filter_model;
 
-	GtkWidget    *popup;
-	GtkUIManager *ui_manager;
+	GtkWidget      *popup;
+	GtkUIManager   *ui_manager;
 
-	GiggleJob    *job;
+	GiggleJob      *job;
 
-	GtkWidget    *diff_window;
+	GtkWidget      *diff_window;
 
-	GHashTable   *idle_jobs;
+	GHashTable     *idle_jobs;
 
-	guint         show_all : 1;
-	guint         compact_mode : 1;
+	GiggleRevision *revision_from;
+	GiggleRevision *revision_to;
+
+	guint           show_all : 1;
+	guint           compact_mode : 1;
 };
 
 typedef struct IdleLoaderData IdleLoaderData;
@@ -111,6 +115,8 @@ static void       file_list_diff_file           (GtkAction        *action,
 						 GiggleFileList   *list);
 static void       file_list_add_file            (GtkAction        *action,
 						 GiggleFileList   *list);
+static void       file_list_create_patch        (GtkAction        *action,
+						 GiggleFileList   *list);
 static void       file_list_ignore_file         (GtkAction        *action,
 						 GiggleFileList   *list);
 static void       file_list_unignore_file       (GtkAction        *action,
@@ -165,10 +171,11 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0, };
 
 static GtkActionEntry menu_items [] = {
-	{ "Commit",   NULL,             N_("_Commit Changes"),         NULL, NULL, G_CALLBACK (file_list_diff_file) },
-	{ "AddFile",  NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
-	{ "Ignore",   GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
-	{ "Unignore", GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
+	{ "Commit",      NULL,             N_("_Commit Changes"),         NULL, NULL, G_CALLBACK (file_list_diff_file) },
+	{ "AddFile",     NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
+	{ "CreatePatch", NULL,             N_("Create _Patch"),           NULL, NULL, G_CALLBACK (file_list_create_patch) },
+	{ "Ignore",      GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
+	{ "Unignore",    GTK_STOCK_REMOVE, N_("_Remove from .gitignore"), NULL, NULL, G_CALLBACK (file_list_unignore_file) },
 };
 
 static GtkToggleActionEntry toggle_menu_items [] = {
@@ -181,6 +188,8 @@ static const gchar *ui_description =
 	"    <menuitem action='Commit'/>"
 	"    <separator/>"
 	"    <menuitem action='AddFile'/>"
+	"    <separator/>"
+	"    <menuitem action='CreatePatch'/>"
 	"    <separator/>"
 	"    <menuitem action='Ignore'/>"
 	"    <menuitem action='Unignore'/>"
@@ -390,6 +399,14 @@ file_list_finalize (GObject *object)
 	g_object_unref (priv->ui_manager);
 
 	g_hash_table_destroy (priv->idle_jobs);
+
+	if (priv->revision_from) {
+		g_object_unref (priv->revision_from);
+	}
+
+	if (priv->revision_to) {
+		g_object_unref (priv->revision_to);
+	}
 
 	G_OBJECT_CLASS (giggle_file_list_parent_class)->finalize (object);
 }
@@ -890,6 +907,162 @@ file_list_add_file (GtkAction      *action,
 	giggle_git_run_job (priv->git,
 			    priv->job,
 			    file_list_add_file_callback,
+			    list);
+}
+
+static void
+file_list_create_patch_callback (GiggleGit *git,
+				 GiggleJob *job,
+				 GError    *error,
+				 gpointer   user_data)
+{
+	GiggleFileList     *list;
+	GiggleFileListPriv *priv;
+	GtkWidget          *dialog;
+	const gchar        *filename;
+	gchar              *primary_str;
+
+	list = GIGGLE_FILE_LIST (user_data);
+	priv = GET_PRIV (list);
+
+	filename = g_object_get_data (G_OBJECT (priv->job), "create-patch-filename");
+
+	if (error) {
+		const gchar *secondary_str;
+		
+		primary_str = g_strdup_printf (_("Could not save the patch as %s"), filename);
+		
+		if (error->message) {
+			secondary_str = error->message;
+		} else {
+			secondary_str = _("No error was given");
+		}
+
+		dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+							     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+							     GTK_MESSAGE_ERROR,
+							     GTK_BUTTONS_OK,
+							     "<b>%s</b>",
+							     primary_str);
+		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+
+		g_free (primary_str);
+	} else {
+		const gchar *result;
+		GError      *save_error = NULL;
+
+		result = giggle_git_diff_get_result (GIGGLE_GIT_DIFF (priv->job));
+		
+		if (!g_file_set_contents (filename, result, -1, &save_error)) {
+			const gchar *secondary_str;
+
+			primary_str = g_strdup_printf (_("Could not save the patch as %s"), filename);
+
+			if (save_error && save_error->message) {
+				secondary_str = save_error->message;
+			} else {
+				secondary_str = _("No error was given");
+			}
+
+			dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+								     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+								     GTK_MESSAGE_ERROR,
+								     GTK_BUTTONS_OK,
+								     "<b>%s</b>",
+								     primary_str);
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+
+			g_free (primary_str);
+			g_error_free (save_error);
+		} else {
+			gchar *dirname;
+			gchar *basename;
+			gchar *secondary_str;
+			
+			dirname = g_path_get_dirname (filename);
+			basename = g_path_get_basename (filename);
+
+			primary_str = g_strdup_printf (_("Patch saved as %s"), basename);
+			g_free (basename);
+			
+			if (!dirname || strcmp (dirname, ".") == 0) {
+				secondary_str = g_strdup_printf (_("Created in project directory"));
+				g_free (dirname);
+			} else {
+				secondary_str = g_strdup_printf (_("Created in directory %s"), dirname);
+				g_free (dirname);
+			}
+		
+			dialog = gtk_message_dialog_new_with_markup (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+								     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+								     GTK_MESSAGE_INFO,
+								     GTK_BUTTONS_OK,
+								     "<b>%s</b>",
+								     primary_str);
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), 
+								  secondary_str);
+			
+			g_free (secondary_str);
+			g_free (primary_str);
+		}
+	}
+	
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+	
+	g_object_unref (priv->job);
+	priv->job = NULL;
+}
+
+static void
+file_list_create_patch (GtkAction      *action,
+			GiggleFileList *list)
+{
+	GiggleFileListPriv *priv;
+	GtkWidget          *dialog;
+	gchar              *filename;
+
+	priv = GET_PRIV (list);
+
+	dialog = gtk_file_chooser_dialog_new (_("Create Patch"), 
+					      GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (list))),
+					      GTK_FILE_CHOOSER_ACTION_SAVE,
+					      GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+					      GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+					      NULL);
+	gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (dialog), TRUE);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT) {
+		gtk_widget_destroy (dialog);
+		return;
+	}
+	
+	filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	gtk_widget_destroy (dialog);
+
+	if (!filename || filename[0] == '\0') {
+		return;
+	}
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	priv->job = giggle_git_diff_new ();
+	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (priv->job),
+				       priv->revision_from,
+				       priv->revision_to);
+	giggle_git_diff_set_files (GIGGLE_GIT_DIFF (priv->job),
+				   giggle_file_list_get_selection (list));
+
+	/* Remember the filename */
+	g_object_set_data_full (G_OBJECT (priv->job), "create-patch-filename", filename, g_free);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    file_list_create_patch_callback,
 			    list);
 }
 
@@ -1542,6 +1715,16 @@ giggle_file_list_highlight_revisions (GiggleFileList *list,
 
 	priv = GET_PRIV (list);
 
+	if (priv->revision_from) {
+		g_object_unref (priv->revision_from);
+		priv->revision_from = NULL;
+	}
+
+	if (priv->revision_to) {
+		g_object_unref (priv->revision_to);
+		priv->revision_to = NULL;
+	}
+
 	/* clear highlights */
 	file_list_update_highlight (list, NULL, NULL, NULL);
 
@@ -1551,6 +1734,10 @@ giggle_file_list_highlight_revisions (GiggleFileList *list,
 			g_object_unref (priv->job);
 			priv->job = NULL;
 		}
+
+		/* Remember the revisions in case we want to create a patch */
+		priv->revision_from = g_object_ref (from);
+		priv->revision_to = g_object_ref (to);
 
 		priv->job = giggle_git_diff_tree_new (from, to);
 
