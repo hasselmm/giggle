@@ -70,12 +70,18 @@ view_summary_update_data (GiggleViewSummary *view)
 {
 	GiggleViewSummaryPriv *priv;
 	gchar                 *markup;
+	const gchar           *name;
 
 	priv = GET_PRIV (view);
 
 	/* we could skip the markup by using PangoAttrList */
+	name = giggle_git_get_project_name (priv->git);
+	if (!name) {
+		name = "";
+	}
+	
 	markup = g_strdup_printf ("<span weight='bold' size='xx-large'>%s</span>",
-				  giggle_git_get_project_name (priv->git));
+				  name);
 	gtk_label_set_markup (GTK_LABEL (priv->name_label), markup);
 	g_free (markup);
 
