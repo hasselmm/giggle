@@ -1,3 +1,28 @@
+Giggle 0.4, 2007-12-07
+----------------------
+Bug
+
+    * [GGL-67] - Rendering Broken
+    * [GGL-78] - Refresh button changes git repository path
+    * [GGL-80] - Giggle fails to run on Solaris due to a segfault.
+
+Improvements
+
+    * [GGL-53] - Make compact view apply to everything.
+    * [GGL-69] - Initial french translation
+    * [GGL-70] - Define LOCALEDIR as config.h macro
+    * [GGL-71] - Application's icon
+    * [GGL-73] - doesn't build with gtksourceview 1.90
+    * [GGL-75] - Add Vietnamese translation
+    * [GGL-77] - Add "remote info" in history view
+
+New Feature
+
+    * [GGL-64] - Support for --diff flag
+    * [GGL-65] - Saving patches
+    * [GGL-74] - Refreshing
+
+
 Giggle 0.3, 2007-05-09
 ----------------------
 
