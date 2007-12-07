@@ -210,5 +210,6 @@ CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST = \
 	giggle-marshal.list \
 	giggle-enums.c.in \
-	giggle-enums.h.in
+	giggle-enums.h.in \
+	$(h_files)
 
