@@ -25,35 +25,18 @@ endif
 
 libgiggle_la_SOURCES = \
 	$(BUILT_SOURCES) \
-	$(GTK_OSX_SOURCES) \
-	eggfindbar.c \
-	eggfindbar.h \
 	giggle-author.c \
 	giggle-author.h \
-	giggle-authors-view.c \
-	giggle-authors-view.h \
 	giggle-branch.c \
 	giggle-branch.h \
-	giggle-branches-view.c \
-	giggle-branches-view.h \
 	giggle-configuration.c \
 	giggle-configuration.h \
-	giggle-description-editor.c \
-	giggle-description-editor.h \
-	giggle-diff-view.c \
-	giggle-diff-view.h \
-	giggle-diff-tree-view.c \
-	giggle-diff-tree-view.h \
-	giggle-diff-window.c \
-	giggle-diff-window.h \
 	giggle-dispatcher.c \
 	giggle-dispatcher.h \
 	giggle-dummy.c \
 	giggle-dummy.h \
 	giggle-error.c \
 	giggle-error.h \
-	giggle-file-list.c \
-	giggle-file-list.h \
 	giggle-git.c \
 	giggle-git.h \
 	giggle-git-add.c \
@@ -84,43 +67,70 @@ libgiggle_la_SOURCES = \
 	giggle-git-revisions.h \
 	giggle-git-write-config.c \
 	giggle-git-write-config.h \
-	giggle-graph-renderer.c \
-	giggle-graph-renderer.h \
 	giggle-history.c \
 	giggle-history.h \
-	giggle-input-dialog.c \
-	giggle-input-dialog.h \
 	giggle-job.c \
 	giggle-job.h \
-	giggle-personal-details-window.c \
-	giggle-personal-details-window.h \
 	giggle-ref.c \
 	giggle-ref.h \
 	giggle-remote.c \
 	giggle-remote.h \
 	giggle-remote-branch.c \
-	giggle-remote-editor.c \
-	giggle-remote-editor.h \
-	giggle-remotes-view.c \
-	giggle-remotes-view.h \
 	giggle-revision.c \
 	giggle-revision.h \
-	giggle-revision-list.c \
-	giggle-revision-list.h \
-	giggle-revision-tooltip.c \
-	giggle-revision-tooltip.h \
-	giggle-revision-view.c \
-	giggle-revision-view.h \
 	giggle-searchable.c \
 	giggle-searchable.h \
-	giggle-short-list.c \
-	giggle-short-list.h \
 	giggle-sysdeps.c \
 	giggle-sysdeps.h \
 	giggle-tag.c \
 	giggle-tag.h \
 	giggle-remote-ref.c \
 	giggle-remote-ref.h \
+	$(NULL)
+
+libgiggle_la_LIBADD= \
+	$(GIGGLE_LIBS)
+libgiggle_la_LDFLAGS= \
+	$(AM_LDFLAGS) \
+	-release $(PACKAGE_VERSION) \
+	$(NULL)
+
+giggle_SOURCES= \
+	$(GTK_OSX_SOURCES) \
+	eggfindbar.c \
+	eggfindbar.h \
+	giggle-authors-view.c \
+	giggle-authors-view.h \
+	giggle-branches-view.c \
+	giggle-branches-view.h \
+	giggle-description-editor.c \
+	giggle-description-editor.h \
+	giggle-diff-view.c \
+	giggle-diff-view.h \
+	giggle-diff-tree-view.c \
+	giggle-diff-tree-view.h \
+	giggle-diff-window.c \
+	giggle-diff-window.h \
+	giggle-file-list.c \
+	giggle-file-list.h \
+	giggle-graph-renderer.c \
+	giggle-graph-renderer.h \
+	giggle-input-dialog.c \
+	giggle-input-dialog.h \
+	giggle-personal-details-window.c \
+	giggle-personal-details-window.h \
+	giggle-remote-editor.c \
+	giggle-remote-editor.h \
+	giggle-remotes-view.c \
+	giggle-remotes-view.h \
+	giggle-revision-list.c \
+	giggle-revision-list.h \
+	giggle-revision-tooltip.c \
+	giggle-revision-tooltip.h \
+	giggle-revision-view.c \
+	giggle-revision-view.h \
+	giggle-short-list.c \
+	giggle-short-list.h \
 	giggle-tree-view-helpers.c \
 	giggle-tree-view-helpers.h \
 	giggle-view.c \
@@ -133,16 +143,6 @@ libgiggle_la_SOURCES = \
 	giggle-view-summary.h \
 	giggle-window.c \
 	giggle-window.h \
-	$(NULL)
-
-libgiggle_la_LIBADD= \
-	$(GIGGLE_LIBS)
-libgiggle_la_LDFLAGS= \
-	$(AM_LDFLAGS) \
-	-release $(PACKAGE_VERSION) \
-	$(NULL)
-
-giggle_SOURCES= \
 	giggle-main.c
 
 LDADD= \
@@ -152,24 +152,10 @@ LDADD= \
 AM_LDFLAGS= \
 	$(PLATFORM_LDFLAGS)
 
-noinst_PROGRAMS = \
-	test-dispatcher \
-	test-file-list \
-	test-giggle-git
-
 #test_graph_renderer_SOURCES = \
 #	giggle-revision.c giggle-revision.h \
 #	giggle-graph-renderer.c	giggle-graph-renderer.h \
 #	test-graph-renderer.c
-
-test_dispatcher_SOURCES = \
-	test-dispatcher.c
-
-test_file_list_SOURCES = \
-	test-file-list.c
-
-test_giggle_git_SOURCES = \
-	test-giggle-git.c
 
 giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
 	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
