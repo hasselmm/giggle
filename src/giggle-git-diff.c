@@ -252,7 +252,6 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 	}
 
 	*command_line = g_string_free (str, FALSE);
-	g_printerr ("using cmd line: '%s'\n", *command_line);
 	return TRUE;
 }
 
