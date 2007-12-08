@@ -26,7 +26,7 @@
 #include "libgiggle/giggle-git-revisions.h"
 #include "giggle-view-file.h"
 #include "giggle-file-list.h"
-#include "giggle-revision-list.h"
+#include "giggle-rev-list-view.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 
@@ -46,7 +46,7 @@ static void    view_file_finalize              (GObject *object);
 
 static void    view_file_selection_changed_cb               (GtkTreeSelection   *selection,
 							     GiggleViewFile     *view);
-static void    view_file_revision_list_selection_changed_cb (GiggleRevisionList *list,
+static void    view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 							     GiggleRevision     *revision1,
 							     GiggleRevision     *revision2,
 							     GiggleViewFile     *view);
@@ -118,7 +118,7 @@ giggle_view_file_init (GiggleViewFile *view)
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
-	priv->revision_list = giggle_revision_list_new ();
+	priv->revision_list = giggle_rev_list_view_new ();
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_file_revision_list_selection_changed_cb), view);
 
@@ -203,7 +203,7 @@ view_file_select_file_job_callback (GiggleGit *git,
 			revisions = revisions->next;
 		}
 
-		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), GTK_TREE_MODEL (store));
+		giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), GTK_TREE_MODEL (store));
 		g_object_unref (store);
 	}
 
@@ -229,7 +229,7 @@ view_file_selection_changed_cb (GtkTreeSelection *selection,
 }
 
 static void
-view_file_revision_list_selection_changed_cb (GiggleRevisionList *list,
+view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 					      GiggleRevision     *revision1,
 					      GiggleRevision     *revision2,
 					      GiggleViewFile     *view)
@@ -270,5 +270,5 @@ giggle_view_file_set_model (GiggleViewFile *view_history,
 
 	priv = GET_PRIV (view_history);
 
-	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), model);
+	giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), model);
 }

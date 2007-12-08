@@ -30,7 +30,7 @@
 #include "libgiggle/giggle-git-diff.h"
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
-#include "giggle-revision-list.h"
+#include "giggle-rev-list-view.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 #include "giggle-diff-tree-view.h"
@@ -77,11 +77,11 @@ static void     view_history_finalize              (GObject *object);
 static void     giggle_view_history_searchable_init             (GiggleSearchableIface *iface);
 static void     giggle_view_history_history_init                (GiggleHistoryIface    *iface);
 
-static void     view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
+static void     view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 								 GiggleRevision     *revision1,
 								 GiggleRevision     *revision2,
 								 GiggleViewHistory  *view);
-static gboolean view_history_revision_list_key_press_cb         (GiggleRevisionList *list,
+static gboolean view_history_revision_list_key_press_cb         (GiggleRevListView *list,
 								 GdkEventKey        *event,
 								 GiggleViewHistory  *view);
 static void     view_history_file_list_status_changed           (GiggleFileList     *list,
@@ -321,7 +321,7 @@ giggle_view_history_init (GiggleViewHistory *view)
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
-	priv->revision_list = giggle_revision_list_new ();
+	priv->revision_list = giggle_rev_list_view_new ();
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_history_revision_list_selection_changed_cb), view);
 	g_signal_connect (priv->revision_list, "key-press-event",
@@ -467,7 +467,7 @@ view_history_set_branches_label (GiggleViewHistory *view,
 }
 
 static void
-view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
+view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 						 GiggleRevision     *revision1,
 						 GiggleRevision     *revision2,
 						 GiggleViewHistory  *view)
@@ -498,7 +498,7 @@ view_history_revision_list_selection_changed_cb (GiggleRevisionList *list,
 }
 
 static gboolean
-view_history_revision_list_key_press_cb (GiggleRevisionList *list,
+view_history_revision_list_key_press_cb (GiggleRevListView *list,
 					 GdkEventKey        *event,
 					 GiggleViewHistory  *view)
 {
@@ -743,7 +743,7 @@ view_history_get_revisions_cb (GiggleGit    *git,
 		}
 
 		view_history_set_busy (GTK_WIDGET (priv->revision_list), FALSE);
-		giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list),
+		giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list),
 						GTK_TREE_MODEL (store));
 		g_object_unref (store);
 		g_object_unref (priv->job);
@@ -784,7 +784,7 @@ view_history_update_revisions (GiggleViewHistory  *view)
 	priv = GET_PRIV (view);
 
 	view_history_set_busy (GTK_WIDGET (priv->revision_list), TRUE);
-	giggle_revision_list_set_model (GIGGLE_REVISION_LIST (priv->revision_list), NULL);
+	giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), NULL);
 
 	/* get revision list */
 	if (priv->job) {
@@ -883,7 +883,7 @@ giggle_view_history_set_compact_mode (GiggleViewHistory *view,
 	priv = GET_PRIV (view);
 
 	giggle_file_list_set_compact_mode (GIGGLE_FILE_LIST (priv->file_list), compact_mode);
-	giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (priv->revision_list), compact_mode);
+	giggle_rev_list_view_set_compact_mode (GIGGLE_REV_LIST_VIEW (priv->revision_list), compact_mode);
 	giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (priv->diff_view), compact_mode);
 	giggle_revision_view_set_compact_mode (GIGGLE_REVISION_VIEW (priv->revision_view), compact_mode);
 	giggle_diff_tree_view_set_compact_mode (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view), compact_mode);
@@ -943,8 +943,8 @@ giggle_view_history_set_graph_visible (GiggleViewHistory *view,
 
 	priv = GET_PRIV (view);
 
-	giggle_revision_list_set_graph_visible (
-		GIGGLE_REVISION_LIST (priv->revision_list), visible);
+	giggle_rev_list_view_set_graph_visible (
+		GIGGLE_REV_LIST_VIEW (priv->revision_list), visible);
 }
 
 static void

@@ -41,8 +41,8 @@ giggle_SOURCES= \
 	giggle-remote-editor.h \
 	giggle-remotes-view.c \
 	giggle-remotes-view.h \
-	giggle-revision-list.c \
-	giggle-revision-list.h \
+	giggle-rev-list-view.c \
+	giggle-rev-list-view.h \
 	giggle-revision-tooltip.c \
 	giggle-revision-tooltip.h \
 	giggle-revision-view.c \
@@ -65,6 +65,7 @@ giggle_SOURCES= \
 
 LDADD= \
 	../libgiggle/libgiggle.la \
+	../libgiggle/libgiggle-git.la \
 	$(libgiggle_la_LIBADD)
 
 AM_LDFLAGS= \

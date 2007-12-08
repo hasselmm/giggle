@@ -18,8 +18,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GIGGLE_REVISION_LIST_H__
-#define __GIGGLE_REVISION_LIST_H__
+#ifndef __GIGGLE_REV_LIST_VIEW_H__
+#define __GIGGLE_REV_LIST_VIEW_H__
 
 #include <glib-object.h>
 #include <gtk/gtk.h>
@@ -27,43 +27,43 @@
 
 G_BEGIN_DECLS
 
-#define GIGGLE_TYPE_REVISION_LIST            (giggle_revision_list_get_type ())
-#define GIGGLE_REVISION_LIST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionList))
-#define GIGGLE_REVISION_LIST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListClass))
+#define GIGGLE_TYPE_REVISION_LIST            (giggle_rev_list_view_get_type ())
+#define GIGGLE_REV_LIST_VIEW(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListView))
+#define GIGGLE_REV_LIST_VIEW_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewClass))
 #define GIGGLE_IS_REVISION_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_REVISION_LIST))
 #define GIGGLE_IS_REVISION_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION_LIST))
-#define GIGGLE_REVISION_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListClass))
+#define GIGGLE_REV_LIST_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewClass))
 
-typedef struct _GiggleRevisionList      GiggleRevisionList;
-typedef struct _GiggleRevisionListClass GiggleRevisionListClass;
+typedef struct _GiggleRevListView      GiggleRevListView;
+typedef struct _GiggleRevListViewClass GiggleRevListViewClass;
 
-struct _GiggleRevisionList {
+struct _GiggleRevListView {
 	GtkTreeView parent_instance;
 };
 
-struct _GiggleRevisionListClass {
+struct _GiggleRevListViewClass {
 	GtkTreeViewClass parent_class;
 
-	void (*selection_changed) (GiggleRevisionList *list,
+	void (*selection_changed) (GiggleRevListView *list,
 				   GiggleRevision     *revision1,
 				   GiggleRevision     *revision2);
 };
 
-GType              giggle_revision_list_get_type          (void);
-GtkWidget *        giggle_revision_list_new               (void);
+GType              giggle_rev_list_view_get_type          (void);
+GtkWidget *        giggle_rev_list_view_new               (void);
 
-void               giggle_revision_list_set_model         (GiggleRevisionList *list,
+void               giggle_rev_list_view_set_model         (GiggleRevListView *list,
 							   GtkTreeModel       *model);
 
-gboolean           giggle_revision_list_get_graph_visible (GiggleRevisionList *list);
-void               giggle_revision_list_set_graph_visible (GiggleRevisionList *list,
+gboolean           giggle_rev_list_view_get_graph_visible (GiggleRevListView *list);
+void               giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
 							   gboolean            show_graph);
 
-gboolean           giggle_revision_list_get_compact_mode  (GiggleRevisionList *list);
-void               giggle_revision_list_set_compact_mode  (GiggleRevisionList *list,
+gboolean           giggle_rev_list_view_get_compact_mode  (GiggleRevListView *list);
+void               giggle_rev_list_view_set_compact_mode  (GiggleRevListView *list,
 							   gboolean            compact_mode);
 
 
 G_END_DECLS
 
-#endif /* __GIGGLE_REVISION_LIST_H__ */
+#endif /* __GIGGLE_REV_LIST_VIEW_H__ */

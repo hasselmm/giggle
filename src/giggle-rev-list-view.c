@@ -29,7 +29,7 @@
 #include "libgiggle/giggle-git-diff.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-revision-tooltip.h"
-#include "giggle-revision-list.h"
+#include "giggle-rev-list-view.h"
 #include "libgiggle/giggle-revision.h"
 #include "libgiggle/giggle-marshal.h"
 #include "libgiggle/giggle-searchable.h"
@@ -40,9 +40,9 @@
 #include "giggle-input-dialog.h"
 #include "giggle-diff-window.h"
 
-typedef struct GiggleRevisionListPriv GiggleRevisionListPriv;
+typedef struct GiggleRevListViewPriv GiggleRevListViewPriv;
 
-struct GiggleRevisionListPriv {
+struct GiggleRevListViewPriv {
 	GtkTreeViewColumn *graph_column;
 	GtkCellRenderer   *graph_renderer;
 
@@ -84,7 +84,7 @@ struct RevisionSearchData {
 	GMainLoop          *main_loop;
 	const gchar        *search_term;
 	gboolean            match;
-	GiggleRevisionList *list;
+	GiggleRevListView *list;
 };
 
 enum {
@@ -107,69 +107,69 @@ static guint signals [LAST_SIGNAL] = { 0 };
 
 #define EMBLEM_SIZE 16
 
-static void revision_list_finalize                (GObject *object);
-static void giggle_revision_list_searchable_init  (GiggleSearchableIface *iface);
-static void revision_list_get_property            (GObject        *object,
+static void rev_list_view_finalize                (GObject *object);
+static void giggle_rev_list_view_searchable_init  (GiggleSearchableIface *iface);
+static void rev_list_view_get_property            (GObject        *object,
 						   guint           param_id,
 						   GValue         *value,
 						   GParamSpec     *pspec);
-static void revision_list_set_property            (GObject        *object,
+static void rev_list_view_set_property            (GObject        *object,
 						   guint           param_id,
 						   const GValue   *value,
 						   GParamSpec     *pspec);
 
-static gboolean revision_list_button_press        (GtkWidget      *widget,
+static gboolean rev_list_view_button_press        (GtkWidget      *widget,
 						   GdkEventButton *event);
-static gboolean revision_list_motion_notify       (GtkWidget      *widget,
+static gboolean rev_list_view_motion_notify       (GtkWidget      *widget,
 						   GdkEventMotion *event);
-static gboolean revision_list_leave_notify        (GtkWidget        *widget,
+static gboolean rev_list_view_leave_notify        (GtkWidget        *widget,
 						   GdkEventCrossing *event);
-static void revision_list_style_set               (GtkWidget        *widget,
+static void rev_list_view_style_set               (GtkWidget        *widget,
 						   GtkStyle         *prev_style);
 
-static void revision_list_cell_data_emblem_func   (GtkCellLayout     *layout,
+static void rev_list_view_cell_data_emblem_func   (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_log_func      (GtkCellLayout     *layout,
+static void rev_list_view_cell_data_log_func      (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_author_func   (GtkCellLayout     *layout,
+static void rev_list_view_cell_data_author_func   (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_cell_data_date_func     (GtkCellLayout     *layout,
+static void rev_list_view_cell_data_date_func     (GtkCellLayout     *layout,
 						   GtkCellRenderer   *cell,
 						   GtkTreeModel      *model,
 						   GtkTreeIter       *iter,
 						   gpointer           data);
-static void revision_list_selection_changed_cb    (GtkTreeSelection  *selection,
+static void rev_list_view_selection_changed_cb    (GtkTreeSelection  *selection,
 						   gpointer           data);
 
-static gboolean revision_list_search              (GiggleSearchable      *searchable,
+static gboolean rev_list_view_search              (GiggleSearchable      *searchable,
 						   const gchar           *search_term,
 						   GiggleSearchDirection  direction,
 						   gboolean               full_search);
-static void revision_list_cancel_search           (GiggleSearchable      *searchable);
+static void rev_list_view_cancel_search           (GiggleSearchable      *searchable);
 
-static void revision_list_commit                  (GtkAction          *action,
-						   GiggleRevisionList *list);
-static void revision_list_create_branch           (GtkAction          *action,
-						   GiggleRevisionList *list);
-static void revision_list_create_tag              (GtkAction          *action,
-						   GiggleRevisionList *list);
-static void revision_list_create_patch            (GtkAction          *action,
-						   GiggleRevisionList *list);
+static void rev_list_view_commit                  (GtkAction          *action,
+						   GiggleRevListView *list);
+static void rev_list_view_create_branch           (GtkAction          *action,
+						   GiggleRevListView *list);
+static void rev_list_view_create_tag              (GtkAction          *action,
+						   GiggleRevListView *list);
+static void rev_list_view_create_patch            (GtkAction          *action,
+						   GiggleRevListView *list);
 
-G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE_VIEW,
+G_DEFINE_TYPE_WITH_CODE (GiggleRevListView, giggle_rev_list_view, GTK_TYPE_TREE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
-						giggle_revision_list_searchable_init))
+						giggle_rev_list_view_searchable_init))
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevisionListPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewPriv))
 
 #define COMMIT_UI_PATH        "/ui/PopupMenu/Commit"
 #define CREATE_BRANCH_UI_PATH "/ui/PopupMenu/CreateBranch"
@@ -177,10 +177,10 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevisionList, giggle_revision_list, GTK_TYPE_TREE
 #define CREATE_PATCH_UI_PATH  "/ui/PopupMenu/CreatePatch"
 
 static GtkActionEntry menu_items [] = {
-	{ "Commit",         NULL,                 N_("Commit"),         NULL, NULL, G_CALLBACK (revision_list_commit) },
-	{ "CreateBranch",   NULL,                 N_("Create _Branch"), NULL, NULL, G_CALLBACK (revision_list_create_branch) },
-	{ "CreateTag",      "stock_add-bookmark", N_("Create _Tag"),    NULL, NULL, G_CALLBACK (revision_list_create_tag) },
-	{ "CreatePatch",    NULL,                 N_("Create _Patch"),  NULL, NULL, G_CALLBACK (revision_list_create_patch) },
+	{ "Commit",         NULL,                 N_("Commit"),         NULL, NULL, G_CALLBACK (rev_list_view_commit) },
+	{ "CreateBranch",   NULL,                 N_("Create _Branch"), NULL, NULL, G_CALLBACK (rev_list_view_create_branch) },
+	{ "CreateTag",      "stock_add-bookmark", N_("Create _Tag"),    NULL, NULL, G_CALLBACK (rev_list_view_create_tag) },
+	{ "CreatePatch",    NULL,                 N_("Create _Patch"),  NULL, NULL, G_CALLBACK (rev_list_view_create_patch) },
 };
 
 static const gchar *ui_description =
@@ -197,19 +197,19 @@ static const gchar *ui_description =
 	"</ui>";
 
 static void
-giggle_revision_list_class_init (GiggleRevisionListClass *class)
+giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 {
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
-	object_class->finalize = revision_list_finalize;
-	object_class->set_property = revision_list_set_property;
-	object_class->get_property = revision_list_get_property;
+	object_class->finalize = rev_list_view_finalize;
+	object_class->set_property = rev_list_view_set_property;
+	object_class->get_property = rev_list_view_get_property;
 
-	widget_class->button_press_event = revision_list_button_press;
-	widget_class->motion_notify_event = revision_list_motion_notify;
-	widget_class->leave_notify_event = revision_list_leave_notify;
-	widget_class->style_set = revision_list_style_set;
+	widget_class->button_press_event = rev_list_view_button_press;
+	widget_class->motion_notify_event = rev_list_view_motion_notify;
+	widget_class->leave_notify_event = rev_list_view_leave_notify;
+	widget_class->style_set = rev_list_view_style_set;
 
 	g_object_class_install_property (
 		object_class,
@@ -232,33 +232,33 @@ giggle_revision_list_class_init (GiggleRevisionListClass *class)
 		g_signal_new ("selection-changed",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (GiggleRevisionListClass, selection_changed),
+			      G_STRUCT_OFFSET (GiggleRevListViewClass, selection_changed),
 			      NULL, NULL,
 			      giggle_marshal_VOID__OBJECT_OBJECT,
 			      G_TYPE_NONE,
 			      2, GIGGLE_TYPE_REVISION, GIGGLE_TYPE_REVISION);
 
-	g_type_class_add_private (object_class, sizeof (GiggleRevisionListPriv));
+	g_type_class_add_private (object_class, sizeof (GiggleRevListViewPriv));
 }
 
 static void
-giggle_revision_list_searchable_init (GiggleSearchableIface *iface)
+giggle_rev_list_view_searchable_init (GiggleSearchableIface *iface)
 {
-	iface->search = revision_list_search;
-	iface->cancel = revision_list_cancel_search;
+	iface->search = rev_list_view_search;
+	iface->cancel = rev_list_view_cancel_search;
 }
 
 static void
-giggle_revision_list_init (GiggleRevisionList *revision_list)
+giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkActionGroup         *action_group;
 	GtkTreeViewColumn      *column;
 	gint                    font_size;
 
-	priv = GET_PRIV (revision_list);
-	font_size = pango_font_description_get_size (GTK_WIDGET (revision_list)->style->font_desc);
+	priv = GET_PRIV (rev_list_view);
+	font_size = pango_font_description_get_size (GTK_WIDGET (rev_list_view)->style->font_desc);
 	font_size = PANGO_PIXELS (font_size);
 
 	/* yes, it's a hack */
@@ -269,15 +269,15 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 	priv->git = giggle_git_get ();
 	priv->main_loop = g_main_loop_new (NULL, FALSE);
 
-	gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (revision_list), TRUE);
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (revision_list), TRUE);
+	gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (rev_list_view), TRUE);
+	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (rev_list_view), TRUE);
 
 	/* emblems renderer */
 	priv->emblem_column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_sizing (priv->emblem_column,
 					 GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_min_width (priv->emblem_column,
-					    EMBLEM_SIZE + (2 * GTK_WIDGET (revision_list)->style->xthickness));
+					    EMBLEM_SIZE + (2 * GTK_WIDGET (rev_list_view)->style->xthickness));
 	g_object_ref_sink (priv->emblem_column);
 
 	priv->emblem_renderer = gtk_cell_renderer_pixbuf_new ();
@@ -288,11 +288,11 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->emblem_column),
 					    priv->emblem_renderer,
-					    revision_list_cell_data_emblem_func,
-					    revision_list,
+					    rev_list_view_cell_data_emblem_func,
+					    rev_list_view,
 					    NULL);
 
-	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list),
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view),
 				     priv->emblem_column, -1);
 
 	/* graph renderer */
@@ -314,7 +314,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 					"revision", COL_OBJECT,
 					NULL);
 
-	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list),
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view),
 				     priv->graph_column, -1);
 
 	/* log cell renderer */
@@ -337,11 +337,11 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
 					    priv->log_renderer,
-					    revision_list_cell_data_log_func,
-					    revision_list,
+					    rev_list_view_cell_data_log_func,
+					    rev_list_view,
 					    NULL);
 
-	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
 	/* Author cell renderer */
 	priv->author_renderer = gtk_cell_renderer_text_new ();
@@ -358,11 +358,11 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 				    priv->author_renderer, TRUE);
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
 					    priv->author_renderer,
-					    revision_list_cell_data_author_func,
-					    revision_list,
+					    rev_list_view_cell_data_author_func,
+					    rev_list_view,
 					    NULL);
 
-	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
 	/* Date cell renderer */
 	priv->date_renderer = gtk_cell_renderer_text_new ();
@@ -379,20 +379,20 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 				    priv->date_renderer, TRUE);
 	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
 					    priv->date_renderer,
-					    revision_list_cell_data_date_func,
-					    revision_list,
+					    rev_list_view_cell_data_date_func,
+					    rev_list_view,
 					    NULL);
 
-	gtk_tree_view_insert_column (GTK_TREE_VIEW (revision_list), column, -1);
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
-	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (revision_list));
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (rev_list_view));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
-	gtk_tree_view_set_rubber_banding (GTK_TREE_VIEW (revision_list), TRUE);
+	gtk_tree_view_set_rubber_banding (GTK_TREE_VIEW (rev_list_view), TRUE);
 
 	g_signal_connect (selection,
 			  "changed",
-			  G_CALLBACK (revision_list_selection_changed_cb),
-			  revision_list);
+			  G_CALLBACK (rev_list_view_selection_changed_cb),
+			  rev_list_view);
 
 	priv->revision_tooltip = giggle_revision_tooltip_new ();
 
@@ -408,7 +408,7 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 
 	gtk_action_group_set_translation_domain (action_group, NULL);
 	gtk_action_group_add_actions (action_group, menu_items,
-				      G_N_ELEMENTS (menu_items), revision_list);
+				      G_N_ELEMENTS (menu_items), rev_list_view);
 
 	priv->ui_manager = gtk_ui_manager_new ();
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
@@ -420,9 +420,9 @@ giggle_revision_list_init (GiggleRevisionList *revision_list)
 }
 
 static void
-revision_list_finalize (GObject *object)
+rev_list_view_finalize (GObject *object)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (object);
 
@@ -445,16 +445,16 @@ revision_list_finalize (GObject *object)
 
 	g_main_loop_unref (priv->main_loop);
 
-	G_OBJECT_CLASS (giggle_revision_list_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_rev_list_view_parent_class)->finalize (object);
 }
 
 static void
-revision_list_get_property (GObject    *object,
+rev_list_view_get_property (GObject    *object,
 			    guint       param_id,
 			    GValue     *value,
 			    GParamSpec *pspec)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (object);
 
@@ -472,22 +472,22 @@ revision_list_get_property (GObject    *object,
 }
 
 static void
-revision_list_set_property (GObject      *object,
+rev_list_view_set_property (GObject      *object,
 			    guint         param_id,
 			    const GValue *value,
 			    GParamSpec   *pspec)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_GRAPH_VISIBLE:
-		giggle_revision_list_set_graph_visible (GIGGLE_REVISION_LIST (object),
+		giggle_rev_list_view_set_graph_visible (GIGGLE_REV_LIST_VIEW (object),
 							g_value_get_boolean (value));
 		break;
 	case PROP_COMPACT_MODE:
-		giggle_revision_list_set_compact_mode (GIGGLE_REVISION_LIST (object),
+		giggle_rev_list_view_set_compact_mode (GIGGLE_REV_LIST_VIEW (object),
 						       g_value_get_boolean (value));
 		break;
 	default:
@@ -502,7 +502,7 @@ modify_ref_cb (GiggleGit *git,
 	       GError    *error,
 	       gpointer   user_data)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (user_data);
 
@@ -516,10 +516,10 @@ modify_ref_cb (GiggleGit *git,
 }
 
 static void
-revision_list_activate_action (GtkAction          *action,
-			       GiggleRevisionList *list)
+rev_list_view_activate_action (GtkAction          *action,
+			       GiggleRevListView *list)
 {	
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRef                *ref;
 
 	priv = GET_PRIV (list);
@@ -533,9 +533,9 @@ revision_list_activate_action (GtkAction          *action,
 }
 
 static void
-revision_list_clear_popup_refs (GiggleRevisionList *list)
+rev_list_view_clear_popup_refs (GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GList                  *actions, *l;
 
 	priv = GET_PRIV (list);
@@ -547,7 +547,7 @@ revision_list_clear_popup_refs (GiggleRevisionList *list)
 
 	for (l = actions; l != NULL; l = l->next) {
 		g_signal_handlers_disconnect_by_func (GTK_ACTION (l->data),
-                                                      G_CALLBACK (revision_list_activate_action),
+                                                      G_CALLBACK (rev_list_view_activate_action),
                                                       list);
 
 		gtk_action_group_remove_action (priv->refs_action_group, l->data);
@@ -560,13 +560,13 @@ revision_list_clear_popup_refs (GiggleRevisionList *list)
 }
 
 static void
-revision_list_add_popup_refs (GiggleRevisionList *list,
+rev_list_view_add_popup_refs (GiggleRevListView *list,
 			      GiggleRevision     *revision,
 			      GList              *refs,
 			      const gchar        *label_str,
 			      const gchar        *name_str)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRef              *ref;
 	GtkAction              *action;
 	gchar                  *action_name, *label;
@@ -591,7 +591,7 @@ revision_list_add_popup_refs (GiggleRevisionList *list,
 					(GDestroyNotify) g_object_unref);
 
 		g_signal_connect (action, "activate",
-				  G_CALLBACK (revision_list_activate_action),
+				  G_CALLBACK (rev_list_view_activate_action),
 				  list);
 
 		gtk_action_group_add_action (priv->refs_action_group, action);
@@ -612,17 +612,17 @@ revision_list_add_popup_refs (GiggleRevisionList *list,
 }
 
 static void
-revision_list_setup_popup (GiggleRevisionList *list,
+rev_list_view_setup_popup (GiggleRevListView *list,
 			   GiggleRevision     *revision)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkAction              *action;
 
 	priv = GET_PRIV (list);
 	
 	/* clear action list */
-	revision_list_clear_popup_refs (list);
+	rev_list_view_clear_popup_refs (list);
 
 	if (revision) {
 		action = gtk_ui_manager_get_action (priv->ui_manager, COMMIT_UI_PATH);
@@ -635,10 +635,10 @@ revision_list_setup_popup (GiggleRevisionList *list,
 		gtk_action_set_visible (action, TRUE);
 
 		/* repopulate action list */
-		revision_list_add_popup_refs (list, revision,
+		rev_list_view_add_popup_refs (list, revision,
 					      giggle_revision_get_branch_heads (revision),
 					      _("Delete branch \"%s\""), "branch-%s");
-		revision_list_add_popup_refs (list, revision,
+		rev_list_view_add_popup_refs (list, revision,
 					      giggle_revision_get_tags (revision),
 					      _("Delete tag \"%s\""), "tag-%s");
 	} else {
@@ -666,7 +666,7 @@ revision_list_setup_popup (GiggleRevisionList *list,
 }
 
 static void
-revision_list_commit_changes (GiggleRevisionList *list)
+rev_list_view_commit_changes (GiggleRevListView *list)
 {
 	GtkWidget *diff_window, *toplevel;
 
@@ -682,10 +682,10 @@ revision_list_commit_changes (GiggleRevisionList *list)
 }
 
 static gboolean
-revision_list_button_press (GtkWidget      *widget,
+rev_list_view_button_press (GtkWidget      *widget,
 			    GdkEventButton *event)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkTreeModel           *model;
 	GtkTreePath            *path;
@@ -710,14 +710,14 @@ revision_list_button_press (GtkWidget      *widget,
 				    COL_OBJECT, &revision,
 				    -1);
 
-		revision_list_setup_popup (GIGGLE_REVISION_LIST (widget), revision);
+		rev_list_view_setup_popup (GIGGLE_REV_LIST_VIEW (widget), revision);
 
 		gtk_menu_popup (GTK_MENU (priv->popup), NULL, NULL,
 				NULL, NULL, event->button, event->time);
 
 		gtk_tree_path_free (path);
 	} else {
-		GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->button_press_event (widget, event);
+		GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->button_press_event (widget, event);
 
 		if (event->button == 1 &&
 		    event->type == GDK_2BUTTON_PRESS) {
@@ -735,7 +735,7 @@ revision_list_button_press (GtkWidget      *widget,
 
 			if (!revision) {
 				/* clicked on the uncommitted changes revision */
-				revision_list_commit_changes (GIGGLE_REVISION_LIST (widget));
+				rev_list_view_commit_changes (GIGGLE_REV_LIST_VIEW (widget));
 			} else {
 				g_object_unref (revision);
 			}
@@ -746,10 +746,10 @@ revision_list_button_press (GtkWidget      *widget,
 }
 
 static gboolean
-revision_list_motion_notify (GtkWidget      *widget,
+rev_list_view_motion_notify (GtkWidget      *widget,
 			     GdkEventMotion *event)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeModel           *model;
 	GtkTreePath            *path = NULL;
 	GtkTreeViewColumn      *column;
@@ -758,7 +758,7 @@ revision_list_motion_notify (GtkWidget      *widget,
 	GiggleRevision         *revision = NULL;
 
 	priv = GET_PRIV (widget);
-	GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->motion_notify_event (widget, event);
+	GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->motion_notify_event (widget, event);
 
 	if (event->window != gtk_tree_view_get_bin_window (GTK_TREE_VIEW (widget))) {
 		goto failed;
@@ -823,24 +823,24 @@ revision_list_motion_notify (GtkWidget      *widget,
 }
 
 static gboolean
-revision_list_leave_notify (GtkWidget        *widget,
+rev_list_view_leave_notify (GtkWidget        *widget,
 			    GdkEventCrossing *event)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (widget);
 	gtk_widget_hide (priv->revision_tooltip);
 
-	GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->leave_notify_event (widget, event);
+	GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->leave_notify_event (widget, event);
 	return FALSE;
 }
 
 static void
-revision_list_update_compact_mode (GiggleRevisionList *list)
+rev_list_view_update_compact_mode (GiggleRevListView *list)
 {
 #if 0
 	PangoFontDescription   *font_desc;
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	gint                    size;
 
 	priv = GET_PRIV (list);
@@ -854,27 +854,27 @@ revision_list_update_compact_mode (GiggleRevisionList *list)
 }
 
 static void
-revision_list_style_set (GtkWidget *widget,
+rev_list_view_style_set (GtkWidget *widget,
 			 GtkStyle  *prev_style)
 {
-	revision_list_update_compact_mode (GIGGLE_REVISION_LIST (widget));
+	rev_list_view_update_compact_mode (GIGGLE_REV_LIST_VIEW (widget));
 
-	(GTK_WIDGET_CLASS (giggle_revision_list_parent_class)->style_set) (widget, prev_style);
+	(GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->style_set) (widget, prev_style);
 }
 
 static void
-revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
+rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 				     GtkCellRenderer   *cell,
 				     GtkTreeModel      *model,
 				     GtkTreeIter       *iter,
 				     gpointer           data)
 {
-	GiggleRevisionListPriv *priv;
-	GiggleRevisionList     *list;
+	GiggleRevListViewPriv *priv;
+	GiggleRevListView     *list;
 	GiggleRevision         *revision;
 	GdkPixbuf              *pixbuf = NULL;
 
-	list = GIGGLE_REVISION_LIST (data);
+	list = GIGGLE_REV_LIST_VIEW (data);
 	priv = GET_PRIV (list);
 
 	gtk_tree_model_get (model, iter,
@@ -903,13 +903,13 @@ revision_list_cell_data_emblem_func (GtkCellLayout     *layout,
 }
 
 static void
-revision_list_cell_data_log_func (GtkCellLayout   *layout,
+rev_list_view_cell_data_log_func (GtkCellLayout   *layout,
 				  GtkCellRenderer *cell,
 				  GtkTreeModel    *model,
 				  GtkTreeIter     *iter,
 				  gpointer         data)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRevision         *revision;
 	gchar                  *markup;
 
@@ -934,13 +934,13 @@ revision_list_cell_data_log_func (GtkCellLayout   *layout,
 }
 
 static void
-revision_list_cell_data_author_func (GtkCellLayout   *layout,
+rev_list_view_cell_data_author_func (GtkCellLayout   *layout,
 				     GtkCellRenderer *cell,
 				     GtkTreeModel    *model,
 				     GtkTreeIter     *iter,
 				     gpointer         data)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRevision         *revision;
 	const gchar            *author = NULL;
 
@@ -962,7 +962,7 @@ revision_list_cell_data_author_func (GtkCellLayout   *layout,
 }
 
 static gchar *
-revision_list_get_formatted_time (const struct tm *rev_tm)
+rev_list_view_get_formatted_time (const struct tm *rev_tm)
 {
 	struct tm *tm;
 	time_t t1, t2;
@@ -1017,13 +1017,13 @@ revision_list_get_formatted_time (const struct tm *rev_tm)
 }
 
 static void
-revision_list_cell_data_date_func (GtkCellLayout   *layout,
+rev_list_view_cell_data_date_func (GtkCellLayout   *layout,
 				   GtkCellRenderer *cell,
 				   GtkTreeModel    *model,
 				   GtkTreeIter     *iter,
 				   gpointer         data)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRevision         *revision;
 	gchar                  *format;
 	gchar                   buf[256];
@@ -1039,7 +1039,7 @@ revision_list_cell_data_date_func (GtkCellLayout   *layout,
 		tm = giggle_revision_get_date (revision);
 
 		if (tm) {
-			format = revision_list_get_formatted_time (tm);
+			format = rev_list_view_get_formatted_time (tm);
 			strftime (buf, sizeof (buf), format, tm);
 
 			g_object_set (cell,
@@ -1055,11 +1055,11 @@ revision_list_cell_data_date_func (GtkCellLayout   *layout,
 }
 
 static void
-revision_list_selection_changed_cb (GtkTreeSelection  *selection,
+rev_list_view_selection_changed_cb (GtkTreeSelection  *selection,
 				    gpointer           data)
 {
-	GiggleRevisionList     *list;
-	GiggleRevisionListPriv *priv;
+	GiggleRevListView     *list;
+	GiggleRevListViewPriv *priv;
 	GtkTreeModel           *model;
 	GList                  *rows, *last_row;
 	GtkTreeIter             first_iter;
@@ -1068,7 +1068,7 @@ revision_list_selection_changed_cb (GtkTreeSelection  *selection,
 	GiggleRevision         *last_revision;
 	gboolean                valid;
 
-	list = GIGGLE_REVISION_LIST (data);
+	list = GIGGLE_REV_LIST_VIEW (data);
 	priv = GET_PRIV (list);
 
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
@@ -1150,7 +1150,7 @@ diff_matches_cb (GiggleGit *git,
 		 gpointer   user_data)
 {
 	RevisionSearchData     *data;
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	const gchar            *diff_str;
 
 	data = (RevisionSearchData *) user_data;
@@ -1176,7 +1176,7 @@ log_matches_cb (GiggleGit *git,
 		 gpointer   user_data)
 {
 	RevisionSearchData     *data;
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	const gchar            *log;
 	gchar                  *casefold_log;
 
@@ -1200,11 +1200,11 @@ log_matches_cb (GiggleGit *git,
 }
 
 static gboolean
-revision_diff_matches (GiggleRevisionList *list,
+revision_diff_matches (GiggleRevListView *list,
 		       GiggleRevision     *revision,
 		       const gchar        *search_term)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GiggleRevision         *parent;
 	GList                  *parents;
 	RevisionSearchData     *data;
@@ -1250,11 +1250,11 @@ revision_diff_matches (GiggleRevisionList *list,
 }
 
 static gboolean
-revision_log_matches (GiggleRevisionList *list,
+revision_log_matches (GiggleRevListView *list,
 		      GiggleRevision     *revision,
 		      const gchar        *search_term)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	RevisionSearchData     *data;
 	gboolean                match;
 
@@ -1290,7 +1290,7 @@ revision_log_matches (GiggleRevisionList *list,
 }
 
 static gboolean
-revision_matches (GiggleRevisionList *list,
+revision_matches (GiggleRevListView *list,
 		  GiggleRevision     *revision,
 		  const gchar        *search_term,
 		  gboolean            full_search)
@@ -1309,12 +1309,12 @@ revision_matches (GiggleRevisionList *list,
 }
 
 static gboolean
-revision_list_search (GiggleSearchable      *searchable,
+rev_list_view_search (GiggleSearchable      *searchable,
 		      const gchar           *search_term,
 		      GiggleSearchDirection  direction,
 		      gboolean               full_search)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeModel           *model;
 	GtkTreeSelection       *selection;
 	GList                  *list;
@@ -1355,7 +1355,7 @@ revision_list_search (GiggleSearchable      *searchable,
 		gtk_tree_model_get (model, &iter, 0, &revision, -1);
 
 		if (revision) {
-			found = revision_matches (GIGGLE_REVISION_LIST (searchable),
+			found = revision_matches (GIGGLE_REV_LIST_VIEW (searchable),
 					  revision, search_term, full_search);
 
 			g_object_unref (revision);
@@ -1387,9 +1387,9 @@ revision_list_search (GiggleSearchable      *searchable,
 }
 
 static void
-revision_list_cancel_search (GiggleSearchable *searchable)
+rev_list_view_cancel_search (GiggleSearchable *searchable)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (searchable);
 
@@ -1410,17 +1410,17 @@ revision_list_cancel_search (GiggleSearchable *searchable)
 }
 
 static void
-revision_list_commit (GtkAction          *action,
-		      GiggleRevisionList *list)
+rev_list_view_commit (GtkAction          *action,
+		      GiggleRevListView *list)
 {
-	revision_list_commit_changes (list);
+	rev_list_view_commit_changes (list);
 }
 
 static void
-revision_list_create_branch (GtkAction          *action,
-			     GiggleRevisionList *list)
+rev_list_view_create_branch (GtkAction          *action,
+			     GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkTreeIter             iter;
 	GtkTreeModel           *model;
@@ -1466,12 +1466,12 @@ revision_list_create_branch (GtkAction          *action,
 	gtk_widget_destroy (input_dialog);
 }
 
-/* FIXME: pretty equal to revision_list_create_branch() */
+/* FIXME: pretty equal to rev_list_view_create_branch() */
 static void
-revision_list_create_tag (GtkAction          *action,
-			  GiggleRevisionList *list)
+rev_list_view_create_tag (GtkAction          *action,
+			  GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkTreeIter             iter;
 	GtkTreeModel           *model;
@@ -1519,20 +1519,20 @@ revision_list_create_tag (GtkAction          *action,
 }
 
 static void
-revision_list_create_patch_callback (GiggleGit *git,
+rev_list_view_create_patch_callback (GiggleGit *git,
 				     GiggleJob *job,
 				     GError    *error,
 				     gpointer   user_data)
 {
-	GiggleRevisionList     *list;
-	GiggleRevisionListPriv *priv;
+	GiggleRevListView     *list;
+	GiggleRevListViewPriv *priv;
 	GtkWidget              *dialog;
 	gboolean                result_is_diff;
 	gboolean                show_success = TRUE; 
 	const gchar            *filename;
 	gchar                  *primary_str;
 		
-	list = GIGGLE_REVISION_LIST (user_data);
+	list = GIGGLE_REV_LIST_VIEW (user_data);
 	priv = GET_PRIV (list);
 
 	/* Then there is no patch format revision then we have a diff
@@ -1645,10 +1645,10 @@ revision_list_create_patch_callback (GiggleGit *git,
 }
 
 static void
-revision_list_create_patch (GtkAction          *action,
-			    GiggleRevisionList *list)
+rev_list_view_create_patch (GtkAction          *action,
+			    GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkTreeSelection       *selection;
 	GtkTreeIter             iter;
 	GtkTreeModel           *model;
@@ -1710,7 +1710,7 @@ revision_list_create_patch (GtkAction          *action,
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
-			    revision_list_create_patch_callback,
+			    rev_list_view_create_patch_callback,
 			    list);
 
 	if (revision) {
@@ -1719,16 +1719,16 @@ revision_list_create_patch (GtkAction          *action,
 }
 
 GtkWidget*
-giggle_revision_list_new (void)
+giggle_rev_list_view_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_REVISION_LIST, NULL);
 }
 
 void
-giggle_revision_list_set_model (GiggleRevisionList *list,
+giggle_rev_list_view_set_model (GiggleRevListView *list,
 				GtkTreeModel       *model)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GType                   type;
 
 	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
@@ -1750,9 +1750,9 @@ giggle_revision_list_set_model (GiggleRevisionList *list,
 }
 
 gboolean
-giggle_revision_list_get_graph_visible (GiggleRevisionList *list)
+giggle_rev_list_view_get_graph_visible (GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), FALSE);
 
@@ -1761,10 +1761,10 @@ giggle_revision_list_get_graph_visible (GiggleRevisionList *list)
 }
 
 void
-giggle_revision_list_set_graph_visible (GiggleRevisionList *list,
+giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
 					gboolean            show_graph)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
 
@@ -1776,9 +1776,9 @@ giggle_revision_list_set_graph_visible (GiggleRevisionList *list,
 }
 
 gboolean
-giggle_revision_list_get_compact_mode (GiggleRevisionList *list)
+giggle_rev_list_view_get_compact_mode (GiggleRevListView *list)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 
 	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), FALSE);
 
@@ -1787,10 +1787,10 @@ giggle_revision_list_get_compact_mode (GiggleRevisionList *list)
 }
 
 void
-giggle_revision_list_set_compact_mode (GiggleRevisionList *list,
+giggle_rev_list_view_set_compact_mode (GiggleRevListView *list,
 				       gboolean            compact_mode)
 {
-	GiggleRevisionListPriv *priv;
+	GiggleRevListViewPriv *priv;
 	GtkRcStyle             *rc_style;
 	gint                    size;
 
