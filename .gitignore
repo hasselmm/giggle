@@ -22,3 +22,5 @@ mkinstalldirs
 *.o
 .deps
 .libs
+.project
+.cproject

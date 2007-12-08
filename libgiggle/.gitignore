@@ -1,0 +1,8 @@
+*.lo
+*.la
+libgiggle.la
+libgiggle-git.la
+giggle-marshal.[ch]
+*~
+giggle-enums.*
+
