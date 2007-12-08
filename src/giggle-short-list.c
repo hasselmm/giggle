@@ -28,7 +28,7 @@
 #include <gtk/gtklabel.h>
 #include <gtk/gtkscrolledwindow.h>
 #include <gtk/gtkstock.h>
-#include "giggle-marshal.h"
+#include "libgiggle/giggle-marshal.h"
 
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
