@@ -23,10 +23,10 @@
 #include <gtk/gtk.h>
 
 #include "giggle-diff-tree-view.h"
-#include "giggle-revision.h"
-#include "giggle-git-diff-tree.h"
-#include "giggle-job.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-git-diff-tree.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleDiffTreeViewPriv GiggleDiffTreeViewPriv;
 

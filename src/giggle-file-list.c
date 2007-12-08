@@ -23,16 +23,16 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 #include "giggle-file-list.h"
 #include "giggle-diff-window.h"
-#include "giggle-git-ignore.h"
-#include "giggle-git-list-files.h"
-#include "giggle-git-add.h"
-#include "giggle-git-diff.h"
-#include "giggle-git-diff-tree.h"
-#include "giggle-revision.h"
-#include "giggle-enums.h"
+#include "libgiggle/giggle-git-ignore.h"
+#include "libgiggle/giggle-git-list-files.h"
+#include "libgiggle/giggle-git-add.h"
+#include "libgiggle/giggle-git-diff.h"
+#include "libgiggle/giggle-git-diff-tree.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-enums.h"
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 

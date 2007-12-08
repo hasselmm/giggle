@@ -22,10 +22,10 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 #include "giggle-remotes-view.h"
 #include "giggle-remote-editor.h"
-#include "giggle-remote.h"
+#include "libgiggle/giggle-remote.h"
 #include "giggle-tree-view-helpers.h"
 #include "giggle-window.h"
 

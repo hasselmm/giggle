@@ -25,9 +25,9 @@
 
 #include "giggle-diff-window.h"
 #include "giggle-diff-view.h"
-#include "giggle-git-commit.h"
-#include "giggle-job.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git-commit.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleDiffWindowPriv GiggleDiffWindowPriv;
 

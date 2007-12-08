@@ -26,7 +26,7 @@
 #include <gtksourceview/gtksourceview.h>
 #include <gtksourceview/gtksourcelanguagemanager.h>
 
-#include "giggle-revision.h"
+#include "libgiggle/giggle-revision.h"
 
 G_BEGIN_DECLS
 

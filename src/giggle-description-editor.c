@@ -23,7 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "giggle-description-editor.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleDescriptionEditorPriv GiggleDescriptionEditorPriv;
 

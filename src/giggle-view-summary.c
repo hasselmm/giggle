@@ -25,7 +25,7 @@
 #include "giggle-authors-view.h"
 #include "giggle-branches-view.h"
 #include "giggle-description-editor.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 #include "giggle-remotes-view.h"
 #include "giggle-short-list.h"
 #include "giggle-view-summary.h"

@@ -24,11 +24,11 @@
 #include <string.h>
 
 #include "giggle-diff-view.h"
-#include "giggle-revision.h"
-#include "giggle-job.h"
-#include "giggle-git.h"
-#include "giggle-git-diff.h"
-#include "giggle-searchable.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-diff.h"
+#include "libgiggle/giggle-searchable.h"
 
 typedef struct GiggleDiffViewPriv GiggleDiffViewPriv;
 

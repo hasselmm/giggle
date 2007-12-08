@@ -24,7 +24,7 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 
-#include "giggle-revision.h"
+#include "libgiggle/giggle-revision.h"
 
 G_BEGIN_DECLS
 

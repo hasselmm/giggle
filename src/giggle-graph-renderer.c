@@ -23,7 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "giggle-graph-renderer.h"
-#include "giggle-revision.h"
+#include "libgiggle/giggle-revision.h"
 
 #define GET_PRIV(object) (G_TYPE_INSTANCE_GET_PRIVATE ((object), GIGGLE_TYPE_GRAPH_RENDERER, GiggleGraphRendererPrivate))
 

@@ -21,7 +21,7 @@
 #ifndef __GIGGLE_REMOTE_EDITOR_H__
 #define __GIGGLE_REMOTE_EDITOR_H__
 
-#include "giggle-remote.h"
+#include "libgiggle/giggle-remote.h"
 #include <gtk/gtkdialog.h>
 
 G_BEGIN_DECLS

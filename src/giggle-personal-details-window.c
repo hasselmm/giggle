@@ -25,8 +25,8 @@
 #include <string.h>
 
 #include "giggle-personal-details-window.h"
-#include "giggle-git.h"
-#include "giggle-configuration.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-configuration.h"
 
 typedef struct GigglePersonalDetailsWindowPriv GigglePersonalDetailsWindowPriv;
 

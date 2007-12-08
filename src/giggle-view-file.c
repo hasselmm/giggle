@@ -22,8 +22,8 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
-#include "giggle-git.h"
-#include "giggle-git-revisions.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-revisions.h"
 #include "giggle-view-file.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"

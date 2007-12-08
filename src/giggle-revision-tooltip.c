@@ -24,8 +24,8 @@
 #include <string.h>
 
 #include "giggle-revision-tooltip.h"
-#include "giggle-revision.h"
-#include "giggle-ref.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-ref.h"
 
 
 typedef struct GiggleRevisionTooltipPriv GiggleRevisionTooltipPriv;

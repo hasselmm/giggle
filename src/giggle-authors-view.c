@@ -23,10 +23,10 @@
 #include <gtk/gtk.h>
 
 #include "giggle-authors-view.h"
-#include "giggle-git-authors.h"
-#include "giggle-author.h"
-#include "giggle-job.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git-authors.h"
+#include "libgiggle/giggle-author.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleAuthorsViewPriv GiggleAuthorsViewPriv;
 

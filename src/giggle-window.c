@@ -27,15 +27,15 @@
 #include <stdlib.h>
 
 #include "giggle-window.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 #include "giggle-personal-details-window.h"
 #include "giggle-view-summary.h"
 #include "giggle-view-history.h"
 #include "giggle-view-file.h"
-#include "giggle-searchable.h"
+#include "libgiggle/giggle-searchable.h"
 #include "giggle-diff-window.h"
-#include "giggle-configuration.h"
-#include "giggle-history.h"
+#include "libgiggle/giggle-configuration.h"
+#include "libgiggle/giggle-history.h"
 #include "eggfindbar.h"
 
 #ifdef GDK_WINDOWING_QUARTZ

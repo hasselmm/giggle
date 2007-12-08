@@ -23,11 +23,11 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
-#include "giggle-git.h"
-#include "giggle-git-log.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-log.h"
 #include "giggle-revision-view.h"
-#include "giggle-revision.h"
-#include "giggle-searchable.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-searchable.h"
 
 typedef struct GiggleRevisionViewPriv GiggleRevisionViewPriv;
 

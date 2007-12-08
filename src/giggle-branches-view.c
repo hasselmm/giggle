@@ -23,10 +23,10 @@
 #include <gtk/gtk.h>
 
 #include "giggle-branches-view.h"
-#include "giggle-git-refs.h"
-#include "giggle-ref.h"
-#include "giggle-job.h"
-#include "giggle-git.h"
+#include "libgiggle/giggle-git-refs.h"
+#include "libgiggle/giggle-ref.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleBranchesViewPriv GiggleBranchesViewPriv;
 

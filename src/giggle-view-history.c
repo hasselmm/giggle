@@ -24,18 +24,18 @@
 #include <gdk/gdkkeysyms.h>
 #include <string.h>
 
-#include "giggle-git.h"
-#include "giggle-git-revisions.h"
-#include "giggle-git-refs.h"
-#include "giggle-git-diff.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-revisions.h"
+#include "libgiggle/giggle-git-refs.h"
+#include "libgiggle/giggle-git-diff.h"
 #include "giggle-view-history.h"
 #include "giggle-file-list.h"
 #include "giggle-revision-list.h"
 #include "giggle-revision-view.h"
 #include "giggle-diff-view.h"
 #include "giggle-diff-tree-view.h"
-#include "giggle-searchable.h"
-#include "giggle-history.h"
+#include "libgiggle/giggle-searchable.h"
+#include "libgiggle/giggle-history.h"
 
 typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 

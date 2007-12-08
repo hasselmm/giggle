@@ -22,7 +22,7 @@
 #define __GIGGLE_WINDOW_H__
 
 #include <gtk/gtkwindow.h>
-#include "giggle-git.h"
+#include "libgiggle/giggle-git.h"
 
 G_BEGIN_DECLS
 
