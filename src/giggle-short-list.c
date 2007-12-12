@@ -33,11 +33,11 @@
 typedef struct GiggleShortListPriv GiggleShortListPriv;
 
 struct GiggleShortListPriv {
-	GtkWidget   * label;
-	GtkWidget   * content_box;
-	GtkWidget   * more_button;
+	GtkWidget    *label;
+	GtkWidget    *content_box;
+	GtkWidget    *more_button;
 
-	GtkTreeModel* model;
+	GtkTreeModel *model;
 };
 
 enum {

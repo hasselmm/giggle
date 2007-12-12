@@ -46,11 +46,9 @@ static void     remotes_view_finalize            (GObject *object);
 static gboolean remotes_view_key_press_event     (GtkWidget   *widget,
 						  GdkEventKey *event);
 
-
 G_DEFINE_TYPE (GiggleRemotesView, giggle_remotes_view, GTK_TYPE_TREE_VIEW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REMOTES_VIEW, GiggleRemotesViewPriv))
-
 
 static void
 giggle_remotes_view_class_init (GiggleRemotesViewClass *class)
