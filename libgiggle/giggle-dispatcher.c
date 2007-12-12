@@ -20,7 +20,6 @@
 
 #include <config.h>
 #include <unistd.h>
-#include <glib/gi18n.h>
 
 #include "giggle-error.h"
 #include "giggle-sysdeps.h"

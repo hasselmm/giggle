@@ -6,7 +6,6 @@ src/giggle-branches-view.c
 src/giggle-diff-tree-view.c
 src/giggle-diff-view.c
 src/giggle-diff-window.c
-src/giggle-dispatcher.c
 src/giggle-file-list.c
 src/giggle-main.c
 src/giggle-personal-details-window.c
