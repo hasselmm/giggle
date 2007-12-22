@@ -19,18 +19,23 @@
  */
 
 #include <config.h>
+#include <stdlib.h>
 #include <glib/gi18n.h>
+#include <glib/gprintf.h>
 #include <gtk/gtkmain.h>
 
 #include "giggle-window.h"
 
 static gboolean diff_window = FALSE;
+static gboolean version = FALSE;
 
 static GOptionEntry options[] = {
 	{ "diff", 'd',
 	  0, G_OPTION_ARG_NONE, &diff_window,
 	  N_("Show the diff window"),
 	  NULL },
+	{ "version", 'v',
+	  0, G_OPTION_ARG_NONE, &version, N_("Show version"), NULL },
 	{ NULL }
 };
 
@@ -56,6 +61,11 @@ main (int argc, char **argv)
 				 &error)) {
 		g_printerr ("%s\n", error->message);
 		return 1;
+	}
+   
+	if (version) {
+		g_printf ("%s %s, Copyright (C) 2007-2008 Imendio AB\n", PACKAGE_NAME, PACKAGE_VERSION);
+		return EXIT_SUCCESS;
 	}
 
 	g_set_application_name ("Giggle");
