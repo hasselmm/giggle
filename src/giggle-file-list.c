@@ -1421,7 +1421,7 @@ file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
 				     GtkTreeIter     *iter,
 				     gpointer         data)
 {
-	GdkColor           *color;
+	GdkColor            color;
 	GiggleFileListPriv *priv;
 	GiggleFileList     *file_list;
 	gboolean            highlight;
@@ -1429,7 +1429,7 @@ file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
 
 	file_list = GIGGLE_FILE_LIST (data);
 	priv = GET_PRIV (file_list);
-	color = &(GTK_WIDGET (file_list)->style->bg[GTK_STATE_NORMAL]);
+	color = GTK_WIDGET (file_list)->style->bg[GTK_STATE_NORMAL];
 
 	gtk_tree_model_get (tree_model, iter,
 			    COL_REL_PATH, &rel_path,
@@ -1437,7 +1437,7 @@ file_list_cell_data_background_func (GtkCellLayout   *cell_layout,
 			    -1);
 
 	g_object_set (G_OBJECT (renderer), "cell-background-gdk",
-		      (rel_path && *rel_path && highlight) ? color : NULL,
+		      (rel_path && *rel_path && highlight) ? &color : NULL,
 		      NULL);
 
 	g_free (rel_path);
