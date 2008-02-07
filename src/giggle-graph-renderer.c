@@ -31,7 +31,7 @@
 #define PATH_SPACE(font_size) (font_size + 3)
 #define DOT_RADIUS(font_size) (font_size / 2)
 #define LINE_WIDTH(font_size) ((font_size / 6) << 1) /* we want the closest even number <= size/3 */
-#define NEXT_COLOR(n_color)   ((n_color % G_N_ELEMENTS (colors)) + 1)
+#define NEXT_COLOR(n_color)   ((n_color % (G_N_ELEMENTS (colors) - 1)) + 1)
 #define INVALID_COLOR         0
 
 typedef struct GiggleGraphRendererPrivate GiggleGraphRendererPrivate;
