@@ -11,9 +11,9 @@ src/giggle-main.c
 src/giggle-personal-details-window.c
 src/giggle-remote-editor.c
 src/giggle-remotes-view.c
-src/giggle-revision-list.c
 src/giggle-revision-tooltip.c
 src/giggle-revision-view.c
+src/giggle-rev-list-view.c
 src/giggle-short-list.c
 src/giggle-view-file.c
 src/giggle-view-history.c
