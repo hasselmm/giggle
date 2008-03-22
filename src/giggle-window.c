@@ -223,7 +223,7 @@ static const GtkActionEntry action_entries[] = {
 	  G_CALLBACK (window_action_history_go_forward)
 	},
 	{ "RefreshHistory", GTK_STOCK_REFRESH,
-	  N_("_Refresh"), "F5", NULL,
+	  N_("_Refresh"), "<control>R", NULL,
 	  G_CALLBACK (window_action_history_refresh)
 	},
 };
