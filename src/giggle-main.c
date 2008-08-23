@@ -68,23 +68,27 @@ main (int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	g_set_application_name ("Giggle");
 	gtk_window_set_default_icon_name (PACKAGE);
+	g_set_application_name ("Giggle");
+	window = giggle_window_new ();
 
 	/* parse GIT_DIR into dir and unset it; if empty use the current_wd */
 	dir = g_strdup (g_getenv ("GIT_DIR"));
+
 	if (!dir || !*dir) {
 		g_free (dir);
 		dir = g_get_current_dir ();
 	}
-	g_unsetenv ("GIT_DIR");
 
-	window = giggle_window_new ();
+	g_unsetenv ("GIT_DIR");
 
 	if (giggle_git_test_dir (dir)) {
 		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
 	}
+
 	g_free (dir);
+
+	gtk_widget_show (window);
 
 	/* window will show itself when it reads its initial size configuration */
 	if (diff_window) {

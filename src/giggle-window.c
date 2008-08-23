@@ -45,6 +45,7 @@
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
+#if 0
 	GtkWidget           *content_vbox;
 	GtkWidget           *main_notebook;
 
@@ -61,9 +62,11 @@ struct GiggleWindowPriv {
 
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
+#endif
 
 	GiggleGit           *git;
 
+#if 0
 	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
 
@@ -73,8 +76,10 @@ struct GiggleWindowPriv {
 	gint                 height;
 	gint                 x;
 	gint                 y;
+#endif
 };
 
+#if 0
 enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
@@ -270,12 +275,13 @@ static const gchar *ui_layout =
 	"    <toolitem action='RefreshHistory'/>"
 	"  </toolbar>"
 	"</ui>";
-
+#endif
 
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
+#if 0
 #define RECENT_FILES_GROUP "giggle"
 #define SAVE_PATCH_UI_PATH "/ui/MainMenubar/ProjectMenu/SavePatch"
 #define FIND_PATH "/ui/MainMenubar/EditMenu/Find"
@@ -283,19 +289,23 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define RECENT_REPOS_PLACEHOLDER_PATH "/ui/MainMenubar/ProjectMenu/RecentRepositories"
 #define BACK_HISTORY_PATH "/ui/MainToolbar/BackHistory"
 #define FORWARD_HISTORY_PATH "/ui/MainToolbar/ForwardHistory"
+#endif
 
 static void
 giggle_window_class_init (GiggleWindowClass *class)
 {
+#if 0
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize = window_finalize;
 	widget_class->configure_event = window_configure_event;
+#endif
 
-	g_type_class_add_private (object_class, sizeof (GiggleWindowPriv));
+	g_type_class_add_private (class, sizeof (GiggleWindowPriv));
 }
 
+#if 0
 static void
 window_create_menu (GiggleWindow *window)
 {
@@ -400,6 +410,7 @@ window_create_find_bar (GiggleWindow *window)
 	g_signal_connect (priv->find_bar, "previous",
 			  G_CALLBACK (window_find_previous), window);
 }
+#endif
 
 void
 giggle_window_set_directory (GiggleWindow *window,
@@ -425,6 +436,7 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
+#if 0
 static void
 window_configuration_committed (GiggleConfiguration *configuration,
 				gboolean             success,
@@ -521,6 +533,7 @@ static void on_configuration_updated (GiggleConfiguration *configuration,
 		window_bind_state (win);
 	}
 }
+#endif
 
 static void
 giggle_window_init (GiggleWindow *window)
@@ -530,6 +543,7 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->git = giggle_git_get ();
+#if 0
 	priv->configuration = giggle_configuration_new ();
 
 	g_signal_connect (priv->git,
@@ -587,8 +601,10 @@ giggle_window_init (GiggleWindow *window)
 				  gtk_label_new (_("Summary")));
 
 	giggle_configuration_update (priv->configuration, on_configuration_updated, window);
+#endif
 }
 
+#if 0
 static void
 window_finalize (GObject *object)
 {
@@ -1147,6 +1163,7 @@ window_action_history_refresh (GtkAction    *action,
 	directory = giggle_git_get_directory (priv->git);
 	giggle_window_set_directory (window, directory);
 }
+#endif
 
 GtkWidget *
 giggle_window_new (void)
@@ -1169,6 +1186,7 @@ giggle_window_get_git (GiggleWindow *self)
 void
 giggle_window_show_diff_window (GiggleWindow *self)
 {
+#if 0
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (self);
@@ -1187,5 +1205,5 @@ giggle_window_show_diff_window (GiggleWindow *self)
 	if (GTK_WIDGET_REALIZED (self)) {
 		gtk_widget_show (priv->diff_current_window);
 	}
+#endif
 }
-
