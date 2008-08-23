@@ -45,8 +45,14 @@
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
-#if 0
+	/* Model */
+	GiggleConfiguration *configuration;
+	GiggleGit           *git;
+	GtkUIManager        *ui_manager;
+
+	/* Widgets */
 	GtkWidget           *content_vbox;
+#if 0
 	GtkWidget           *main_notebook;
 
 	/* Views */
@@ -55,7 +61,6 @@ struct GiggleWindowPriv {
 	GtkWidget           *file_view;
 
 	/* Menu & toolbar */
-	GtkUIManager        *ui_manager;
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
 	guint                recent_merge_id;
@@ -64,13 +69,10 @@ struct GiggleWindowPriv {
 	GtkToolItem         *full_search;
 #endif
 
-	GiggleGit           *git;
-
 #if 0
 	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
 
-	GiggleConfiguration *configuration;
 
 	gint                 width;
 	gint                 height;
@@ -99,122 +101,6 @@ static const GtkToggleActionEntry toggle_action_entries[] = {
 	  G_CALLBACK (window_action_view_graph_cb), TRUE
 	},
 };
-
-static const GtkActionEntry action_entries[] = {
-	{ "ProjectMenu", NULL,
-	  N_("_Project"), NULL, NULL,
-	  NULL
-	},
-	{ "EditMenu", NULL,
-	  N_("_Edit"), NULL, NULL,
-	  NULL
-	},
-	{ "GoMenu", NULL,
-	  N_("_Go"), NULL, NULL,
-	  NULL
-	},
-	{ "ViewMenu", NULL,
-	  N_("_View"), NULL, NULL,
-	  NULL
-	},
-	{ "HelpMenu", NULL,
-	  N_("_Help"), NULL, NULL,
-	  NULL
-	},
-	{ "Open", GTK_STOCK_OPEN,
-	  N_("_Open"), "<control>O", N_("Open a GIT repository"),
-	  G_CALLBACK (window_action_open_cb)
-	},
-	{ "SavePatch", GTK_STOCK_SAVE,
-	  N_("_Save patch"), "<control>S", N_("Save a patch"),
-	  G_CALLBACK (window_action_save_patch_cb)
-	},
-	{ "Diff", NULL,
-	  N_("_Diff current changes"), "<control>D", N_("Diff current changes"),
-	  G_CALLBACK (window_action_diff_cb)
-	},
-	{ "Quit", GTK_STOCK_QUIT,
-	  N_("_Quit"), "<control>Q", N_("Quit the application"),
-	  G_CALLBACK (window_action_quit_cb)
-	},
-	{ "PersonalDetails", GTK_STOCK_PREFERENCES,
-	  N_("Edit Personal _Details"), NULL, N_("Edit Personal details"),
-	  G_CALLBACK (window_action_personal_details_cb)
-	},
-	{ "Find", GTK_STOCK_FIND,
-	  N_("_Find..."), "slash", N_("Find..."),
-	  G_CALLBACK (window_action_find_cb)
-	},
-	{ "FindNext", NULL,
-	  N_("Find _Next"), "<control>G", N_("Find next"),
-	  G_CALLBACK (window_action_find_next_cb)
-	},
-	{ "FindPrev", NULL,
-	  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
-	  G_CALLBACK (window_action_find_prev_cb)
-	},
-	{ "About", GTK_STOCK_ABOUT,
-	  N_("_About"), NULL, N_("About this application"),
-	  G_CALLBACK (window_action_about_cb)
-	},
-
-	/* Toolbar items */
-	{ "BackHistory", GTK_STOCK_GO_BACK,
-	  N_("_Back"), "<alt>Left", NULL,
-	  G_CALLBACK (window_action_history_go_back)
-	},
-	{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
-	  N_("_Forward"), "<alt>Right", NULL,
-	  G_CALLBACK (window_action_history_go_forward)
-	},
-	{ "RefreshHistory", GTK_STOCK_REFRESH,
-	  N_("_Refresh"), "<control>R", NULL,
-	  G_CALLBACK (window_action_history_refresh)
-	},
-};
-
-static const gchar *ui_layout =
-	"<ui>"
-	"  <menubar name='MainMenubar'>"
-	"    <menu action='ProjectMenu'>"
-	"      <menuitem action='Open'/>"
-/*
-	"      <menuitem action='SavePatch'/>"
-*/
-	"      <menuitem action='Diff'/>"
-	"      <separator/>"
-	"      <placeholder name='RecentRepositories'/>"
-	"      <separator/>"
-	"      <menuitem action='Quit'/>"
-	"    </menu>"
-	"    <menu action='EditMenu'>"
-	"      <menuitem action='PersonalDetails'/>"
-	"      <separator/>"
-	"      <menuitem action='Find'/>"
-	"      <menuitem action='FindNext'/>"
-	"      <menuitem action='FindPrev'/>"
-	"    </menu>"
-	"    <menu action='ViewMenu'>"
-	"      <menuitem action='CompactMode'/>"
-	"      <menuitem action='ViewFileList'/>"
-	"      <menuitem action='ViewGraph'/>"
-	"      <separator/>"
-	"      <menuitem action='RefreshHistory'/>"
-	"    </menu>"
-	"    <menu action='GoMenu'>"
-	"      <menuitem action='BackHistory'/>"
-	"      <menuitem action='ForwardHistory'/>"
-	"    </menu>"
-	"    <menu action='HelpMenu'>"
-	"      <menuitem action='About'/>"
-	"    </menu>"
-	"  </menubar>"
-	"  <toolbar name='MainToolbar'>"
-	"    <toolitem action='BackHistory'/>"
-	"    <toolitem action='ForwardHistory'/>"
-	"    <toolitem action='RefreshHistory'/>"
-	"  </toolbar>"
-	"</ui>";
 #endif
 
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
@@ -254,35 +140,6 @@ window_create_menu (GiggleWindow *window)
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
-	priv->ui_manager = gtk_ui_manager_new ();
-	g_signal_connect (priv->ui_manager,
-			  "add_widget",
-			  G_CALLBACK (window_add_widget_cb),
-			  window);
-
-	action_group = gtk_action_group_new ("MainActions");
-	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
-	gtk_action_group_add_actions (action_group,
-				      action_entries,
-				      G_N_ELEMENTS (action_entries),
-				      window);
-	gtk_action_group_add_toggle_actions (action_group,
-					     toggle_action_entries,
-					     G_N_ELEMENTS (toggle_action_entries),
-					     window);
-	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
-
-	gtk_window_add_accel_group (GTK_WINDOW (window),
-				    gtk_ui_manager_get_accel_group (priv->ui_manager));
-
-	g_object_unref (action_group);
-
-	gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_layout, -1, &error);
-	if (error) {
-		g_error ("Couldn't create UI: %s\n", error->message);
-	}
-
-	gtk_ui_manager_ensure_update (priv->ui_manager);
 
 	/* create recent repositories resources */
 	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
@@ -376,7 +233,6 @@ giggle_window_set_directory (GiggleWindow *window,
 	}
 }
 
-#if 0
 static void
 window_configuration_committed (GiggleConfiguration *configuration,
 				gboolean             success,
@@ -386,15 +242,18 @@ window_configuration_committed (GiggleConfiguration *configuration,
 }
 
 static void
-save_state (GiggleWindow *window)
+window_save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+#if 0
 	gboolean          compact;
 	gchar             buf[25];
 	gboolean          maximized;
+#endif
 
 	priv = GET_PRIV (window);
 
+#if 0
 	g_snprintf (buf, sizeof (buf), "%dx%d+%d+%d", priv->width, priv->height, priv->x, priv->y);
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY, buf);
@@ -408,6 +267,7 @@ save_state (GiggleWindow *window)
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_COMPACT_MODE,
 						compact);
+#endif
 
 	giggle_configuration_commit (priv->configuration,
 				     window_configuration_committed,
@@ -419,11 +279,13 @@ window_delete_event_cb (GtkWidget *widget,
 			GdkEvent  *event,
 			gpointer   user_data)
 {
-	save_state (GIGGLE_WINDOW (widget));
+	window_save_state (GIGGLE_WINDOW (widget));
 	gtk_widget_hide (widget);
+
 	return TRUE;
 }
 
+#if 0
 static void
 window_bind_state (GiggleWindow *window)
 {
@@ -458,10 +320,6 @@ window_bind_state (GiggleWindow *window)
 	if (priv->diff_current_window) {
 		gtk_widget_show (priv->diff_current_window);
 	}
-
-	/* set up a callback to save the new UI state on application exit */
-	g_signal_connect (GTK_WINDOW (window), "delete-event",
-			  G_CALLBACK (window_delete_event_cb), NULL);
 }
 
 static void on_configuration_updated (GiggleConfiguration *configuration,
@@ -476,15 +334,242 @@ static void on_configuration_updated (GiggleConfiguration *configuration,
 #endif
 
 static void
+window_action_about_cb (GtkAction    *action,
+			GiggleWindow *window)
+{
+	const gchar *authors[] = {
+		"Sven Herzberg",
+		"Mikael Hallendal",
+		"Richard Hult",
+		"Carlos Garnacho",
+		NULL
+	};
+
+	gtk_show_about_dialog (GTK_WINDOW (window),
+			       "name", "Giggle",
+			       "copyright", "Copyright \xc2\xa9 2007 Imendio AB",
+			       "translator-credits", _("translator-credits"),
+			       "logo-icon-name", PACKAGE,
+			       "version", VERSION,
+			       "authors", authors,
+			       NULL);
+}
+
+static void
+window_action_quit_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	window_save_state (window);
+	gtk_widget_hide (GTK_WIDGET (window));
+}
+
+static void
+window_add_widget_cb (GtkUIManager *merge,
+		      GtkWidget    *widget,
+		      GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	gtk_box_pack_start (GTK_BOX (priv->content_vbox),
+			    widget, FALSE, FALSE, 0);
+}
+
+static void
+window_setup_ui_manager (GiggleWindow *window)
+{
+	static const GtkActionEntry action_entries[] = {
+		{ "ProjectMenu", NULL,
+		  N_("_Project"), NULL, NULL,
+		  NULL
+		},
+		{ "EditMenu", NULL,
+		  N_("_Edit"), NULL, NULL,
+		  NULL
+		},
+		{ "GoMenu", NULL,
+		  N_("_Go"), NULL, NULL,
+		  NULL
+		},
+		{ "ViewMenu", NULL,
+		  N_("_View"), NULL, NULL,
+		  NULL
+		},
+		{ "HelpMenu", NULL,
+		  N_("_Help"), NULL, NULL,
+		  NULL
+		},
+#if 0
+		{ "Open", GTK_STOCK_OPEN,
+		  N_("_Open"), "<control>O", N_("Open a GIT repository"),
+		  G_CALLBACK (window_action_open_cb)
+		},
+		{ "SavePatch", GTK_STOCK_SAVE,
+		  N_("_Save patch"), "<control>S", N_("Save a patch"),
+		  G_CALLBACK (window_action_save_patch_cb)
+		},
+		{ "Diff", NULL,
+		  N_("_Diff current changes"), "<control>D", N_("Diff current changes"),
+		  G_CALLBACK (window_action_diff_cb)
+		},
+#endif
+		{ "Quit", GTK_STOCK_QUIT,
+		  N_("_Quit"), "<control>Q", N_("Quit the application"),
+		  G_CALLBACK (window_action_quit_cb)
+		},
+#if 0
+		{ "PersonalDetails", GTK_STOCK_PREFERENCES,
+		  N_("Edit Personal _Details"), NULL, N_("Edit Personal details"),
+		  G_CALLBACK (window_action_personal_details_cb)
+		},
+		{ "Find", GTK_STOCK_FIND,
+		  N_("_Find..."), "slash", N_("Find..."),
+		  G_CALLBACK (window_action_find_cb)
+		},
+		{ "FindNext", NULL,
+		  N_("Find _Next"), "<control>G", N_("Find next"),
+		  G_CALLBACK (window_action_find_next_cb)
+		},
+		{ "FindPrev", NULL,
+		  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
+		  G_CALLBACK (window_action_find_prev_cb)
+		},
+#endif
+		{ "About", GTK_STOCK_ABOUT,
+		  N_("_About"), NULL, N_("About this application"),
+		  G_CALLBACK (window_action_about_cb)
+		},
+
+#if 0
+		/* Toolbar items */
+		{ "BackHistory", GTK_STOCK_GO_BACK,
+		  N_("_Back"), "<alt>Left", NULL,
+		  G_CALLBACK (window_action_history_go_back)
+		},
+		{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
+		  N_("_Forward"), "<alt>Right", NULL,
+		  G_CALLBACK (window_action_history_go_forward)
+		},
+		{ "RefreshHistory", GTK_STOCK_REFRESH,
+		  N_("_Refresh"), "<control>R", NULL,
+		  G_CALLBACK (window_action_history_refresh)
+		},
+#endif
+	};
+
+	static const char layout[] =
+		"<ui>"
+		"  <menubar name='MainMenubar'>"
+		"    <menu action='ProjectMenu'>"
+#if 0
+		"      <menuitem action='Open'/>"
+	/*
+		"      <menuitem action='SavePatch'/>"
+	*/
+		"      <menuitem action='Diff'/>"
+		"      <separator/>"
+		"      <placeholder name='RecentRepositories'/>"
+#endif
+		"      <separator/>"
+		"      <menuitem action='Quit'/>"
+		"    </menu>"
+		"    <menu action='EditMenu'>"
+#if 0
+		"      <menuitem action='PersonalDetails'/>"
+		"      <separator/>"
+		"      <menuitem action='Find'/>"
+		"      <menuitem action='FindNext'/>"
+		"      <menuitem action='FindPrev'/>"
+#endif
+		"    </menu>"
+		"    <menu action='ViewMenu'>"
+#if 0
+		"      <menuitem action='CompactMode'/>"
+		"      <menuitem action='ViewFileList'/>"
+		"      <menuitem action='ViewGraph'/>"
+		"      <separator/>"
+		"      <menuitem action='RefreshHistory'/>"
+#endif
+		"    </menu>"
+		"    <menu action='GoMenu'>"
+#if 0
+		"      <menuitem action='BackHistory'/>"
+		"      <menuitem action='ForwardHistory'/>"
+#endif
+		"    </menu>"
+		"    <menu action='HelpMenu'>"
+		"      <menuitem action='About'/>"
+		"    </menu>"
+		"  </menubar>"
+		"  <toolbar name='MainToolbar'>"
+	#if 0
+		"    <toolitem action='BackHistory'/>"
+		"    <toolitem action='ForwardHistory'/>"
+		"    <toolitem action='RefreshHistory'/>"
+	#endif
+		"  </toolbar>"
+		"</ui>";
+
+	GiggleWindowPriv *priv;
+	GtkActionGroup   *action_group;
+	GError           *error = NULL;
+
+	priv = GET_PRIV (window);
+
+	g_signal_connect (priv->ui_manager, "add-widget",
+			  G_CALLBACK (window_add_widget_cb),
+			  window);
+
+	action_group = gtk_action_group_new ("MainActions");
+
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
+	gtk_action_group_add_actions (action_group, action_entries,
+				      G_N_ELEMENTS (action_entries),
+				      window);
+#if 0
+	gtk_action_group_add_toggle_actions (action_group, toggle_action_entries,
+					     G_N_ELEMENTS (toggle_action_entries),
+					     window);
+#endif
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+	g_object_unref (action_group);
+
+	gtk_window_add_accel_group (GTK_WINDOW (window),
+				    gtk_ui_manager_get_accel_group (priv->ui_manager));
+
+	gtk_ui_manager_add_ui_from_string (priv->ui_manager,
+					   layout, -1, &error);
+
+	if (error) {
+		g_error ("%s: Couldn't create UI: %s\n",
+			 G_STRFUNC, error->message);
+	}
+
+	gtk_ui_manager_ensure_update (priv->ui_manager);
+}
+
+static void
 giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (window);
 
-	priv->git = giggle_git_get ();
-#if 0
 	priv->configuration = giggle_configuration_new ();
+	priv->content_vbox = gtk_vbox_new (FALSE, 0);
+	priv->git = giggle_git_get ();
+	priv->ui_manager = gtk_ui_manager_new ();
+
+	window_setup_ui_manager (window);
+
+	gtk_container_add (GTK_CONTAINER (window),
+			   priv->content_vbox);
+	gtk_widget_show (priv->content_vbox);
+
+	g_signal_connect (GTK_WINDOW (window), "delete-event",
+			  G_CALLBACK (window_delete_event_cb), NULL);
+#if 0
 
 	g_signal_connect (priv->git,
 			  "notify::directory",
@@ -494,10 +579,6 @@ giggle_window_init (GiggleWindow *window)
 				  "notify::project-dir",
 				  G_CALLBACK (window_recent_repositories_add),
 				  window);
-
-	priv->content_vbox = gtk_vbox_new (FALSE, 0);
-	gtk_widget_show (priv->content_vbox);
-	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 
 	window_create_menu (window);
 
@@ -719,26 +800,6 @@ window_recent_repositories_update (GiggleWindow *window)
 /* Update revision info. If previous_revision is not NULL, a diff between it and
  * the current revision will be shown.
  */
-
-static void
-window_add_widget_cb (GtkUIManager *merge, 
-		      GtkWidget    *widget, 
-		      GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	gtk_box_pack_start (GTK_BOX (priv->content_vbox), widget, FALSE, FALSE, 0);
-}
-
-static void
-window_action_quit_cb (GtkAction    *action,
-		       GiggleWindow *window)
-{
-	save_state (window);
-	gtk_widget_hide (GTK_WIDGET (window));
-}
 
 static void
 window_action_open_cb (GtkAction    *action,
@@ -995,28 +1056,6 @@ window_action_personal_details_cb (GtkAction    *action,
 	}
 
 	gtk_widget_show (priv->personal_details_window);
-}
-
-static void
-window_action_about_cb (GtkAction    *action,
-			GiggleWindow *window)
-{
-	const gchar *authors[] = {
-		"Sven Herzberg",
-		"Mikael Hallendal",
-		"Richard Hult",
-		"Carlos Garnacho",
-		NULL
-	};
-
-	gtk_show_about_dialog (GTK_WINDOW (window),
-			       "name", "Giggle",
-			       "copyright", "Copyright \xc2\xa9 2007 Imendio AB",
-			       "translator-credits", _("translator-credits"),
-			       "logo-icon-name", PACKAGE,
-			       "version", VERSION,
-			       "authors", authors,
-			       NULL);
 }
 
 static void
