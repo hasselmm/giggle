@@ -85,66 +85,6 @@ enum {
 	SEARCH_PREV
 };
 
-
-static void window_finalize                       (GObject           *object);
-static gboolean window_configure_event            (GtkWidget           *widget,
-						   GdkEventConfigure   *event);
-
-static void window_add_widget_cb                  (GtkUIManager      *merge,
-						   GtkWidget         *widget,
-						   GiggleWindow      *window);
-
-static void window_action_quit_cb                 (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_open_cb                 (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_save_patch_cb           (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_diff_cb                 (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_find_cb                 (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_find_next_cb            (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_find_prev_cb            (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_personal_details_cb     (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_about_cb                (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_compact_mode_cb         (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_view_file_list_cb       (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_view_graph_cb           (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_history_go_back         (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_history_go_forward      (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_action_history_refresh         (GtkAction         *action,
-						   GiggleWindow      *window);
-static void window_directory_changed_cb           (GiggleGit         *git,
-						   GParamSpec        *arg,
-						   GiggleWindow      *window);
-static void window_recent_repositories_add        (GiggleWindow      *window);
-static void window_recent_repositories_update     (GiggleWindow      *window);
-
-static void window_notebook_switch_page_cb        (GtkNotebook       *notebook,
-						   GtkNotebookPage   *page,
-						   guint              page_num,
-						   GiggleWindow      *window);
-
-static void window_cancel_find                    (GtkWidget         *widget,
-						   GiggleWindow      *window);
-static void window_find_next                      (EggFindBar        *find_bar,
-						   GiggleWindow      *window);
-static void window_find_previous                  (EggFindBar        *find_bar,
-						   GiggleWindow      *window);
-
-static void window_update_toolbar_buttons         (GiggleWindow      *window);
-
-
 static const GtkToggleActionEntry toggle_action_entries[] = {
 	{ "CompactMode", NULL,
 	  N_("_Compact Mode"), "F7", NULL,
