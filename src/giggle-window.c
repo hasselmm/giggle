@@ -338,16 +338,18 @@ window_action_about_cb (GtkAction    *action,
 			GiggleWindow *window)
 {
 	const gchar *authors[] = {
-		"Sven Herzberg",
+		"Carlos Garnacho",
+		"Mathias Hasselmann",
 		"Mikael Hallendal",
 		"Richard Hult",
-		"Carlos Garnacho",
+		"Sven Herzberg",
 		NULL
 	};
 
 	gtk_show_about_dialog (GTK_WINDOW (window),
-			       "name", "Giggle",
-			       "copyright", "Copyright \xc2\xa9 2007 Imendio AB",
+			       "copyright",
+			       "Copyright \xc2\xa9 2007-2008 Imendio AB\n"
+			       "Copyright \xc2\xa9 2008 Mathias Hasselmann",
 			       "translator-credits", _("translator-credits"),
 			       "logo-icon-name", PACKAGE,
 			       "version", VERSION,
