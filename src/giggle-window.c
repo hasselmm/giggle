@@ -549,12 +549,6 @@ window_setup_ui_manager (GiggleWindow *window)
 	};
 
 	static const GtkToggleActionEntry toggle_action_entries[] = {
-	#if 0
-		{ "ViewFileList", NULL,
-		  N_("Show Project _Tree"), "F9", NULL,
-		  G_CALLBACK (window_action_view_file_list_cb), TRUE
-		},
-	#endif
 		{ "ShowGraph", NULL,
 		  N_("Show revision tree"), "F12", NULL,
 		  G_CALLBACK (window_action_view_graph_cb), TRUE
@@ -599,9 +593,6 @@ window_setup_ui_manager (GiggleWindow *window)
 		"      <menuitem action='FileView'/>"
 		"      <menuitem action='HistoryView'/>"
 		"      <separator/>"
-#if 0
-		"      <menuitem action='ViewFileList'/>"
-#endif
 		"      <menuitem action='ShowGraph'/>"
 		"      <separator/>"
 		"      <menuitem action='RefreshHistory'/>"
@@ -1055,32 +1046,6 @@ window_action_find_prev_cb (GtkAction    *action,
 
 	priv = GET_PRIV (window);
 	window_find_previous (EGG_FIND_BAR (priv->find_bar), window);
-}
-
-static void
-window_action_compact_mode_cb (GtkAction    *action,
-			       GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	gboolean          active;
-
-	priv = GET_PRIV (window);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
-
-	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), active);
-}
-
-static void
-window_action_view_file_list_cb (GtkAction    *action,
-				 GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	gboolean          active;
-
-	priv = GET_PRIV (window);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
-
-	giggle_view_history_set_file_list_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void

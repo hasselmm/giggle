@@ -306,7 +306,8 @@ giggle_view_history_init (GiggleViewHistory *view)
 
 	priv->file_list = giggle_file_list_new ();
 	gtk_container_add (GTK_CONTAINER (priv->file_list_sw), priv->file_list);
-	gtk_widget_show_all (priv->file_list_sw);
+	gtk_widget_set_no_show_all (priv->file_list_sw, TRUE);
+	gtk_widget_show_all (priv->file_list);
 
 	g_signal_connect (priv->file_list, "path-selected",
 			  G_CALLBACK (view_history_path_selected), view);
