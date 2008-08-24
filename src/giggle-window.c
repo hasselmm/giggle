@@ -443,6 +443,9 @@ window_action_properties_cb (GtkAction    *action,
 			(GTK_BOX (GTK_DIALOG (priv->summary_dialog)->vbox),
 			 summary_view);
 
+		gtk_window_set_default_size
+			(GTK_WINDOW (priv->summary_dialog), 460, 400);
+
 		gtk_widget_show (summary_view);
 
 		g_free (title);
