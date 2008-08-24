@@ -243,6 +243,29 @@ giggle_graph_renderer_get_size (GtkCellRenderer *cell,
 }
 
 static void
+set_source_color (cairo_t         *cr,
+		  GtkWidget       *widget,
+		  unsigned	   color_index)
+{
+	GdkColor  color;
+	GtkStyle *style;
+
+
+	if (GTK_WIDGET_IS_SENSITIVE (widget)) {
+		gdk_cairo_set_source_color (cr, &colors[color_index]);
+	} else {
+		style = gtk_widget_get_style (widget);
+		color = colors[color_index];
+
+		color.red   = (color.red   + 7 * style->text[GTK_STATE_INSENSITIVE].red)   / 8;
+		color.green = (color.green + 7 * style->text[GTK_STATE_INSENSITIVE].green) / 8;
+		color.blue  = (color.blue  + 7 * style->text[GTK_STATE_INSENSITIVE].blue)  / 8;
+
+		gdk_cairo_set_source_color (cr, &color);
+	}
+}
+
+static void
 giggle_graph_renderer_render (GtkCellRenderer *cell,
 			      GdkWindow       *window,
 			      GtkWidget       *widget,
@@ -290,14 +313,14 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 		if (path_state->lower_n_color != INVALID_COLOR &&
 		    (pos != cur_pos || giggle_revision_get_parents (revision))) {
-			gdk_cairo_set_source_color (cr, &colors[path_state->lower_n_color]);
+			set_source_color (cr, widget, path_state->lower_n_color);
 			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + h);
 			cairo_stroke  (cr);
 		}
 
 		if (path_state->upper_n_color != INVALID_COLOR) {
-			gdk_cairo_set_source_color (cr, &colors[path_state->upper_n_color]);
+			set_source_color (cr, widget, path_state->upper_n_color);
 			cairo_move_to (cr, x + (pos * PATH_SPACE (size)), y);
 			cairo_line_to (cr, x + (pos * PATH_SPACE (size)), y + (h / 2));
 			cairo_stroke  (cr);
@@ -310,7 +333,8 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 		path_state = g_hash_table_lookup (table, GINT_TO_POINTER (pos));
 
 		if (path_state->upper_n_color != INVALID_COLOR) {
-			gdk_cairo_set_source_color (cr, &colors[path_state->upper_n_color]);
+			set_source_color (cr, widget, path_state->upper_n_color);
+
 			cairo_move_to (cr,
 				       x + (cur_pos * PATH_SPACE (size)),
 				       y + (h / 2));
@@ -339,7 +363,8 @@ giggle_graph_renderer_render (GtkCellRenderer *cell,
 
 	/* paint internal circle */
 	path_state = g_hash_table_lookup (table, GINT_TO_POINTER (cur_pos));
-	gdk_cairo_set_source_color (cr, &colors[path_state->lower_n_color]);
+	set_source_color (cr, widget, path_state->lower_n_color);
+
 	cairo_arc (cr,
 		   x + (cur_pos * PATH_SPACE (size)),
 		   y + (h / 2),
