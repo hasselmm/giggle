@@ -51,7 +51,7 @@ static void    view_summary_project_changed_cb    (GObject           *object,
 						   GParamSpec        *arg,
 						   GiggleViewSummary *view);
 
-G_DEFINE_TYPE (GiggleViewSummary, giggle_view_summary, GIGGLE_TYPE_VIEW)
+G_DEFINE_TYPE (GiggleViewSummary, giggle_view_summary, GTK_TYPE_NOTEBOOK)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_SUMMARY, GiggleViewSummaryPriv))
 
@@ -89,87 +89,115 @@ view_summary_update_data (GiggleViewSummary *view)
 			    giggle_git_get_project_dir (priv->git));
 }
 
-static void
-giggle_view_summary_init (GiggleViewSummary *view)
+static GtkWidget *
+create_summary_page (GiggleViewSummaryPriv *priv)
 {
-	GiggleViewSummaryPriv *priv;
-	GtkWidget             *vpaned, *table;
-	GtkWidget             *label, *scrolled_window, *box;
+	GtkWidget *page;
+	GtkWidget *label;
 
-	priv = GET_PRIV (view);
+	page = gtk_vbox_new (FALSE, 6);
 
-	gtk_container_set_border_width (GTK_CONTAINER (view), 6);
-	gtk_box_set_spacing (GTK_BOX (view), 12);
+	/* create header */
 
 	priv->name_label = gtk_label_new (NULL);
 	g_object_ref_sink (priv->name_label);
 	gtk_widget_show (priv->name_label);
-	gtk_box_pack_start (GTK_BOX (view), priv->name_label, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (page), priv->name_label, FALSE, FALSE, 0);
 
 	priv->path_label = gtk_label_new (NULL);
 	g_object_ref_sink (priv->path_label);
 	gtk_widget_show (priv->path_label);
-	gtk_box_pack_start (GTK_BOX (view), priv->path_label, FALSE, FALSE, 0);
-
-	vpaned = gtk_vpaned_new ();
-	gtk_widget_show (vpaned);
-	gtk_box_pack_start (GTK_BOX (view), vpaned, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (page), priv->path_label, FALSE, FALSE, 0);
 
 	/* add decription editor */
-	box = gtk_vbox_new (FALSE, 6);
-	gtk_paned_pack1 (GTK_PANED (vpaned), box, FALSE, FALSE);
 
 	label = gtk_label_new (NULL);
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_label_set_markup (GTK_LABEL (label), _("<b>Description:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (page), label, FALSE, FALSE, 0);
 
 	priv->description_editor = giggle_description_editor_new ();
-	gtk_box_pack_start (GTK_BOX (box), priv->description_editor, TRUE, TRUE, 0);
-	gtk_widget_show_all (box);
+	gtk_box_pack_start (GTK_BOX (page), priv->description_editor, TRUE, TRUE, 0);
 
-	table = gtk_table_new (0, 0, FALSE);
-	gtk_table_set_col_spacings (GTK_TABLE (table), 12);
-	gtk_table_set_row_spacings (GTK_TABLE (table), 12);
-	gtk_widget_show (table);
-	gtk_paned_pack2 (GTK_PANED (vpaned), table, FALSE, FALSE);
+	gtk_container_set_border_width (GTK_CONTAINER (page), 6);
+	gtk_widget_show_all (page);
 
-	/* add branches view */
+	return page;
+}
+
+static GtkWidget *
+create_branches_page (GiggleViewSummaryPriv *priv)
+{
 	priv->branches_view = giggle_branches_view_new ();
 
+	gtk_container_set_border_width (GTK_CONTAINER (priv->branches_view), 6);
 	gtk_widget_show_all (priv->branches_view);
-	gtk_table_attach (GTK_TABLE (table), priv->branches_view,
-			  0, 1, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
 
-	/* add authors view */
+	return priv->branches_view;
+}
+
+static GtkWidget *
+create_authors_page (GiggleViewSummaryPriv *priv)
+{
 	priv->authors_view = giggle_authors_view_new ();
 
+	gtk_container_set_border_width (GTK_CONTAINER (priv->authors_view), 6);
 	gtk_widget_show_all (priv->authors_view);
-	gtk_table_attach (GTK_TABLE (table), priv->authors_view,
-			  1, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
+
+	return priv->authors_view;
+}
+
+static GtkWidget *
+create_remotes_page (GiggleViewSummaryPriv *priv)
+{
+	GtkWidget *page, *label, *scrolled_window;
 
 	/* add remotes view */
 	priv->remotes_view = giggle_remotes_view_new ();
-	box = gtk_vbox_new (FALSE, 6);
+	page = gtk_vbox_new (FALSE, 6);
 
 	/* FIXME: string should not contain markup */
 	label = gtk_label_new (NULL);
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_label_set_markup (GTK_LABEL (label), _("<b>Remotes:</b>"));
-	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (page), label, FALSE, FALSE, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->remotes_view);
-	gtk_box_pack_start (GTK_BOX (box), scrolled_window, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (page), scrolled_window, TRUE, TRUE, 0);
 
-	gtk_widget_show_all (box);
-	gtk_table_attach (GTK_TABLE (table), box,
-			  0, 2, 1, 2, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 0, 0);
+	gtk_container_set_border_width (GTK_CONTAINER (page), 6);
+	gtk_widget_show_all (page);
 
+	return page;
+}
+
+static void
+giggle_view_summary_init (GiggleViewSummary *view)
+{
+	GiggleViewSummaryPriv *priv;
+
+	priv = GET_PRIV (view);
 	priv->git = giggle_git_get ();
+
+	gtk_notebook_append_page
+		(GTK_NOTEBOOK (view), create_summary_page (priv),
+		 gtk_label_new_with_mnemonic (_("_Summary")));
+	gtk_notebook_append_page
+		(GTK_NOTEBOOK (view), create_branches_page (priv),
+		 gtk_label_new_with_mnemonic (_("_Branches")));
+	gtk_notebook_append_page
+		(GTK_NOTEBOOK (view), create_authors_page (priv),
+		 gtk_label_new_with_mnemonic (_("_Authors")));
+	gtk_notebook_append_page
+		(GTK_NOTEBOOK (view), create_remotes_page (priv),
+		 gtk_label_new_with_mnemonic (_("_Remotes")));
+
+	gtk_container_set_border_width (GTK_CONTAINER (view), 6);
+
 	g_signal_connect (priv->git, "notify::directory",
 			  G_CALLBACK (view_summary_project_changed_cb), view);
 

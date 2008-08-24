@@ -24,8 +24,6 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 
-#include "giggle-view.h"
-
 G_BEGIN_DECLS
 
 #define GIGGLE_TYPE_VIEW_SUMMARY            (giggle_view_summary_get_type ())
@@ -39,11 +37,11 @@ typedef struct GiggleViewSummary      GiggleViewSummary;
 typedef struct GiggleViewSummaryClass GiggleViewSummaryClass;
 
 struct GiggleViewSummary {
-	GiggleView parent_instance;
+	GtkNotebook parent_instance;
 };
 
 struct GiggleViewSummaryClass {
-	GiggleViewClass parent_class;
+	GtkNotebookClass parent_class;
 };
 
 GType              giggle_view_summary_get_type          (void);
