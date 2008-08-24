@@ -64,7 +64,8 @@ struct GiggleWindowPriv {
 	GtkWidget           *history_view;
 
 	/* Dialogs */
-	GtkWidget	   *summary_dialog;
+	GtkWidget	    *summary_dialog;
+	GtkWidget           *personal_details_window;
 
 	/* Recent File Manager */
 	GtkRecentManager    *recent_manager;
@@ -75,7 +76,6 @@ struct GiggleWindowPriv {
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
 
-	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
 #endif
 };
@@ -113,6 +113,16 @@ window_dispose (GObject *object)
 	GiggleWindowPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	if (priv->summary_dialog) {
+		gtk_widget_destroy (priv->summary_dialog);
+		priv->summary_dialog = NULL;
+	}
+
+	if (priv->personal_details_window) {
+		gtk_widget_destroy (priv->personal_details_window);
+		priv->personal_details_window = NULL;
+	}
 
 	if (priv->ui_manager) {
 		g_object_unref (priv->ui_manager);
@@ -155,9 +165,6 @@ window_save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	GtkAction	 *action;
-#if 0
-	gboolean          compact;
-#endif
 	int               current_page;
 	gchar             geometry[25];
 	gboolean	  show_graph;
@@ -465,6 +472,28 @@ window_action_quit_cb (GtkAction    *action,
 }
 
 static void
+window_action_personal_details_cb (GtkAction    *action,
+				   GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	if (!priv->personal_details_window) {
+		priv->personal_details_window = giggle_personal_details_window_new ();
+
+		gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
+					      GTK_WINDOW (window));
+		g_signal_connect (priv->personal_details_window, "delete-event",
+				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+		g_signal_connect_after (priv->personal_details_window, "response",
+					G_CALLBACK (gtk_widget_hide), NULL);
+	}
+
+	gtk_widget_show (priv->personal_details_window);
+}
+
+static void
 window_action_view_graph_cb (GtkAction    *action,
 			     GiggleWindow *window)
 {
@@ -578,11 +607,11 @@ window_create_ui_manager (GiggleWindow *window)
 		  N_("_Quit"), "<control>Q", N_("Quit the application"),
 		  G_CALLBACK (window_action_quit_cb)
 		},
-#if 0
 		{ "PersonalDetails", GTK_STOCK_PREFERENCES,
-		  N_("Edit Personal _Details"), NULL, N_("Edit Personal details"),
+		  N_("_Personal Details"), NULL, N_("Edit Personal details"),
 		  G_CALLBACK (window_action_personal_details_cb)
 		},
+#if 0
 		{ "Find", GTK_STOCK_FIND,
 		  N_("_Find..."), "slash", N_("Find..."),
 		  G_CALLBACK (window_action_find_cb)
@@ -649,9 +678,9 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <menuitem action='Quit'/>"
 		"    </menu>"
 		"    <menu action='EditMenu'>"
-#if 0
 		"      <menuitem action='PersonalDetails'/>"
 		"      <separator/>"
+#if 0
 		"      <menuitem action='Find'/>"
 		"      <menuitem action='FindNext'/>"
 		"      <menuitem action='FindPrev'/>"
@@ -1157,28 +1186,6 @@ window_find_previous (EggFindBar   *find_bar,
 		      GiggleWindow *window)
 {
 	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_PREV);
-}
-
-static void
-window_action_personal_details_cb (GtkAction    *action,
-				   GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	if (!priv->personal_details_window) {
-		priv->personal_details_window = giggle_personal_details_window_new ();
-
-		gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
-					      GTK_WINDOW (window));
-		g_signal_connect (priv->personal_details_window, "delete-event",
-				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-		g_signal_connect_after (priv->personal_details_window, "response",
-					G_CALLBACK (gtk_widget_hide), NULL);
-	}
-
-	gtk_widget_show (priv->personal_details_window);
 }
 
 static void
