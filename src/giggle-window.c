@@ -94,7 +94,6 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define RECENT_FILES_GROUP "giggle"
 
 #define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
-#define COMPACT_MODE			"/ui/MainMenubar/ViewMenu/CompactMode"
 #endif
 #define FILE_VIEW_PATH			"/ui/MainMenubar/ViewMenu/FileView"
 #if 0
@@ -189,13 +188,6 @@ window_save_state (GiggleWindow *window)
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_SHOW_GRAPH,
 						show_graph);
-
-#if 0
-	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
-	giggle_configuration_set_boolean_field (priv->configuration,
-						CONFIG_FIELD_COMPACT_MODE,
-						compact);
-#endif
 
 	giggle_configuration_commit (priv->configuration,
 				     window_configuration_committed_cb,
@@ -351,19 +343,8 @@ window_bind_state (GiggleWindow *window)
 	gboolean	  maximized;
 	gboolean	  show_graph;
 	int		  current_page;
-#if 0
-	gboolean compact;
-#endif
 
 	priv = GET_PRIV (window);
-
-	/* set the toggle menu item to indicate the current compact setting */
-#if 0
-	compact = giggle_configuration_get_boolean_field (priv->configuration, CONFIG_FIELD_COMPACT_MODE);
-	action = gtk_ui_manager_get_action (priv->ui_manager, COMPACT_MODE);
-	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), compact);
-	giggle_view_history_set_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view), compact);
-#endif
 
 	geometry = giggle_configuration_get_field
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
@@ -569,10 +550,6 @@ window_setup_ui_manager (GiggleWindow *window)
 
 	static const GtkToggleActionEntry toggle_action_entries[] = {
 	#if 0
-		{ "CompactMode", NULL,
-		  N_("_Compact Mode"), "F7", NULL,
-		  G_CALLBACK (window_action_compact_mode_cb), FALSE
-		},
 		{ "ViewFileList", NULL,
 		  N_("Show Project _Tree"), "F9", NULL,
 		  G_CALLBACK (window_action_view_file_list_cb), TRUE
@@ -623,7 +600,6 @@ window_setup_ui_manager (GiggleWindow *window)
 		"      <menuitem action='HistoryView'/>"
 		"      <separator/>"
 #if 0
-		"      <menuitem action='CompactMode'/>"
 		"      <menuitem action='ViewFileList'/>"
 #endif
 		"      <menuitem action='ShowGraph'/>"

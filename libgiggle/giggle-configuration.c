@@ -35,7 +35,6 @@ static const gchar *fields[] = {
 	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] = "giggle.main-window-maximized",
 	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] = "giggle.main-window-geometry",
 	[CONFIG_FIELD_MAIN_WINDOW_PAGE] = "giggle.main-window-page",
-	[CONFIG_FIELD_COMPACT_MODE] = "giggle.compact-mode",
 	[CONFIG_FIELD_SHOW_GRAPH] = "giggle.show-graph",
 };
 
