@@ -92,8 +92,6 @@ main (int argc, char **argv)
 
 	g_free (dir);
 
-	gtk_widget_show (window);
-
 	/* window will show itself when it reads its initial size configuration */
 	if (diff_window) {
 		giggle_window_show_diff_window (GIGGLE_WINDOW (window));

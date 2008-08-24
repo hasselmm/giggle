@@ -36,7 +36,6 @@ G_BEGIN_DECLS
 
 typedef struct GiggleConfiguration      GiggleConfiguration;
 typedef struct GiggleConfigurationClass GiggleConfigurationClass;
-typedef enum   GiggleConfigurationField GiggleConfigurationField;
 
 typedef void (*GiggleConfigurationFunc) (GiggleConfiguration *configuration,
 					 gboolean             sucess,
@@ -52,36 +51,50 @@ struct GiggleConfigurationClass {
 	void (*changed) (GiggleConfiguration *configuration);
 };
 
-enum GiggleConfigurationField {
+typedef enum {
 	CONFIG_FIELD_NAME,
 	CONFIG_FIELD_EMAIL,
 	CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 	CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
+	CONFIG_FIELD_MAIN_WINDOW_PAGE,
 	CONFIG_FIELD_COMPACT_MODE
-};
+} GiggleConfigurationField;
 
+typedef enum {
+	MAIN_WINDOW_PAGE_FILE_VIEW,
+	MAIN_WINDOW_PAGE_HISTORY_VIEW
+} GiggleMainWindowPage;
 
-GType	                giggle_configuration_get_type      (void);
+GType                   giggle_configuration_get_type      (void);
 GiggleConfiguration *   giggle_configuration_new           (void);
 
 void                    giggle_configuration_update        (GiggleConfiguration      *configuration,
 							    GiggleConfigurationFunc   func,
 							    gpointer                  data);
+void                    giggle_configuration_commit        (GiggleConfiguration      *configuration,
+							    GiggleConfigurationFunc   func,
+							    gpointer                  data);
 
 G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
-gboolean                giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
-								GiggleConfigurationField  field);
+gboolean                giggle_configuration_get_boolean_field
+							   (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field);
+unsigned                giggle_configuration_get_enumeration_field
+							   (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field);
 
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
 							    const gchar              *value);
-void                    giggle_configuration_set_boolean_field (GiggleConfiguration      *configuration,
-								GiggleConfigurationField  field,
-								gboolean                  value);
-void                    giggle_configuration_commit        (GiggleConfiguration      *configuration,
-							    GiggleConfigurationFunc   func,
-							    gpointer                  data);
+void                    giggle_configuration_set_boolean_field
+							   (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field,
+							    gboolean                  value);
+void			giggle_configuration_set_enumeration_field
+							   (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field,
+							    unsigned                  value);
 
 G_END_DECLS
 

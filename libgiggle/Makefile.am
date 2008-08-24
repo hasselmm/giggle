@@ -14,8 +14,9 @@ dist_ENUMS_TEMPLATES= \
 
 # h_files are the headers that include enums
 h_files = \
-	giggle-remote-branch.h \
-	giggle-git-list-files.h
+	giggle-configuration.h \
+	giggle-git-list-files.h \
+	giggle-remote-branch.h
 
 libgiggle_la_SOURCES = \
 	$(BUILT_SOURCES) \
@@ -99,13 +100,13 @@ libgiggle_git_la_LDFLAGS= \
 	$(NULL)
 
 giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
-	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
 	$(h_files) ) >> xgen-gtbh \
 	&& (cmp -s xgen-gtbh $@ || (echo "Creating $@..."; cp xgen-gtbh $@) ) \
 	&& rm -f xgen-gtbh
 
 giggle-enums.c: $(h_files) $(priv_h_files) Makefile giggle-enums.c.in
-	@( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.c.in \
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.c.in \
 	$(h_files) ) > xgen-gtbc \
 	&& (cmp -s xgen-gtbc $@ || (echo "Creating $@..."; cp xgen-gtbc $@) ) \
 	&& rm -f xgen-gtbc
