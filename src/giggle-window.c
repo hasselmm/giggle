@@ -1072,7 +1072,7 @@ window_directory_changed_cb (GiggleGit    *git,
 	priv = GET_PRIV (window);
 
 	directory = giggle_git_get_directory (git);
-	title = g_strdup_printf ("%s - Giggle", directory);
+	title = g_strdup_printf ("%s - %s", directory, g_get_application_name ());
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
 }
