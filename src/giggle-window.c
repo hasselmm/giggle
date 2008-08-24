@@ -63,6 +63,9 @@ struct GiggleWindowPriv {
 	GtkWidget           *file_view;
 	GtkWidget           *history_view;
 
+	/* Dialogs */
+	GtkWidget	   *summary_dialog;
+
 	/* Menu & toolbar */
 #if 0
 	GtkRecentManager    *recent_manager;
@@ -74,8 +77,6 @@ struct GiggleWindowPriv {
 
 	GtkWidget           *personal_details_window;
 	GtkWidget           *diff_current_window;
-
-
 #endif
 };
 
@@ -417,6 +418,41 @@ window_action_about_cb (GtkAction    *action,
 }
 
 static void
+window_action_properties_cb (GtkAction    *action,
+		             GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	char		 *title;
+	const gchar      *project_name;
+	GtkWidget	 *summary_view;
+
+	priv = GET_PRIV (window);
+
+	if (!priv->summary_dialog) {
+		project_name = giggle_git_get_project_name (priv->git);
+		title = g_strdup_printf (_("Properties of %s"), project_name);
+
+		priv->summary_dialog = gtk_dialog_new_with_buttons
+			(title, GTK_WINDOW (window),
+			 GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_NO_SEPARATOR,
+			 GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
+
+		summary_view = giggle_view_summary_new ();
+
+		gtk_box_pack_start_defaults
+			(GTK_BOX (GTK_DIALOG (priv->summary_dialog)->vbox),
+			 summary_view);
+
+		gtk_widget_show (summary_view);
+
+		g_free (title);
+	}
+
+	gtk_dialog_run (GTK_DIALOG (priv->summary_dialog));
+	gtk_widget_hide (priv->summary_dialog);
+}
+
+static void
 window_action_quit_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
@@ -506,6 +542,10 @@ window_setup_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_diff_cb)
 		},
 #endif
+		{ "Properties", GTK_STOCK_PROPERTIES,
+		  N_("_Properties"), "<alt>Return", N_("Show and edit project properties"),
+		  G_CALLBACK (window_action_properties_cb)
+		},
 		{ "Quit", GTK_STOCK_QUIT,
 		  N_("_Quit"), "<control>Q", N_("Quit the application"),
 		  G_CALLBACK (window_action_quit_cb)
@@ -570,14 +610,15 @@ window_setup_ui_manager (GiggleWindow *window)
 		"    <menu action='ProjectMenu'>"
 #if 0
 		"      <menuitem action='Open'/>"
-	/*
 		"      <menuitem action='SavePatch'/>"
-	*/
 		"      <menuitem action='Diff'/>"
-		"      <separator/>"
-		"      <placeholder name='RecentRepositories'/>"
 #endif
+		"      <menuitem action='Properties'/>"
 		"      <separator/>"
+#if 0
+		"      <placeholder name='RecentRepositories'/>"
+		"      <separator/>"
+#endif
 		"      <menuitem action='Quit'/>"
 		"    </menu>"
 		"    <menu action='EditMenu'>"
@@ -764,23 +805,6 @@ giggle_window_init (GiggleWindow *window)
 				  priv->history_view,
 				  gtk_label_new (_("History")));
 
-	/* append file view */
-	/*
-	priv->file_view = giggle_view_file_new ();
-	gtk_widget_show (priv->file_view);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->file_view,
-				  gtk_label_new (_("Files")));
-	*/
-
-	/* append summary view */
-	priv->summary_view = giggle_view_summary_new ();
-	gtk_widget_show (priv->summary_view);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->summary_view,
-				  gtk_label_new (_("Summary")));
 #endif
 
 	giggle_configuration_update (priv->configuration,
