@@ -52,6 +52,9 @@ GtkWidget *        giggle_view_file_new               (void);
 void               giggle_view_file_set_model         (GiggleViewFile *view_history,
 						       GtkTreeModel   *model);
 
+void               giggle_view_file_set_graph_visible (GiggleViewFile *view,
+						       gboolean        visible);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_VIEW_FILE_H__ */

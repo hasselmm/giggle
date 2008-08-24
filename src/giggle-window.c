@@ -103,6 +103,7 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
 #define SAVE_PATCH_UI_PATH 		"/ui/MainMenubar/ProjectMenu/SavePatch"
 #endif
+#define SHOW_GRAPH_PATH			"/ui/MainMenubar/ViewMenu/ShowGraph"
 
 static void
 window_dispose (GObject *object)
@@ -153,11 +154,13 @@ static void
 window_save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	GtkAction	 *action;
 #if 0
 	gboolean          compact;
 #endif
 	int               current_page;
 	gchar             geometry[25];
+	gboolean	  show_graph;
 	gboolean          maximized;
 
 	priv = GET_PRIV (window);
@@ -165,11 +168,11 @@ window_save_state (GiggleWindow *window)
 	g_snprintf (geometry, sizeof (geometry), "%dx%d+%d+%d",
 		    priv->width, priv->height, priv->x, priv->y);
 
-	maximized =
-		gdk_window_get_state (GTK_WIDGET (window)->window) &
-		GDK_WINDOW_STATE_MAXIMIZED;
-	current_page = gtk_notebook_get_current_page
-		(GTK_NOTEBOOK (priv->main_notebook));
+	maximized = gdk_window_get_state (GTK_WIDGET (window)->window) & GDK_WINDOW_STATE_MAXIMIZED;
+	current_page = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
+	show_graph = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
@@ -182,6 +185,10 @@ window_save_state (GiggleWindow *window)
 	giggle_configuration_set_enumeration_field (priv->configuration,
 						    CONFIG_FIELD_MAIN_WINDOW_PAGE,
 						    current_page);
+
+	giggle_configuration_set_boolean_field (priv->configuration,
+						CONFIG_FIELD_SHOW_GRAPH,
+						show_graph);
 
 #if 0
 	compact = giggle_view_history_get_compact_mode (GIGGLE_VIEW_HISTORY (priv->history_view));
@@ -339,11 +346,12 @@ static void
 window_bind_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
+	GtkAction 	 *action;
 	const char       *geometry;
 	gboolean	  maximized;
+	gboolean	  show_graph;
 	int		  current_page;
 #if 0
-	GtkAction *action;
 	gboolean compact;
 #endif
 
@@ -363,6 +371,8 @@ window_bind_state (GiggleWindow *window)
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED);
 	current_page = giggle_configuration_get_enumeration_field
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_PAGE);
+	show_graph = giggle_configuration_get_boolean_field
+		(priv->configuration, CONFIG_FIELD_SHOW_GRAPH);
 
 	if (geometry) {
 		if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
@@ -377,10 +387,13 @@ window_bind_state (GiggleWindow *window)
 		gtk_window_maximize (GTK_WINDOW (window));
 	}
 
+	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
+	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), show_graph);
+
 	gtk_notebook_set_current_page
 		(GTK_NOTEBOOK (priv->main_notebook), current_page);
 
-       gtk_widget_show (GTK_WIDGET (window));
+	gtk_widget_show (GTK_WIDGET (window));
 
 #if 0
        if (priv->diff_current_window) {
@@ -428,6 +441,20 @@ window_action_quit_cb (GtkAction    *action,
 {
 	window_save_state (window);
 	gtk_widget_hide (GTK_WIDGET (window));
+}
+
+static void
+window_action_view_graph_cb (GtkAction    *action,
+			     GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gboolean          active;
+
+	priv = GET_PRIV (window);
+
+	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+	giggle_view_file_set_graph_visible (GIGGLE_VIEW_FILE (priv->file_view), active);
+	giggle_view_history_set_graph_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void
@@ -550,11 +577,11 @@ window_setup_ui_manager (GiggleWindow *window)
 		  N_("Show Project _Tree"), "F9", NULL,
 		  G_CALLBACK (window_action_view_file_list_cb), TRUE
 		},
-		{ "ViewGraph", NULL,
+	#endif
+		{ "ShowGraph", NULL,
 		  N_("Show revision tree"), "F12", NULL,
 		  G_CALLBACK (window_action_view_graph_cb), TRUE
 		},
-	#endif
 	};
 
 	static const GtkRadioActionEntry mode_radio_action_entries[] = {
@@ -598,10 +625,10 @@ window_setup_ui_manager (GiggleWindow *window)
 #if 0
 		"      <menuitem action='CompactMode'/>"
 		"      <menuitem action='ViewFileList'/>"
-		"      <menuitem action='ViewGraph'/>"
+#endif
+		"      <menuitem action='ShowGraph'/>"
 		"      <separator/>"
 		"      <menuitem action='RefreshHistory'/>"
-#endif
 		"    </menu>"
 		"    <menu action='GoMenu'>"
 		"      <menuitem action='BackHistory'/>"
@@ -1078,19 +1105,6 @@ window_action_view_file_list_cb (GtkAction    *action,
 	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
 
 	giggle_view_history_set_file_list_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
-}
-
-static void
-window_action_view_graph_cb (GtkAction    *action,
-			     GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	gboolean          active;
-
-	priv = GET_PRIV (window);
-	active = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
-
-	giggle_view_history_set_graph_visible (GIGGLE_VIEW_HISTORY (priv->history_view), active);
 }
 
 static void

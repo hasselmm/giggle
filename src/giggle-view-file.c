@@ -272,3 +272,19 @@ giggle_view_file_set_model (GiggleViewFile *view_history,
 
 	giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), model);
 }
+
+void
+giggle_view_file_set_graph_visible (GiggleViewFile *view,
+				    gboolean           visible)
+{
+	GiggleViewFilePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_FILE (view));
+
+	priv = GET_PRIV (view);
+
+	giggle_rev_list_view_set_graph_visible (
+		GIGGLE_REV_LIST_VIEW (priv->revision_list), visible);
+}
+
+
