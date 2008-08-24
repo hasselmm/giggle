@@ -753,6 +753,8 @@ window_create_ui_manager (GiggleWindow *window)
 		"    <toolitem action='BackHistory'/>"
 		"    <toolitem action='ForwardHistory'/>"
 		"    <toolitem action='RefreshHistory'/>"
+		"    <separator/>"
+		"    <toolitem action='Find'/>"
 		"    <separator expand='true'/>"
 		"    <toolitem action='FileView'/>"
 		"    <toolitem action='HistoryView'/>"
