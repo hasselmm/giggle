@@ -59,6 +59,9 @@ struct GiggleWindowPriv {
 	GtkWidget           *content_vbox;
 	GtkWidget           *main_notebook;
 
+	GtkWidget           *find_bar;
+	GtkToolItem         *full_search;
+
 	/* Views */
 	GtkWidget           *file_view;
 	GtkWidget           *history_view;
@@ -73,19 +76,14 @@ struct GiggleWindowPriv {
 	guint                recent_merge_id;
 
 #if 0
-	GtkWidget           *find_bar;
-	GtkToolItem         *full_search;
-
 	GtkWidget           *diff_current_window;
 #endif
 };
 
-#if 0
 enum {
 	SEARCH_NEXT,
 	SEARCH_PREV
 };
-#endif
 
 G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
@@ -97,8 +95,8 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
 #endif
 #define FILE_VIEW_PATH			"/ui/MainMenubar/ViewMenu/FileView"
-#if 0
 #define FIND_PATH			"/ui/MainMenubar/EditMenu/Find"
+#if 0
 #define FORWARD_HISTORY_PATH		"/ui/MainToolbar/ForwardHistory"
 #endif
 #define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
@@ -276,37 +274,6 @@ window_create_menu (GiggleWindow *window)
 #endif
 }
 
-static void
-window_create_find_bar (GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GtkToolItem      *separator;
-
-	priv = GET_PRIV (window);
-
-	priv->find_bar = egg_find_bar_new ();
-
-	separator = gtk_separator_tool_item_new ();
-	gtk_widget_show (GTK_WIDGET (separator));
-	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), separator, -1);
-
-	priv->full_search = gtk_toggle_tool_button_new ();
-	gtk_tool_button_set_label (GTK_TOOL_BUTTON (priv->full_search), _("Search inside _diffs"));
-	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (priv->full_search), TRUE);
-	gtk_tool_item_set_is_important (priv->full_search, TRUE);
-	gtk_widget_show (GTK_WIDGET (priv->full_search));
-
-	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), priv->full_search, -1);
-
-	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
-
-	g_signal_connect (priv->find_bar, "close",
-			  G_CALLBACK (window_cancel_find), window);
-	g_signal_connect (priv->find_bar, "next",
-			  G_CALLBACK (window_find_next), window);
-	g_signal_connect (priv->find_bar, "previous",
-			  G_CALLBACK (window_find_previous), window);
-}
 #endif
 
 void
@@ -494,6 +461,74 @@ window_action_personal_details_cb (GtkAction    *action,
 }
 
 static void
+window_find (EggFindBar            *find_bar,
+	     GiggleWindow          *window,
+	     GiggleSearchDirection  direction)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	guint             page_num;
+	const gchar      *search_string;
+	gboolean          full_search;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+
+	search_string = egg_find_bar_get_search_string (find_bar);
+
+	if (search_string && *search_string) {
+		full_search = gtk_toggle_tool_button_get_active (
+			GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
+
+		giggle_searchable_search (GIGGLE_SEARCHABLE (page),
+					  search_string, direction, full_search);
+	}
+}
+
+static void
+window_find_next (EggFindBar   *find_bar,
+		  GiggleWindow *window)
+{
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_NEXT);
+}
+
+static void
+window_find_previous (EggFindBar   *find_bar,
+		      GiggleWindow *window)
+{
+	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_PREV);
+}
+
+static void
+window_action_find_cb (GtkAction    *action,
+		       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	gtk_widget_show (priv->find_bar);
+	gtk_widget_grab_focus (priv->find_bar);
+}
+
+static void
+window_action_find_next_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	window_find_next (EGG_FIND_BAR (GET_PRIV (window)->find_bar), window);
+}
+
+static void
+window_action_find_prev_cb (GtkAction    *action,
+			    GiggleWindow *window)
+{
+	window_find_previous (EGG_FIND_BAR (GET_PRIV (window)->find_bar), window);
+}
+
+static void
 window_action_view_graph_cb (GtkAction    *action,
 			     GiggleWindow *window)
 {
@@ -611,9 +646,12 @@ window_create_ui_manager (GiggleWindow *window)
 		  N_("_Personal Details"), NULL, N_("Edit Personal details"),
 		  G_CALLBACK (window_action_personal_details_cb)
 		},
-#if 0
 		{ "Find", GTK_STOCK_FIND,
-		  N_("_Find..."), "slash", N_("Find..."),
+		  N_("_Find..."), "<control>F", N_("Find..."),
+		  G_CALLBACK (window_action_find_cb)
+		},
+		{ "FindSlash", NULL,
+		  NULL, "slash", NULL,
 		  G_CALLBACK (window_action_find_cb)
 		},
 		{ "FindNext", NULL,
@@ -624,7 +662,6 @@ window_create_ui_manager (GiggleWindow *window)
 		  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
 		  G_CALLBACK (window_action_find_prev_cb)
 		},
-#endif
 		{ "About", GTK_STOCK_ABOUT,
 		  N_("_About"), NULL, N_("About this application"),
 		  G_CALLBACK (window_action_about_cb)
@@ -680,11 +717,9 @@ window_create_ui_manager (GiggleWindow *window)
 		"    <menu action='EditMenu'>"
 		"      <menuitem action='PersonalDetails'/>"
 		"      <separator/>"
-#if 0
 		"      <menuitem action='Find'/>"
 		"      <menuitem action='FindNext'/>"
 		"      <menuitem action='FindPrev'/>"
-#endif
 		"    </menu>"
 		"    <menu action='ViewMenu'>"
 		"      <menuitem action='FileView'/>"
@@ -710,6 +745,7 @@ window_create_ui_manager (GiggleWindow *window)
 		"    <toolitem action='FileView'/>"
 		"    <toolitem action='HistoryView'/>"
 		"  </toolbar>"
+		"  <accelerator action='FindSlash'/>"
 		"</ui>";
 
 	GiggleWindowPriv *priv;
@@ -898,6 +934,56 @@ window_create_recent_manager (GiggleWindow *window)
 }
 
 static void
+window_cancel_find (GtkWidget    *widget,
+		    GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkWidget        *page;
+	guint             page_num;
+
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
+	gtk_widget_hide (widget);
+}
+
+static void
+window_create_find_bar (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	GtkToolItem      *separator;
+
+	priv = GET_PRIV (window);
+
+	priv->find_bar = egg_find_bar_new ();
+
+	separator = gtk_separator_tool_item_new ();
+	gtk_widget_show (GTK_WIDGET (separator));
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), separator, -1);
+
+	priv->full_search = gtk_toggle_tool_button_new ();
+	gtk_tool_button_set_label (GTK_TOOL_BUTTON (priv->full_search), _("Search Inside _Patches"));
+	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (priv->full_search), TRUE);
+	gtk_tool_item_set_is_important (priv->full_search, TRUE);
+	gtk_widget_show (GTK_WIDGET (priv->full_search));
+
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->find_bar), priv->full_search, -1);
+
+	gtk_box_pack_end (GTK_BOX (priv->content_vbox), priv->find_bar, FALSE, FALSE, 0);
+
+	g_signal_connect (priv->find_bar, "close",
+			  G_CALLBACK (window_cancel_find), window);
+	g_signal_connect (priv->find_bar, "next",
+			  G_CALLBACK (window_find_next), window);
+	g_signal_connect (priv->find_bar, "previous",
+			  G_CALLBACK (window_find_previous), window);
+}
+
+static void
 window_notebook_switch_page_cb (GtkNotebook     *notebook,
 				GtkNotebookPage *page,
 				guint            page_num,
@@ -905,22 +991,26 @@ window_notebook_switch_page_cb (GtkNotebook     *notebook,
 {
 	GiggleWindowPriv *priv;
 	GtkAction        *action;
-#if 0
 	GtkWidget        *page_widget;
-#endif
+	gboolean	  searchable;
 
 	priv = GET_PRIV (window);
 
+	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
+	searchable = GIGGLE_IS_SEARCHABLE (page_widget);
+
+	/* Update Page Selection Buttons */
 	action = gtk_ui_manager_get_action (priv->ui_manager, FILE_VIEW_PATH);
 	gtk_radio_action_set_current_value (GTK_RADIO_ACTION (action), page_num);
 
-#if 0
-	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
-
 	/* Update find */
 	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
-	gtk_action_set_sensitive (action, GIGGLE_IS_SEARCHABLE (page_widget));
+	gtk_action_set_sensitive (action, searchable);
 
+	if (!searchable)
+		gtk_widget_hide (priv->find_bar);
+
+#if 0
 	/* Update history search */
 	window_update_toolbar_buttons (window);
 #endif
@@ -994,6 +1084,7 @@ giggle_window_init (GiggleWindow *window)
 
 	window_create_ui_manager (window);
 	window_create_recent_manager (window);
+	window_create_find_bar (window);
 
 	gtk_notebook_set_show_border (GTK_NOTEBOOK (priv->main_notebook), FALSE);
 	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (priv->main_notebook), FALSE);
@@ -1024,9 +1115,6 @@ giggle_window_init (GiggleWindow *window)
 
 #if 0
 	window_create_menu (window);
-
-	/* setup find bar */
-	window_create_find_bar (window);
 
 	/* append history view */
 	g_signal_connect_swapped (priv->history_view, "history-changed",
@@ -1094,98 +1182,6 @@ window_action_diff_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
 	giggle_window_show_diff_window (window);
-}
-
-static void
-window_action_find_cb (GtkAction    *action,
-		       GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	gtk_widget_show (priv->find_bar);
-	gtk_widget_grab_focus (priv->find_bar);
-}
-
-static void
-window_action_find_next_cb (GtkAction    *action,
-			    GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-	window_find_next (EGG_FIND_BAR (priv->find_bar), window);
-}
-
-static void
-window_action_find_prev_cb (GtkAction    *action,
-			    GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-	window_find_previous (EGG_FIND_BAR (priv->find_bar), window);
-}
-
-static void
-window_cancel_find (GtkWidget    *widget,
-		    GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	guint             page_num;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-
-	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
-
-	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
-	gtk_widget_hide (widget);
-}
-
-static void
-window_find (EggFindBar            *find_bar,
-	     GiggleWindow          *window,
-	     GiggleSearchDirection  direction)
-{
-	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	guint             page_num;
-	const gchar      *search_string;
-	gboolean          full_search;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-
-	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
-
-	search_string = egg_find_bar_get_search_string (find_bar);
-
-	if (search_string && *search_string) {
-		full_search = gtk_toggle_tool_button_get_active (
-			GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
-
-		giggle_searchable_search (GIGGLE_SEARCHABLE (page),
-					  search_string, direction, full_search);
-	}
-}
-
-static void
-window_find_next (EggFindBar   *find_bar,
-		  GiggleWindow *window)
-{
-	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_NEXT);
-}
-
-static void
-window_find_previous (EggFindBar   *find_bar,
-		      GiggleWindow *window)
-{
-	window_find (find_bar, window, GIGGLE_SEARCH_DIRECTION_PREV);
 }
 
 static void
