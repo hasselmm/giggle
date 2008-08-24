@@ -144,6 +144,9 @@ giggle_authors_view_init (GiggleAuthorsView *view)
 				  G_CALLBACK (authors_view_update), view);
 
 	g_object_set (view, "label", _("Authors:"), NULL);
+
+	/* initialize for first time */
+	authors_view_update (view);
 }
 
 static void

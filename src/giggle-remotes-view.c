@@ -224,6 +224,9 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 				  G_CALLBACK (remotes_view_update), view);
 
 	remotes_view_update (view);
+
+	/* initialize for first time */
+	remotes_view_update (view);
 }
 
 static void

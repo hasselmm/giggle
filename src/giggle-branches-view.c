@@ -144,6 +144,9 @@ giggle_branches_view_init (GiggleBranchesView *view)
 				  G_CALLBACK (branches_view_update), view);
 
 	g_object_set (view, "label", _("Branches:"), NULL);
+
+	/* initialize for first time */
+	branches_view_update (view);
 }
 
 static void
