@@ -543,6 +543,18 @@ window_action_view_graph_cb (GtkAction    *action,
 }
 
 static void
+window_action_history_refresh (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	const gchar      *directory;
+
+	priv = GET_PRIV (window);
+	directory = giggle_git_get_directory (priv->git);
+	giggle_window_set_directory (window, directory);
+}
+
+static void
 window_action_about_cb (GtkAction    *action,
 			GiggleWindow *window)
 {
@@ -678,7 +690,7 @@ window_create_ui_manager (GiggleWindow *window)
 		},
 		{ "RefreshHistory", GTK_STOCK_REFRESH,
 		  N_("_Refresh"), "<control>R", NULL,
-		  NULL /*G_CALLBACK (window_action_history_refresh)*/
+		  G_CALLBACK (window_action_history_refresh)
 		},
 	};
 
@@ -1240,17 +1252,6 @@ window_action_history_go_forward (GtkAction    *action,
 	giggle_history_go_forward (GIGGLE_HISTORY (page));
 }
 
-static void
-window_action_history_refresh (GtkAction    *action,
-			       GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	const gchar      *directory;
-
-	priv = GET_PRIV (window);
-	directory = giggle_git_get_directory (priv->git);
-	giggle_window_set_directory (window, directory);
-}
 #endif
 
 GtkWidget *
