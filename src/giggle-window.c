@@ -66,12 +66,12 @@ struct GiggleWindowPriv {
 	/* Dialogs */
 	GtkWidget	   *summary_dialog;
 
-	/* Menu & toolbar */
-#if 0
+	/* Recent File Manager */
 	GtkRecentManager    *recent_manager;
 	GtkActionGroup      *recent_action_group;
 	guint                recent_merge_id;
 
+#if 0
 	GtkWidget           *find_bar;
 	GtkToolItem         *full_search;
 
@@ -91,16 +91,18 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
-#if 0
 #define RECENT_FILES_GROUP "giggle"
 
+#if 0
 #define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
 #endif
 #define FILE_VIEW_PATH			"/ui/MainMenubar/ViewMenu/FileView"
 #if 0
 #define FIND_PATH			"/ui/MainMenubar/EditMenu/Find"
 #define FORWARD_HISTORY_PATH		"/ui/MainToolbar/ForwardHistory"
+#endif
 #define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
+#if 0
 #define SAVE_PATCH_UI_PATH 		"/ui/MainMenubar/ProjectMenu/SavePatch"
 #endif
 #define SHOW_GRAPH_PATH			"/ui/MainMenubar/ViewMenu/ShowGraph"
@@ -122,7 +124,6 @@ window_dispose (GObject *object)
 		priv->git = NULL;
 	}
 
-#if 0
 	if (priv->recent_manager) {
 		g_object_unref (priv->recent_manager);
 		priv->recent_manager = NULL;
@@ -132,7 +133,6 @@ window_dispose (GObject *object)
 		g_object_unref (priv->recent_action_group);
 		priv->recent_action_group = NULL;
 	}
-#endif
 
 	if (priv->configuration) {
 		g_object_unref (priv->configuration);
@@ -243,15 +243,6 @@ window_create_menu (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	/* create recent repositories resources */
-	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
-	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, 0);
-
-	priv->recent_manager = gtk_recent_manager_get_default ();
-	g_signal_connect_swapped (priv->recent_manager, "changed",
-				  G_CALLBACK (window_recent_repositories_update), window);
-
-	window_recent_repositories_update (window);
 
 #ifdef GDK_WINDOWING_QUARTZ
 	{
@@ -313,7 +304,7 @@ window_create_find_bar (GiggleWindow *window)
 
 void
 giggle_window_set_directory (GiggleWindow *window,
-		      const gchar  *directory)
+		      	     const gchar  *directory)
 {
 	GiggleWindowPriv *priv;
 	GError           *error = NULL;
@@ -394,27 +385,37 @@ configuration_updated_cb (GiggleConfiguration *configuration,
 }
 
 static void
-window_action_about_cb (GtkAction    *action,
-			GiggleWindow *window)
+window_action_open_cb (GtkAction    *action,
+		       GiggleWindow *window)
 {
-	const gchar *authors[] = {
-		"Carlos Garnacho",
-		"Mathias Hasselmann",
-		"Mikael Hallendal",
-		"Richard Hult",
-		"Sven Herzberg",
-		NULL
-	};
+	GiggleWindowPriv *priv;
+	GtkWidget        *file_chooser;
+	gchar      	 *directory = NULL;
 
-	gtk_show_about_dialog (GTK_WINDOW (window),
-			       "copyright",
-			       "Copyright \xc2\xa9 2007-2008 Imendio AB\n"
-			       "Copyright \xc2\xa9 2008 Mathias Hasselmann",
-			       "translator-credits", _("translator-credits"),
-			       "logo-icon-name", PACKAGE,
-			       "version", VERSION,
-			       "authors", authors,
-			       NULL);
+	priv = GET_PRIV (window);
+
+	file_chooser = gtk_file_chooser_dialog_new (
+		_("Select GIT repository"),
+		GTK_WINDOW (window),
+		GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OK, GTK_RESPONSE_OK,
+		NULL);
+
+	gtk_file_chooser_set_current_folder (
+		GTK_FILE_CHOOSER (file_chooser),
+		giggle_git_get_directory (priv->git));
+
+	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
+		directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
+	}
+
+	gtk_widget_destroy (file_chooser);
+
+	if (directory) {
+		giggle_window_set_directory (window, directory);
+		g_free (directory);
+	}
 }
 
 static void
@@ -478,6 +479,30 @@ window_action_view_graph_cb (GtkAction    *action,
 }
 
 static void
+window_action_about_cb (GtkAction    *action,
+			GiggleWindow *window)
+{
+	const gchar *authors[] = {
+		"Carlos Garnacho",
+		"Mathias Hasselmann",
+		"Mikael Hallendal",
+		"Richard Hult",
+		"Sven Herzberg",
+		NULL
+	};
+
+	gtk_show_about_dialog (GTK_WINDOW (window),
+			       "copyright",
+			       "Copyright \xc2\xa9 2007-2008 Imendio AB\n"
+			       "Copyright \xc2\xa9 2008 Mathias Hasselmann",
+			       "translator-credits", _("translator-credits"),
+			       "logo-icon-name", PACKAGE,
+			       "version", VERSION,
+			       "authors", authors,
+			       NULL);
+}
+
+static void
 window_add_widget_cb (GtkUIManager *merge,
 		      GtkWidget    *widget,
 		      GiggleWindow *window)
@@ -508,7 +533,7 @@ mode_changed_cb (GtkRadioAction *action,
 }
 
 static void
-window_setup_ui_manager (GiggleWindow *window)
+window_create_ui_manager (GiggleWindow *window)
 {
 	static const GtkActionEntry action_entries[] = {
 		{ "ProjectMenu", NULL,
@@ -531,11 +556,11 @@ window_setup_ui_manager (GiggleWindow *window)
 		  N_("_Help"), NULL, NULL,
 		  NULL
 		},
-#if 0
 		{ "Open", GTK_STOCK_OPEN,
 		  N_("_Open"), "<control>O", N_("Open a GIT repository"),
 		  G_CALLBACK (window_action_open_cb)
 		},
+#if 0
 		{ "SavePatch", GTK_STOCK_SAVE,
 		  N_("_Save patch"), "<control>S", N_("Save a patch"),
 		  G_CALLBACK (window_action_save_patch_cb)
@@ -611,17 +636,16 @@ window_setup_ui_manager (GiggleWindow *window)
 		"<ui>"
 		"  <menubar name='MainMenubar'>"
 		"    <menu action='ProjectMenu'>"
-#if 0
 		"      <menuitem action='Open'/>"
+#if 0
 		"      <menuitem action='SavePatch'/>"
 		"      <menuitem action='Diff'/>"
 #endif
+		"      <separator/>"
 		"      <menuitem action='Properties'/>"
 		"      <separator/>"
-#if 0
 		"      <placeholder name='RecentRepositories'/>"
 		"      <separator/>"
-#endif
 		"      <menuitem action='Quit'/>"
 		"    </menu>"
 		"    <menu action='EditMenu'>"
@@ -713,137 +737,6 @@ window_setup_ui_manager (GiggleWindow *window)
 	}
 
 	gtk_ui_manager_ensure_update (priv->ui_manager);
-}
-
-static void
-window_notebook_switch_page_cb (GtkNotebook     *notebook,
-				GtkNotebookPage *page,
-				guint            page_num,
-				GiggleWindow    *window)
-{
-	GiggleWindowPriv *priv;
-	GtkAction        *action;
-#if 0
-	GtkWidget        *page_widget;
-#endif
-
-	priv = GET_PRIV (window);
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, FILE_VIEW_PATH);
-	gtk_radio_action_set_current_value (GTK_RADIO_ACTION (action), page_num);
-
-#if 0
-	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
-
-	/* Update find */
-	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
-	gtk_action_set_sensitive (action, GIGGLE_IS_SEARCHABLE (page_widget));
-
-	/* Update history search */
-	window_update_toolbar_buttons (window);
-#endif
-
-}
-
-static void
-giggle_window_init (GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	priv->configuration = giggle_configuration_new ();
-	priv->ui_manager = gtk_ui_manager_new ();
-	priv->git = giggle_git_get ();
-
-	priv->content_vbox = gtk_vbox_new (FALSE, 0);
-	priv->main_notebook = gtk_notebook_new ();
-	priv->file_view = giggle_view_file_new ();
-	priv->history_view = giggle_view_history_new ();
-
-	window_setup_ui_manager (window);
-
-	gtk_notebook_set_show_border (GTK_NOTEBOOK (priv->main_notebook), FALSE);
-	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (priv->main_notebook), FALSE);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->file_view, NULL);
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->history_view, NULL);
-
-	gtk_box_pack_start_defaults (GTK_BOX (priv->content_vbox),
-				     priv->main_notebook);
-
-	g_signal_connect_after (priv->main_notebook, "switch-page",
-				G_CALLBACK (window_notebook_switch_page_cb),
-				window);
-
-	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
-	gtk_widget_show_all (priv->content_vbox);
-
-#if 0
-
-	g_signal_connect (priv->git,
-			  "notify::directory",
-			  G_CALLBACK (window_directory_changed_cb),
-			  window);
-	g_signal_connect_swapped (priv->git,
-				  "notify::project-dir",
-				  G_CALLBACK (window_recent_repositories_add),
-				  window);
-
-	window_create_menu (window);
-
-	/* setup find bar */
-	window_create_find_bar (window);
-
-	/* append history view */
-	priv->history_view = giggle_view_history_new ();
-	gtk_widget_show (priv->history_view);
-
-	g_signal_connect_swapped (priv->history_view, "history-changed",
-				  G_CALLBACK (window_update_toolbar_buttons), window);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
-				  priv->history_view,
-				  gtk_label_new (_("History")));
-
-#endif
-
-	giggle_configuration_update (priv->configuration,
-				     configuration_updated_cb, window);
-}
-
-#if 0
-static void
-window_recent_repositories_add (GiggleWindow *window)
-{
-	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
-	GiggleWindowPriv *priv;
-	GtkRecentData     data = { 0, };
-	const gchar      *repository;
-	gchar            *tmp_string;
-
-	priv = GET_PRIV (window);
-
-	repository = giggle_git_get_project_dir (priv->git);
-	if(!repository) {
-		repository = giggle_git_get_git_dir (priv->git);
-	}
-
-	g_return_if_fail (repository != NULL);
-
-	data.display_name = (gchar *) giggle_git_get_project_name (priv->git);
-	data.groups = groups;
-	data.mime_type = "x-directory/normal";
-	data.app_name = (gchar *) g_get_application_name ();
-	data.app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
-
-	tmp_string = g_filename_to_uri (repository, NULL, NULL);
-	gtk_recent_manager_add_full (priv->recent_manager,
-                                     tmp_string, &data);
-	g_free (tmp_string);
-	g_free (data.app_exec);
 }
 
 static void
@@ -956,39 +849,170 @@ window_recent_repositories_update (GiggleWindow *window)
 	window_recent_repositories_reload (window);
 }
 
-/* Update revision info. If previous_revision is not NULL, a diff between it and
- * the current revision will be shown.
- */
-
 static void
-window_action_open_cb (GtkAction    *action,
-		       GiggleWindow *window)
+window_create_recent_manager (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	GtkWidget        *file_chooser;
+
+	priv = GET_PRIV (window);
+
+	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
+	priv->recent_manager = gtk_recent_manager_get_default ();
+
+	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, 0);
+
+	g_signal_connect_swapped (priv->recent_manager, "changed",
+				  G_CALLBACK (window_recent_repositories_update),
+				  window);
+
+	window_recent_repositories_update (window);
+}
+
+static void
+window_notebook_switch_page_cb (GtkNotebook     *notebook,
+				GtkNotebookPage *page,
+				guint            page_num,
+				GiggleWindow    *window)
+{
+	GiggleWindowPriv *priv;
+	GtkAction        *action;
+#if 0
+	GtkWidget        *page_widget;
+#endif
+
+	priv = GET_PRIV (window);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, FILE_VIEW_PATH);
+	gtk_radio_action_set_current_value (GTK_RADIO_ACTION (action), page_num);
+
+#if 0
+	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
+
+	/* Update find */
+	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
+	gtk_action_set_sensitive (action, GIGGLE_IS_SEARCHABLE (page_widget));
+
+	/* Update history search */
+	window_update_toolbar_buttons (window);
+#endif
+
+}
+
+static void
+window_directory_changed_cb (GiggleGit    *git,
+			     GParamSpec   *arg,
+			     GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+	gchar            *title;
 	const gchar      *directory;
 
 	priv = GET_PRIV (window);
 
-	file_chooser = gtk_file_chooser_dialog_new (
-		_("Select GIT repository"),
-		GTK_WINDOW (window),
-		GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		GTK_STOCK_OK, GTK_RESPONSE_OK,
-		NULL);
+	directory = giggle_git_get_directory (git);
+	title = g_strdup_printf ("%s - %s", directory, g_get_application_name ());
+	gtk_window_set_title (GTK_WINDOW (window), title);
+	g_free (title);
+}
 
-	gtk_file_chooser_set_current_folder (
-		GTK_FILE_CHOOSER (file_chooser),
-		giggle_git_get_directory (priv->git));
+static void
+window_recent_repositories_add (GiggleWindow *window)
+{
+	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
+	GiggleWindowPriv *priv;
+	GtkRecentData     data = { 0, };
+	const gchar      *repository;
+	gchar            *tmp_string;
 
-	if (gtk_dialog_run (GTK_DIALOG (file_chooser)) == GTK_RESPONSE_OK) {
-		directory = gtk_file_chooser_get_current_folder (GTK_FILE_CHOOSER (file_chooser));
-		giggle_window_set_directory (window, directory);
+	priv = GET_PRIV (window);
+
+	repository = giggle_git_get_project_dir (priv->git);
+
+	if (!repository) {
+		repository = giggle_git_get_git_dir (priv->git);
 	}
 
-	gtk_widget_destroy (file_chooser);
+	g_return_if_fail (repository != NULL);
+
+	data.display_name = (gchar *) giggle_git_get_project_name (priv->git);
+	data.groups = groups;
+	data.mime_type = "x-directory/normal";
+	data.app_name = (gchar *) g_get_application_name ();
+	data.app_exec = g_strjoin (" ", g_get_prgname (), "%u", NULL);
+
+	tmp_string = g_filename_to_uri (repository, NULL, NULL);
+	gtk_recent_manager_add_full (priv->recent_manager,
+                                     tmp_string, &data);
+	g_free (tmp_string);
+	g_free (data.app_exec);
 }
+
+static void
+giggle_window_init (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv;
+
+	priv = GET_PRIV (window);
+
+	priv->configuration = giggle_configuration_new ();
+	priv->ui_manager = gtk_ui_manager_new ();
+	priv->git = giggle_git_get ();
+
+	priv->content_vbox = gtk_vbox_new (FALSE, 0);
+	priv->main_notebook = gtk_notebook_new ();
+	priv->file_view = giggle_view_file_new ();
+	priv->history_view = giggle_view_history_new ();
+
+	window_create_ui_manager (window);
+	window_create_recent_manager (window);
+
+	gtk_notebook_set_show_border (GTK_NOTEBOOK (priv->main_notebook), FALSE);
+	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (priv->main_notebook), FALSE);
+
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->file_view, NULL);
+	gtk_notebook_append_page (GTK_NOTEBOOK (priv->main_notebook),
+				  priv->history_view, NULL);
+
+	gtk_box_pack_start_defaults (GTK_BOX (priv->content_vbox),
+				     priv->main_notebook);
+
+	g_signal_connect_after (priv->main_notebook, "switch-page",
+				G_CALLBACK (window_notebook_switch_page_cb),
+				window);
+
+	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
+	gtk_widget_show_all (priv->content_vbox);
+
+	g_signal_connect_after (priv->git,
+			  "notify::directory",
+			  G_CALLBACK (window_directory_changed_cb),
+			  window);
+	g_signal_connect_swapped (priv->git,
+				  "notify::project-dir",
+				  G_CALLBACK (window_recent_repositories_add),
+				  window);
+
+#if 0
+	window_create_menu (window);
+
+	/* setup find bar */
+	window_create_find_bar (window);
+
+	/* append history view */
+	g_signal_connect_swapped (priv->history_view, "history-changed",
+				  G_CALLBACK (window_update_toolbar_buttons), window);
+
+#endif
+
+	giggle_configuration_update (priv->configuration,
+				     configuration_updated_cb, window);
+}
+
+#if 0
+/* Update revision info. If previous_revision is not NULL, a diff between it and
+ * the current revision will be shown.
+ */
 
 static void
 window_action_save_patch_cb (GtkAction    *action,
@@ -1155,23 +1179,6 @@ window_action_personal_details_cb (GtkAction    *action,
 	}
 
 	gtk_widget_show (priv->personal_details_window);
-}
-
-static void
-window_directory_changed_cb (GiggleGit    *git,
-			     GParamSpec   *arg,
-			     GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	gchar            *title;
-	const gchar      *directory;
-
-	priv = GET_PRIV (window);
-
-	directory = giggle_git_get_directory (git);
-	title = g_strdup_printf ("%s - %s", directory, g_get_application_name ());
-	gtk_window_set_title (GTK_WINDOW (window), title);
-	g_free (title);
 }
 
 static void
