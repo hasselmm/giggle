@@ -344,6 +344,10 @@ view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 		g_object_unref (priv->current_revision);
 
 	priv->current_revision = revision1;
+
+	giggle_file_list_highlight_revisions (GIGGLE_FILE_LIST (priv->file_list),
+					      revision1, revision2);
+
 	view_file_read_source_code (view);
 }
 
