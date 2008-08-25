@@ -19,10 +19,15 @@
  */
 
 #include <config.h>
+#include <gio/gio.h>
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <fnmatch.h>
+#include <string.h>
 
 #include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-cat-file.h"
+#include "libgiggle/giggle-git-list-tree.h"
 #include "libgiggle/giggle-git-revisions.h"
 #include "giggle-view-file.h"
 #include "giggle-file-list.h"
@@ -33,28 +38,48 @@
 typedef struct GiggleViewFilePriv GiggleViewFilePriv;
 
 struct GiggleViewFilePriv {
-	GtkWidget *file_list;
-	GtkWidget *revision_list;
-	GtkWidget *revision_view;
-	GtkWidget *diff_view;
+	GtkWidget      *file_list;
+	GtkWidget      *revision_list;
+	GtkWidget      *source_view;
 
-	GiggleGit *git;
-	GiggleJob *job;
+	GiggleGit      *git;
+	GiggleJob      *job;
+
+	char           *current_file;
+	GiggleRevision *current_revision;
+	
 };
-
-static void    view_file_finalize              (GObject *object);
-
-static void    view_file_selection_changed_cb               (GtkTreeSelection   *selection,
-							     GiggleViewFile     *view);
-static void    view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
-							     GiggleRevision     *revision1,
-							     GiggleRevision     *revision2,
-							     GiggleViewFile     *view);
-
 
 G_DEFINE_TYPE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
+
+static void
+view_file_finalize (GObject *object)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (object);
+
+	g_free (priv->current_file);
+
+	G_OBJECT_CLASS (giggle_view_file_parent_class)->finalize (object);
+}
+
+static void
+view_file_dispose (GObject *object)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (object);
+
+	if (priv->current_revision) {
+		g_object_unref (priv->current_revision);
+		priv->current_revision = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_view_file_parent_class)->dispose (object);
+}
 
 static void
 giggle_view_file_class_init (GiggleViewFileClass *class)
@@ -62,18 +87,276 @@ giggle_view_file_class_init (GiggleViewFileClass *class)
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = view_file_finalize;
+	object_class->dispose = view_file_dispose;
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewFilePriv));
 }
 
 static void
-giggle_view_file_init (GiggleViewFile *view)
+show_error (GiggleViewFile *view,
+	    const char     *message,
+	    const GError   *error)
+{
+	GtkWidget *dialog;
+
+	dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
+					 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+					 GTK_MESSAGE_ERROR,
+					 GTK_BUTTONS_OK,
+					 message, error->message);
+
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+}
+
+static GtkSourceLanguage *
+view_file_find_language (GiggleViewFile *view,
+			 const char     *text,
+			 gsize	         len)
+{
+	GtkSourceLanguageManager *manager;
+	GiggleViewFilePriv       *priv;
+	GtkSourceLanguage        *lang;
+	const char *const        *ids;
+	char                     *content_type, *filename;
+	char                    **meta, **s;
+
+	priv = GET_PRIV (view);
+
+	manager = gtk_source_language_manager_get_default ();
+	ids = gtk_source_language_manager_get_language_ids (manager);
+
+	content_type = g_content_type_guess (priv->current_file, text, len, NULL);
+	filename = g_path_get_basename (priv->current_file);
+
+	for (; *ids; ++ids) {
+		lang = gtk_source_language_manager_get_language (manager, *ids);
+		meta = gtk_source_language_get_mime_types (lang);
+
+		if (meta) {
+			for (s = meta; *s; ++s) {
+				if (!strcmp (*s, content_type))
+					goto end;
+			}
+
+			g_strfreev (meta);
+		}
+
+		meta = gtk_source_language_get_globs (lang);
+
+		if (meta) {
+			for (s = meta; *s; ++s) {
+				if (!fnmatch (*s, filename, 0)) {
+					goto end;
+				}
+			}
+
+			g_strfreev (meta);
+		}
+	}
+
+	lang = NULL;
+
+end:
+	g_free (content_type);
+	g_free (filename);
+
+	return lang;
+}
+
+static void
+view_file_set_source_code (GiggleViewFile *view,
+			   const char     *text,
+			   gsize	   len)
 {
 	GiggleViewFilePriv *priv;
-	GtkWidget          *hpaned, *vpaned, *vbox;
-	GtkWidget          *scrolled_window;
-	GtkWidget          *expander;
-	GtkTreeSelection   *selection;
+	GtkTextBuffer      *buffer;
+	GtkSourceLanguage  *language = NULL;
+
+	priv = GET_PRIV (view);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->source_view));
+	gtk_widget_set_sensitive (priv->revision_list, NULL != text);
+	gtk_widget_set_sensitive (priv->source_view, NULL != text);
+	gtk_text_buffer_set_text (buffer, text ? text : "", len);
+
+	if (text)
+		language = view_file_find_language (view, text, len);
+
+	gtk_source_buffer_set_language (GTK_SOURCE_BUFFER (buffer), language);
+}
+
+static void
+view_file_cat_file_job_callback (GiggleGit *git,
+				 GiggleJob *job,
+				 GError    *error,
+				 gpointer   data)
+{
+	GiggleViewFile *view;
+	const char     *text;
+	gsize           len;
+
+	view = GIGGLE_VIEW_FILE (data);
+
+	if (error) {
+		view_file_set_source_code (view, error->message, -1);
+	} else {
+		text = giggle_git_cat_file_get_contents (GIGGLE_GIT_CAT_FILE (job), &len);
+		view_file_set_source_code (view, text, len);
+	}
+}
+
+static void
+view_file_list_tree_job_callback (GiggleGit *git,
+				  GiggleJob *job,
+				  GError    *error,
+				  gpointer   data)
+{
+	GiggleViewFile     *view;
+	GiggleViewFilePriv *priv;
+	const char         *sha;
+	char		   *text;
+	gsize		    len;
+
+	view = GIGGLE_VIEW_FILE (data);
+	priv = GET_PRIV (view);
+	priv->job = NULL;
+
+	if (error) {
+		show_error (view, _("An error ocurred when getting file ref:\n%s"), error);
+	} else {
+		sha = giggle_git_list_tree_get_sha (GIGGLE_GIT_LIST_TREE (job),
+						    priv->current_file);
+
+		if (sha) {
+			priv->job = giggle_git_cat_file_new ("blob", sha);
+
+			giggle_git_run_job (priv->git,
+					    priv->job,
+					    view_file_cat_file_job_callback,
+					    view);
+		} else if (g_file_get_contents (priv->current_file, &text, &len, NULL)) {
+			view_file_set_source_code (view, text, len);
+			g_free (text);
+		}
+	}
+
+	g_object_unref (job);
+}
+
+static void
+view_file_read_source_code (GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv;
+	char		   *directory;
+
+	priv = GET_PRIV (view);
+
+	if (priv->current_file) {
+		directory = g_path_get_dirname (priv->current_file);
+		priv->job = giggle_git_list_tree_new (priv->current_revision, directory);
+
+		giggle_git_run_job (priv->git,
+				    priv->job,
+				    view_file_list_tree_job_callback,
+				    view);
+
+		g_free (directory);
+	} else {
+		view_file_set_source_code (view, NULL, 0);
+	}
+}
+
+static void
+view_file_select_file_job_callback (GiggleGit *git,
+				    GiggleJob *job,
+				    GError    *error,
+				    gpointer   data)
+{
+	GiggleViewFile     *view;
+	GiggleViewFilePriv *priv;
+	GtkListStore       *store;
+	GtkTreeIter         iter;
+	GList              *revisions;
+
+	view = GIGGLE_VIEW_FILE (data);
+	priv = GET_PRIV (view);
+	priv->job = NULL;
+
+	if (error) {
+		show_error (view, _("An error ocurred when getting the revisions list:\n%s"), error);
+	} else {
+		store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
+		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
+
+		while (revisions) {
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+					    0, revisions->data,
+					    -1);
+			revisions = revisions->next;
+		}
+
+		giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list),
+						GTK_TREE_MODEL (store));
+		g_object_unref (store);
+
+		view_file_read_source_code (view);
+	}
+
+	g_object_unref (job);
+}
+
+static void
+view_file_selection_changed_cb (GtkTreeSelection *selection,
+				GiggleViewFile   *view)
+{
+	GiggleViewFilePriv *priv;
+	GList              *files;
+
+	priv = GET_PRIV (view);
+
+	files = giggle_file_list_get_selection (GIGGLE_FILE_LIST (priv->file_list));
+	priv->job = giggle_git_revisions_new_for_files (files);
+
+	g_free (priv->current_file);
+	priv->current_file = files ? g_strdup (files->data) : NULL;
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    view_file_select_file_job_callback,
+			    view);
+}
+
+static void
+view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
+					      GiggleRevision     *revision1,
+					      GiggleRevision     *revision2,
+					      GiggleViewFile     *view)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (revision1)
+		g_object_ref (revision1);
+	if (priv->current_revision)
+		g_object_unref (priv->current_revision);
+
+	priv->current_revision = revision1;
+	view_file_read_source_code (view);
+}
+
+
+static void
+giggle_view_file_init (GiggleViewFile *view)
+{
+	GiggleViewFilePriv   *priv;
+	GtkWidget            *hpaned, *vpaned;
+	GtkWidget            *scrolled_window;
+	GtkTreeSelection     *selection;
+	PangoFontDescription *monospaced;
+	GtkTextBuffer        *buffer;
 
 	priv = GET_PRIV (view);
 
@@ -92,10 +375,6 @@ giggle_view_file_init (GiggleViewFile *view)
 	/* FIXME: hardcoded sizes are evil */
 	gtk_paned_set_position (GTK_PANED (hpaned), 150);
 
-	vbox = gtk_vbox_new (FALSE, 0);
-	gtk_widget_show (vbox);
-	gtk_paned_pack2 (GTK_PANED (vpaned), vbox, FALSE, FALSE);
-
 	/* file view */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -104,6 +383,8 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	priv->file_list = giggle_file_list_new ();
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->file_list));
+	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
+
 	g_signal_connect (selection, "changed",
 			  G_CALLBACK (view_file_selection_changed_cb), view);
 
@@ -112,144 +393,41 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	gtk_paned_pack1 (GTK_PANED (hpaned), scrolled_window, FALSE, FALSE);
 
-	/* revisions list */
+	/* diff view */
+
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
+	priv->source_view = gtk_source_view_new ();
+	monospaced = pango_font_description_from_string ("Mono");
+	gtk_widget_modify_font (priv->source_view, monospaced);
+	pango_font_description_free (monospaced);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->source_view));
+	gtk_source_buffer_set_highlight_syntax (GTK_SOURCE_BUFFER (buffer), TRUE);
+
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->source_view);
+	gtk_paned_pack1 (GTK_PANED (vpaned), scrolled_window, TRUE, FALSE);
+
+	/* revisions list */
 	priv->revision_list = giggle_rev_list_view_new ();
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_file_revision_list_selection_changed_cb), view);
 
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
-	gtk_widget_show_all (scrolled_window);
-
-	gtk_paned_pack1 (GTK_PANED (vpaned), scrolled_window, TRUE, FALSE);
-
-	/* revision view */
-	expander = gtk_expander_new_with_mnemonic (_("Revision _information"));
-	priv->revision_view = giggle_revision_view_new ();
-	gtk_container_add (GTK_CONTAINER (expander), priv->revision_view);
-	gtk_widget_show_all (expander);
-
-	gtk_box_pack_start (GTK_BOX (vbox), expander, FALSE, TRUE, 0);
-
-	/* diff view */
-	expander = gtk_expander_new_with_mnemonic (_("_Differences"));
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
+	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-
-	priv->diff_view = giggle_diff_view_new ();
-
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_view);
-	gtk_container_add (GTK_CONTAINER (expander), scrolled_window);
-	gtk_widget_show_all (expander);
-
-	gtk_box_pack_start (GTK_BOX (vbox), expander, TRUE, TRUE, 0);
+	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
+	gtk_paned_pack2 (GTK_PANED (vpaned), scrolled_window, FALSE, TRUE);
 
 	gtk_widget_pop_composite_child ();
 }
-
-static void
-view_file_finalize (GObject *object)
-{
-	GiggleViewFilePriv *priv;
-
-	priv = GET_PRIV (object);
-
-	G_OBJECT_CLASS (giggle_view_file_parent_class)->finalize (object);
-}
-
-static void
-view_file_select_file_job_callback (GiggleGit *git,
-				    GiggleJob *job,
-				    GError    *error,
-				    gpointer   data)
-{
-	GiggleViewFile     *view;
-	GiggleViewFilePriv *priv;
-	GtkListStore       *store;
-	GtkTreeIter         iter;
-	GList              *revisions;
-
-	view = GIGGLE_VIEW_FILE (data);
-	priv = GET_PRIV (view);
-
-	if (error) {
-		GtkWidget *dialog;
-
-		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
-						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-						 GTK_MESSAGE_ERROR,
-						 GTK_BUTTONS_OK,
-						 _("An error ocurred when getting the revisions list:\n%s"),
-						 error->message);
-
-		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
-	} else {
-		store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
-		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
-
-		while (revisions) {
-			gtk_list_store_append (store, &iter);
-			gtk_list_store_set (store, &iter,
-					    0, revisions->data,
-					    -1);
-			revisions = revisions->next;
-		}
-
-		giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), GTK_TREE_MODEL (store));
-		g_object_unref (store);
-	}
-
-	g_object_unref (job);
-}
-
-static void
-view_file_selection_changed_cb (GtkTreeSelection *selection,
-				GiggleViewFile   *view)
-{
-	GiggleViewFilePriv *priv;
-	GList              *files;
-
-	priv = GET_PRIV (view);
-	files = giggle_file_list_get_selection (GIGGLE_FILE_LIST (priv->file_list));
-
-	priv->job = giggle_git_revisions_new_for_files (files);
-
-	giggle_git_run_job (priv->git,
-			    priv->job,
-			    view_file_select_file_job_callback,
-			    view);
-}
-
-static void
-view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
-					      GiggleRevision     *revision1,
-					      GiggleRevision     *revision2,
-					      GiggleViewFile     *view)
-{
-	GiggleViewFilePriv *priv;
-	GList              *files;
-
-	priv = GET_PRIV (view);
-
-	giggle_revision_view_set_revision (
-		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
-
-	if (revision1 && revision2) {
-		files = giggle_file_list_get_selection (GIGGLE_FILE_LIST (priv->file_list));
-
-		giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
-						revision1, revision2, files);
-	}
-}
-
 
 GtkWidget *
 giggle_view_file_new (void)
