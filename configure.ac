@@ -28,7 +28,8 @@ dnl | Pkgconfig checks |---------------------------------------
 dnl  ------------------
 
 PKG_CHECK_MODULES(GIGGLE, [
-        glib-2.0 >= 2.12
+        gio-2.0 >= 2.16
+        glib-2.0 >= 2.16
 	gtk+-2.0 >= 2.10
 	gtksourceview-2.0 > 2.0
 	libglade-2.0 > 2.4
