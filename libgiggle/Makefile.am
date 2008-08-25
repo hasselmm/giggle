@@ -81,6 +81,8 @@ libgiggle_git_la_SOURCES = \
 	giggle-git-ignore.h \
 	giggle-git-list-files.c \
 	giggle-git-list-files.h \
+	giggle-git-list-tree.c \
+	giggle-git-list-tree.h \
 	giggle-git-log.c \
 	giggle-git-log.h \
 	giggle-git-read-config.c \
