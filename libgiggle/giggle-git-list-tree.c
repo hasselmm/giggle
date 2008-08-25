@@ -136,9 +136,10 @@ git_list_tree_get_command_line (GiggleJob *job, gchar **command_line)
 	if (priv->path)
 		path = g_shell_quote (priv->path);
 
-	*command_line = g_strdup_printf (GIT_COMMAND " ls-tree %s%s%s",
-					 revision ? revision : "HEAD",
-					 path ? " " : "", path ? path : "");
+	*command_line = g_strconcat (GIT_COMMAND " ls-tree ",
+				     revision ? revision : "HEAD",
+				     path ? " " : "", path ? path : "",
+				     path ? "/" : "", NULL);
 
 	g_free (path);
 
@@ -169,8 +170,8 @@ git_list_tree_handle_output (GiggleJob   *job,
 
 		start += 41;
 		file = g_strndup (start, end - start);
-
 		g_hash_table_insert (priv->files, file, sha);
+
 		end += 1;
 	}
 }
