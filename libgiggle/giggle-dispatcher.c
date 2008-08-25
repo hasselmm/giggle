@@ -51,7 +51,6 @@ struct GiggleDispatcherPriv {
 	guint          current_job_read_id;
 	GIOChannel    *channel;
 	GString       *output;
-	gsize          length;
 };
 
 static void     giggle_dispatcher_finalize (GObject *object);
@@ -188,7 +187,6 @@ dispatcher_start_job (GiggleDispatcher *dispatcher, DispatcherJob *job)
 	priv->channel = g_io_channel_unix_new (job->std_out);
 	g_io_channel_set_encoding (priv->channel, NULL, NULL);
 	priv->output = g_string_new ("");
-	priv->length = 0;
 
 	priv->current_job = job;
 	priv->current_job_read_id = g_io_add_watch_full (priv->channel,
@@ -339,7 +337,7 @@ dispatcher_job_finished_cb (GPid              pid,
 	}
 
 	job->callback (dispatcher, job->id, NULL,
-		       priv->output->str, priv->length,
+		       priv->output->str, priv->output->len,
 		       job->user_data);
 
 	dispatcher_job_free (job);
@@ -371,7 +369,6 @@ dispatcher_job_read_cb (GIOChannel       *source,
 
 		if (str) {
 			g_string_append_len (priv->output, str, length);
-			priv->length += length;
 			g_free (str);
 		}
 	}
