@@ -50,9 +50,13 @@ GType        giggle_git_list_tree_get_type  (void);
 GiggleJob *  giggle_git_list_tree_new       (GiggleRevision    *revision,
 					     const char        *path);
 
-const char * giggle_git_list_tree_get_sha   (GiggleGitListTree *list_tree,
+unsigned     giggle_git_list_tree_get_mode  (GiggleGitListTree *job,
 					     const char        *file);
-GList *      giggle_git_list_tree_get_files (GiggleGitListTree *list_tree);
+const char * giggle_git_list_tree_get_kind  (GiggleGitListTree *job,
+					     const char        *file);
+const char * giggle_git_list_tree_get_sha   (GiggleGitListTree *job,
+					     const char        *file);
+GList *      giggle_git_list_tree_get_files (GiggleGitListTree *job);
 
 G_END_DECLS
 

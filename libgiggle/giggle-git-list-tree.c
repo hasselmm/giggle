@@ -23,7 +23,15 @@
 #include "giggle-git-list-tree.h"
 #include <string.h>
 
+typedef struct GiggleGitListTreeItem GiggleGitListTreeItem;
 typedef struct GiggleGitListTreePriv GiggleGitListTreePriv;
+
+struct GiggleGitListTreeItem {
+	unsigned  mode;
+	char      type[5];
+	char      sha[41];
+	char     *name;
+};
 
 struct GiggleGitListTreePriv {
 	GHashTable     *files;
@@ -140,7 +148,6 @@ git_list_tree_get_command_line (GiggleJob *job, gchar **command_line)
 				     revision ? revision : "HEAD",
 				     path ? " " : "", path ? path : "",
 				     path ? "/" : "", NULL);
-
 	g_free (path);
 
 	return TRUE;
@@ -153,26 +160,25 @@ git_list_tree_handle_output (GiggleJob   *job,
 {
 	GiggleGitListTreePriv    *priv;
 	const char		 *start, *end;
-	char			 *file, *sha;
+	GiggleGitListTreeItem	 *item;
+	unsigned		  len;
+
 
 	priv = GET_PRIV (job);
-	end = output_str;
 
-	while (*end) {
+	for (end = output_str; *end; ++end) {
 		start = end;
 		end = strchr (start, '\n');
 
-		if (!end)
+		if (NULL == end)
 			break;
 
-		start += 12;
-		sha = g_strndup (start, 40);
+		item = g_slice_new (GiggleGitListTreeItem);
 
-		start += 41;
-		file = g_strndup (start, end - start);
-		g_hash_table_insert (priv->files, file, sha);
+		sscanf (start, "%6d %4s %40s\t%n", &item->mode, item->type, item->sha, &len);
+		item->name = g_strndup (start + len, end - start - len);
 
-		end += 1;
+		g_hash_table_insert (priv->files, item->name, item);
 	}
 }
 
@@ -212,13 +218,24 @@ giggle_git_list_tree_class_init (GiggleGitListTreeClass *class)
 }
 
 static void
-giggle_git_list_tree_init (GiggleGitListTree *list_tree)
+giggle_git_list_tree_item_free (gpointer data)
+{
+	GiggleGitListTreeItem *item = data;
+
+	g_free (item->name);
+	g_slice_free (GiggleGitListTreeItem, item);
+}
+
+static void
+giggle_git_list_tree_init (GiggleGitListTree *job)
 {
 	GiggleGitListTreePriv *priv;
 
-	priv = GET_PRIV (list_tree);
+	priv = GET_PRIV (job);
 
-	priv->files = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	priv->files = g_hash_table_new_full
+		(g_str_hash, g_str_equal, NULL,
+		 giggle_git_list_tree_item_free);
 }
 
 GiggleJob *
@@ -230,28 +247,55 @@ giggle_git_list_tree_new (GiggleRevision *revision,
 			     "path", path, NULL);
 }
 
-const char *
-giggle_git_list_tree_get_sha (GiggleGitListTree *list_tree,
-			      const char        *file)
+static const GiggleGitListTreeItem *
+giggle_git_list_tree_get_item (GiggleGitListTree *job,
+			       const char        *file)
 {
 	GiggleGitListTreePriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_TREE (list_tree), NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_TREE (job), NULL);
 	g_return_val_if_fail (NULL != file, NULL);
 
-	priv = GET_PRIV (list_tree);
+	priv = GET_PRIV (job);
 
 	return g_hash_table_lookup (priv->files, file);
 }
 
+unsigned
+giggle_git_list_tree_get_mode (GiggleGitListTree *job,
+			       const char        *file)
+{
+	const GiggleGitListTreeItem *item;
+	item = giggle_git_list_tree_get_item (job, file);
+	return (item ? item->mode : 0);
+}
+
+const char *
+giggle_git_list_tree_get_kind (GiggleGitListTree *job,
+			       const char        *file)
+{
+	const GiggleGitListTreeItem *item;
+	item = giggle_git_list_tree_get_item (job, file);
+	return (item ? item->type : NULL);
+}
+
+const char *
+giggle_git_list_tree_get_sha (GiggleGitListTree *job,
+			      const char        *file)
+{
+	const GiggleGitListTreeItem *item;
+	item = giggle_git_list_tree_get_item (job, file);
+	return (item ? item->sha : NULL);
+}
+
 GList *
-giggle_git_list_tree_get_files (GiggleGitListTree *list_tree)
+giggle_git_list_tree_get_files (GiggleGitListTree *job)
 {
 	GiggleGitListTreePriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_TREE (list_tree), NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_LIST_TREE (job), NULL);
 
-	priv = GET_PRIV (list_tree);
+	priv = GET_PRIV (job);
 
 	return g_hash_table_get_keys (priv->files);
 }
