@@ -214,7 +214,8 @@ view_file_list_tree_job_callback (GiggleGit *git,
 {
 	GiggleViewFile     *view;
 	GiggleViewFilePriv *priv;
-	const char         *sha;
+	const char         *type;
+	const char         *sha = NULL;
 	char		   *text;
 	gsize		    len;
 
@@ -225,8 +226,13 @@ view_file_list_tree_job_callback (GiggleGit *git,
 	if (error) {
 		show_error (view, _("An error ocurred when getting file ref:\n%s"), error);
 	} else {
-		sha = giggle_git_list_tree_get_sha (GIGGLE_GIT_LIST_TREE (job),
-						    priv->current_file);
+		type = giggle_git_list_tree_get_kind (GIGGLE_GIT_LIST_TREE (job),
+						      priv->current_file);
+
+		if (!g_strcmp0 (type, "blob")) {
+			sha = giggle_git_list_tree_get_sha (GIGGLE_GIT_LIST_TREE (job),
+						            priv->current_file);
+		}
 
 		if (sha) {
 			priv->job = giggle_git_cat_file_new ("blob", sha);
@@ -235,9 +241,14 @@ view_file_list_tree_job_callback (GiggleGit *git,
 					    priv->job,
 					    view_file_cat_file_job_callback,
 					    view);
+
+		} else if (g_file_test (priv->current_file, G_FILE_TEST_IS_DIR)) {
+			view_file_set_source_code (view, NULL, 0);
 		} else if (g_file_get_contents (priv->current_file, &text, &len, NULL)) {
 			view_file_set_source_code (view, text, len);
 			g_free (text);
+		} else {
+			view_file_set_source_code (view, NULL, 0);
 		}
 	}
 
@@ -405,6 +416,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
 	priv->source_view = gtk_source_view_new ();
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->source_view), FALSE);
 	monospaced = pango_font_description_from_string ("Mono");
 	gtk_widget_modify_font (priv->source_view, monospaced);
 	pango_font_description_free (monospaced);
