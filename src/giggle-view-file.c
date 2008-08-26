@@ -84,7 +84,7 @@ view_file_dispose (GObject *object)
 static void
 giggle_view_file_class_init (GiggleViewFileClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass    *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = view_file_finalize;
 	object_class->dispose = view_file_dispose;
@@ -448,7 +448,18 @@ giggle_view_file_init (GiggleViewFile *view)
 GtkWidget *
 giggle_view_file_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_VIEW_FILE, NULL);
+	GtkAction *action;
+
+	action = g_object_new (GTK_TYPE_RADIO_ACTION,
+			       "name", "FileView",
+			       "label", _("_Browse"),
+			       "tooltip", _("Browse the files of this project"),
+			       "stock-id", GTK_STOCK_DIRECTORY,
+			       "is-important", TRUE, NULL);
+
+	return g_object_new (GIGGLE_TYPE_VIEW_FILE,
+			     "action", action, "accelerator", "F4",
+			     NULL);
 }
 
 /* FIXME: this function is ugly, but we somehow want

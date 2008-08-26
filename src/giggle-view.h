@@ -45,6 +45,8 @@ struct GiggleViewClass {
 };
 
 GType              giggle_view_get_type          (void);
+GtkAction *        giggle_view_get_action        (GiggleView *view);
+const char *       giggle_view_get_accelerator   (GiggleView *view);
 
 
 G_END_DECLS

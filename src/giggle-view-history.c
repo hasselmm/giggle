@@ -834,7 +834,18 @@ view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
 GtkWidget *
 giggle_view_history_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY, NULL);
+	GtkAction *action;
+
+	action = g_object_new (GTK_TYPE_RADIO_ACTION,
+			       "name", "HistoryView",
+			       "label", _("_History"),
+			       "tooltip", _("Browse the history of this project"),
+			       "stock-id", GTK_STOCK_INDEX,
+			       "is-important", TRUE, NULL);
+
+	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY,
+			     "action", action, "accelerator", "F5",
+			     NULL);
 }
 
 void
