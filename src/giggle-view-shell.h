@@ -44,7 +44,7 @@ struct GiggleViewShellClass {
 };
 
 GType          giggle_view_shell_get_type        (void);
-GtkWidget *    giggle_view_shell_new             (void);
+GtkWidget *    giggle_view_shell_new             (GtkUIManager    *ui_manager);
 
 void           giggle_view_shell_add_placeholder (GiggleViewShell *view_shell,
 						  const char      *path);

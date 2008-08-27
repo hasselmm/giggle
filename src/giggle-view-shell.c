@@ -243,9 +243,13 @@ giggle_view_shell_init (GiggleViewShell *view_shell)
 }
 
 GtkWidget *
-giggle_view_shell_new (void)
+giggle_view_shell_new (GtkUIManager *ui_manager)
 {
+	if (!ui_manager)
+		ui_manager = gtk_ui_manager_new ();
+
 	return g_object_new (GIGGLE_TYPE_VIEW_SHELL,
+			     "ui-manager", ui_manager,
 			     "show-border", FALSE,
 			     "show-tabs", FALSE, NULL);
 }

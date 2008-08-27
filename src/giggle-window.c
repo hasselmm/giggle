@@ -1047,16 +1047,13 @@ giggle_window_init (GiggleWindow *window)
 	priv->git = giggle_git_get ();
 
 	priv->content_vbox = gtk_vbox_new (FALSE, 0);
-	priv->view_shell = giggle_view_shell_new ();
-	priv->file_view = giggle_view_file_new ();
+	priv->view_shell = giggle_view_shell_new (priv->ui_manager);
 	priv->history_view = giggle_view_history_new ();
+	priv->file_view = giggle_view_file_new ();
 
 	window_create_ui_manager (window);
 	window_create_recent_manager (window);
 	window_create_find_bar (window);
-
-	giggle_view_shell_set_ui_manager (GIGGLE_VIEW_SHELL (priv->view_shell),
-					  priv->ui_manager);
 
 	giggle_view_shell_add_placeholder (GIGGLE_VIEW_SHELL (priv->view_shell),
 				           "/MainToolbar/ViewShell");
