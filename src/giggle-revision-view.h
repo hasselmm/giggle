@@ -21,10 +21,8 @@
 #ifndef __GIGGLE_REVISION_VIEW_H__
 #define __GIGGLE_REVISION_VIEW_H__
 
-#include <glib-object.h>
-#include <gtk/gtk.h>
-
 #include "libgiggle/giggle-revision.h"
+#include "giggle-view.h"
 
 G_BEGIN_DECLS
 
@@ -39,11 +37,11 @@ typedef struct GiggleRevisionView      GiggleRevisionView;
 typedef struct GiggleRevisionViewClass GiggleRevisionViewClass;
 
 struct GiggleRevisionView {
-	GtkTable parent_instance;
+	GiggleView parent_instance;
 };
 
 struct GiggleRevisionViewClass {
-	GtkTableClass parent_class;
+	GiggleViewClass parent_class;
 };
 
 GType              giggle_revision_view_get_type          (void);

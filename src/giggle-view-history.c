@@ -28,12 +28,14 @@
 #include "libgiggle/giggle-git-revisions.h"
 #include "libgiggle/giggle-git-refs.h"
 #include "libgiggle/giggle-git-diff.h"
-#include "giggle-view-history.h"
+#include "giggle-diff-tree-view.h"
+#include "giggle-diff-view.h"
 #include "giggle-file-list.h"
 #include "giggle-rev-list-view.h"
 #include "giggle-revision-view.h"
-#include "giggle-diff-view.h"
-#include "giggle-diff-tree-view.h"
+#include "giggle-view-diff.h"
+#include "giggle-view-history.h"
+#include "giggle-view-shell.h"
 #include "libgiggle/giggle-searchable.h"
 #include "libgiggle/giggle-history.h"
 
@@ -41,15 +43,10 @@ typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
 struct GiggleViewHistoryPriv {
 	GtkWidget          *main_vpaned;
-	GtkWidget          *revision_notebook;
-	GtkRadioToolButton *revision_tabs;
-
-	GtkWidget          *revision_list;
+	GtkWidget          *revision_shell;
+	GtkWidget          *view_diff;
 	GtkWidget          *revision_view;
-	GtkWidget          *diff_view;
-	GtkWidget          *diff_tree_view;
-	GtkWidget          *diff_view_hpaned;
-	GtkWidget          *diff_view_sw;
+	GtkWidget          *revision_list;
 
 	GiggleGit          *git;
 	GiggleJob          *job;
@@ -77,9 +74,6 @@ static void     view_history_revision_list_selection_changed_cb (GiggleRevListVi
 								 GiggleRevision     *revision1,
 								 GiggleRevision     *revision2,
 								 GiggleViewHistory  *view);
-static gboolean view_history_revision_list_key_press_cb         (GiggleRevListView *list,
-								 GdkEventKey        *event,
-								 GiggleViewHistory  *view);
 
 static gboolean view_history_search                             (GiggleSearchable      *searchable,
 								 const gchar           *search_term,
@@ -88,10 +82,6 @@ static gboolean view_history_search                             (GiggleSearchabl
 static void     view_history_cancel_search                      (GiggleSearchable      *searchable);
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
-
-static void     view_history_path_selected                      (GiggleDiffTreeView *diff_tree_view,
-								 const gchar        *path,
-								 GiggleViewHistory  *view);
 
 static void     view_history_go_back                            (GiggleHistory      *history);
 static gboolean view_history_can_go_back                        (GiggleHistory      *history);
@@ -178,18 +168,14 @@ static void
 view_history_git_dir_notify (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
-	GtkTextBuffer         *buffer;
 
 	priv = GET_PRIV (view);
 
 	view_history_update_revisions (view);
 
 	/* empty views */
-	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view), NULL, NULL);
+	giggle_view_diff_set_revisions (GIGGLE_VIEW_DIFF (priv->view_diff), NULL, NULL, NULL);
 	giggle_revision_view_set_revision (GIGGLE_REVISION_VIEW (priv->revision_view), NULL);
-
-	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->diff_view));
-	gtk_text_buffer_set_text (buffer, "", -1);
 }
 
 static void
@@ -208,8 +194,10 @@ view_history_setup_revision_list (GiggleViewHistory *view)
 	priv->revision_list = giggle_rev_list_view_new ();
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_history_revision_list_selection_changed_cb), view);
+#if 0
 	g_signal_connect (priv->revision_list, "key-press-event",
 			  G_CALLBACK (view_history_revision_list_key_press_cb), view);
+#endif
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
 	gtk_widget_show_all (scrolled_window);
@@ -217,161 +205,83 @@ view_history_setup_revision_list (GiggleViewHistory *view)
 	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), scrolled_window, TRUE, FALSE);
 }
 
+#if 0
 static void
-revision_tabs_toggled_cb (GtkRadioToolButton *button,
-			  GiggleViewHistory  *view)
+view_diff_path_selected (GiggleDiffTreeView *diff_tree_view,
+			 const gchar        *path,
+			 GiggleViewDiff     *view)
 {
-	GiggleViewHistoryPriv *priv;
-	int                    current_page;
-	GSList		      *l;
-	
+	GiggleViewDiffPriv *priv;
+	GList              *list = NULL;
 
 	priv = GET_PRIV (view);
 
-	l = gtk_radio_tool_button_get_group (button);
+	if (priv->current_history_elem) {
+		list = priv->current_history_elem;
 
-	for (current_page = 0; l; ++current_page, l = l->next) {
-		if (gtk_toggle_button_get_active (l->data))
-			break;
+		if (list->prev) {
+			/* unlink from the first elements */
+			list->prev->next = NULL;
+			list->prev = NULL;
+
+			g_list_foreach (priv->history, (GFunc) g_free, NULL);
+			g_list_free (priv->history);
+		}
+	} else {
+		g_list_foreach (priv->history, (GFunc) g_free, NULL);
+		g_list_free (priv->history);
 	}
 
-	current_page = gtk_notebook_get_n_pages (GTK_NOTEBOOK (priv->revision_notebook)) - current_page - 1;
-	gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->revision_notebook), current_page);
+	list = g_list_prepend (list, g_strdup (path));
+	priv->history = priv->current_history_elem = list;
+
+	view_diff_update_revisions (view);
 }
-
-static void
-revision_notebook_switch_page_cb (GtkNotebook       *notebook,
-				  GtkNotebookPage   *page,
-				  int                num_page,
-				  GiggleViewHistory *view)
-{
-	GiggleViewHistoryPriv *priv;
-	GSList		      *l;
-
-	priv = GET_PRIV (view);
-
-	num_page = gtk_notebook_get_n_pages (GTK_NOTEBOOK (priv->revision_notebook)) - num_page - 1;
-	l = gtk_radio_tool_button_get_group (priv->revision_tabs);
-	l = g_slist_nth (l, num_page);
-
-	if (l)
-		gtk_toggle_button_set_active (l->data, TRUE);
-}
-
-static GtkWidget *
-view_history_create_toolbar (GiggleViewHistory *view)
-{
-	GiggleViewHistoryPriv *priv;
-	GtkWidget             *toolbar;
-	GtkWidget             *label;
-	GtkToolItem           *item;
-
-	priv = GET_PRIV (view);
-
-	toolbar = gtk_toolbar_new ();
-
-	item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_UP);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-	item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_DOWN);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-	item = gtk_tool_item_new ();
-	label = gtk_label_new (_("Change <b>1/12</b>"));
-	gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_container_add (GTK_CONTAINER (item), label);
-
-	item = gtk_separator_tool_item_new  ();
-	gtk_separator_tool_item_set_draw (GTK_SEPARATOR_TOOL_ITEM (item), FALSE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_expand (item, TRUE);
-
-	item = gtk_radio_tool_button_new_from_stock (NULL, GTK_STOCK_COPY);
-	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("_Changes"));
-	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (item), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_is_important (item, TRUE);
-
-	priv->revision_tabs = GTK_RADIO_TOOL_BUTTON (item);
-	item = gtk_radio_tool_button_new_with_stock_from_widget (priv->revision_tabs,
-								 GTK_STOCK_DIALOG_INFO);
-	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("_Details"));
-	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (item), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_is_important (item, TRUE);
-
-	g_signal_connect (priv->revision_tabs, "toggled",
-			  G_CALLBACK (revision_tabs_toggled_cb), view);
-
-	return toolbar;
-}
+#endif
 
 static void
 view_history_setup_revision_pane (GiggleViewHistory *view)
 {
 	GiggleViewHistoryPriv *priv;
 	GtkWidget             *vbox;
-	GtkWidget             *scrolled_window;
+	GtkUIManager          *ui_manager;
 
 	priv = GET_PRIV (view);
 
-	gtk_rc_parse_string ("style \"view-history-toolbar-style\""
-			     "{"
+	gtk_rc_parse_string ("style \"view-history-toolbar-style\" {"
 			     "  GtkToolbar::shadow-type = none"
 			     "}"
 			     "widget_class \"*.<GiggleViewHistory>.*.GtkToolbar\" "
 			     "style \"view-history-toolbar-style\"");
 
-	priv->revision_notebook = gtk_notebook_new ();
-	gtk_container_set_border_width (GTK_CONTAINER (priv->revision_notebook), 6);
-	gtk_notebook_set_show_border (GTK_NOTEBOOK (priv->revision_notebook), FALSE);
-	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (priv->revision_notebook), FALSE);
-
-	g_signal_connect (priv->revision_notebook, "switch-page",
-			  G_CALLBACK (revision_notebook_switch_page_cb), view);
+	priv->revision_shell = giggle_view_shell_new ();
+	gtk_container_set_border_width (GTK_CONTAINER (priv->revision_shell), 6);
+	ui_manager = giggle_view_shell_get_ui_manager (GIGGLE_VIEW_SHELL (priv->revision_shell));
 
 	vbox = gtk_vbox_new (FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), view_history_create_toolbar (view), FALSE, TRUE, 0);
-	gtk_box_pack_start_defaults (GTK_BOX (vbox), priv->revision_notebook);
+
+	gtk_box_pack_start (GTK_BOX (vbox),
+			    gtk_ui_manager_get_widget (ui_manager, "/toolbar"),
+			    FALSE, TRUE, 0);
+
+	gtk_box_pack_start_defaults (GTK_BOX (vbox), priv->revision_shell);
 	gtk_paned_pack2 (GTK_PANED (priv->main_vpaned), vbox, FALSE, FALSE);
 	gtk_widget_show_all (vbox);
 
-	/* diff file view */
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-
-	/* FIXME: fixed sizes suck */
-	gtk_widget_set_size_request (scrolled_window, 200, -1);
-
-	priv->diff_tree_view = giggle_diff_tree_view_new ();
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->diff_tree_view);
-
-	g_signal_connect (priv->diff_tree_view, "path-selected",
-			  G_CALLBACK (view_history_path_selected), view);
-
 	/* diff view */
-	priv->diff_view_sw = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->diff_view_sw),
-					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->diff_view_sw), GTK_SHADOW_IN);
+	priv->view_diff = giggle_view_diff_new ();
+	giggle_view_shell_append_view (GIGGLE_VIEW_SHELL (priv->revision_shell),
+				       GIGGLE_VIEW (priv->view_diff));
 
-	priv->diff_view = giggle_diff_view_new ();
-	gtk_container_add (GTK_CONTAINER (priv->diff_view_sw), priv->diff_view);
-
-	/* diff paned */
-	priv->diff_view_hpaned = gtk_hpaned_new ();
-	gtk_paned_pack1 (GTK_PANED (priv->diff_view_hpaned), scrolled_window, FALSE, FALSE);
-	gtk_paned_pack2 (GTK_PANED (priv->diff_view_hpaned), priv->diff_view_sw, TRUE, FALSE);
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->revision_notebook), priv->diff_view_hpaned, NULL);
-	gtk_widget_show_all (priv->diff_view_hpaned);
+#if 0
+	g_signal_connect (priv->file_view, "path-selected",
+			  G_CALLBACK (view_diff_path_selected), view);
+#endif
 
 	/* revision view */
 	priv->revision_view = giggle_revision_view_new ();
-	gtk_notebook_append_page (GTK_NOTEBOOK (priv->revision_notebook), priv->revision_view, NULL);
-	gtk_widget_show_all (priv->revision_view);
+	giggle_view_shell_append_view (GIGGLE_VIEW_SHELL (priv->revision_shell),
+				       GIGGLE_VIEW (priv->revision_view));
 }
 
 static void
@@ -452,11 +362,8 @@ view_history_selection_changed_idle (ViewHistorySelectionIdleData *data)
 		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
 	}
 
-	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view),
+	giggle_view_diff_set_revisions (GIGGLE_VIEW_DIFF (priv->view_diff),
 					data->revision1, data->revision2, files);
-
-	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view),
-					     data->revision1, data->revision2);
 
 	GDK_THREADS_LEAVE ();
 
@@ -492,6 +399,7 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 				 data, g_free);
 }
 
+#if 0
 static gboolean
 view_history_revision_list_key_press_cb (GiggleRevListView *list,
 					 GdkEventKey        *event,
@@ -505,9 +413,7 @@ view_history_revision_list_key_press_cb (GiggleRevListView *list,
 
 	if (event->keyval == GDK_space ||
 	    event->keyval == GDK_BackSpace) {
-		gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->revision_notebook),
-					       GIGGLE_VIEW_HISTORY_PAGE_CHANGES);
-
+		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->revision_shell), "DiffView");
 		adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->diff_view_sw));
 
 		value = (event->keyval == GDK_space) ?
@@ -523,6 +429,7 @@ view_history_revision_list_key_press_cb (GiggleRevListView *list,
 
 	return FALSE;
 }
+#endif
 
 static gboolean
 view_history_search (GiggleSearchable      *searchable,
@@ -544,12 +451,14 @@ view_history_search (GiggleSearchable      *searchable,
 		/* search term is contained in the
 		 * revision description, expand it
 		 */
-		gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->revision_notebook),
-					       GIGGLE_VIEW_HISTORY_PAGE_DETAILS);
+		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->revision_shell),
+						 "RevisionView");
+#if 0
 	} else if (giggle_searchable_search (GIGGLE_SEARCHABLE (priv->diff_view),
 					     search_term, direction, full_search)) {
-		gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->revision_notebook),
-					       GIGGLE_VIEW_HISTORY_PAGE_CHANGES);
+		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->revision_shell),
+						 "DiffView");
+#endif
 	}
 
 	return TRUE;
@@ -799,6 +708,7 @@ view_history_update_revisions (GiggleViewHistory  *view)
 			    view);
 }
 
+#if 0
 static void
 view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
 			    const gchar        *path,
@@ -830,6 +740,7 @@ view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
 
 	view_history_update_revisions (view);
 }
+#endif
 
 GtkWidget *
 giggle_view_history_new (void)
@@ -846,35 +757,6 @@ giggle_view_history_new (void)
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY,
 			     "action", action, "accelerator", "F5",
 			     NULL);
-}
-
-void
-giggle_view_history_set_compact_mode (GiggleViewHistory *view,
-				      gboolean           compact_mode)
-{
-	GiggleViewHistoryPriv *priv;
-
-	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY (view));
-
-	priv = GET_PRIV (view);
-
-	giggle_rev_list_view_set_compact_mode (GIGGLE_REV_LIST_VIEW (priv->revision_list), compact_mode);
-	giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (priv->diff_view), compact_mode);
-	giggle_revision_view_set_compact_mode (GIGGLE_REVISION_VIEW (priv->revision_view), compact_mode);
-	giggle_diff_tree_view_set_compact_mode (GIGGLE_DIFF_TREE_VIEW (priv->diff_tree_view), compact_mode);
-
-	priv->compact_mode = compact_mode;
-}
-
-gboolean
-giggle_view_history_get_compact_mode  (GiggleViewHistory *view)
-{
-	GiggleViewHistoryPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_VIEW_HISTORY (view), FALSE);
-
-	priv = GET_PRIV (view);
-	return priv->compact_mode;
 }
 
 void

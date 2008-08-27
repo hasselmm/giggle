@@ -53,6 +53,8 @@ giggle_SOURCES= \
 	giggle-tree-view-helpers.h \
 	giggle-view.c \
 	giggle-view.h \
+	giggle-view-diff.c \
+	giggle-view-diff.h \
 	giggle-view-file.c \
 	giggle-view-file.h \
 	giggle-view-history.c \

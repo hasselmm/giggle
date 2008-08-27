@@ -49,10 +49,6 @@ struct GiggleViewHistoryClass {
 GType              giggle_view_history_get_type          (void);
 GtkWidget *        giggle_view_history_new               (void);
 
-void               giggle_view_history_set_compact_mode  (GiggleViewHistory *view,
-							  gboolean           compact_mode);
-gboolean           giggle_view_history_get_compact_mode  (GiggleViewHistory *view);
-
 void               giggle_view_history_set_graph_visible (GiggleViewHistory *view,
 							  gboolean           visible);
 

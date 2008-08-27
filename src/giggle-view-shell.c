@@ -243,15 +243,38 @@ giggle_view_shell_init (GiggleViewShell *view_shell)
 }
 
 GtkWidget *
-giggle_view_shell_new (GtkUIManager *ui_manager)
+giggle_view_shell_new (void)
 {
-	if (!ui_manager)
-		ui_manager = gtk_ui_manager_new ();
+	static const char layout[] =
+		"<ui>"
+		"  <toolbar>"
+		"    <placeholder name='Actions' />"
+		"    <separator expand='true' />"
+		"    <placeholder name='ViewShell' />"
+		"  </toolbar>"
+		"</ui>";
 
-	return g_object_new (GIGGLE_TYPE_VIEW_SHELL,
-			     "ui-manager", ui_manager,
-			     "show-border", FALSE,
-			     "show-tabs", FALSE, NULL);
+	GtkUIManager *ui_manager;
+	GtkWidget    *widget;
+
+	gtk_ui_manager_add_ui_from_string (ui_manager = gtk_ui_manager_new (),
+					   layout, G_N_ELEMENTS (layout) - 1, NULL);
+
+	widget = giggle_view_shell_new_with_ui (ui_manager);
+
+	giggle_view_shell_add_placeholder (GIGGLE_VIEW_SHELL (widget),
+					   "/toolbar/ViewShell");
+
+	return widget;
+}
+
+GtkWidget *
+giggle_view_shell_new_with_ui (GtkUIManager *manager)
+{
+	g_return_val_if_fail (GTK_IS_UI_MANAGER (manager), NULL);
+
+	return g_object_new (GIGGLE_TYPE_VIEW_SHELL, "ui-manager", manager,
+			     "show-border", FALSE, "show-tabs", FALSE, NULL);
 }
 
 void

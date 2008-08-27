@@ -72,7 +72,7 @@ static gboolean   revision_view_search             (GiggleSearchable      *searc
 static void       revision_view_update             (GiggleRevisionView *view);
 
 
-G_DEFINE_TYPE_WITH_CODE (GiggleRevisionView, giggle_revision_view, GTK_TYPE_TABLE,
+G_DEFINE_TYPE_WITH_CODE (GiggleRevisionView, giggle_revision_view, GIGGLE_TYPE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
 						giggle_revision_view_searchable_init))
 
@@ -119,27 +119,26 @@ giggle_revision_view_searchable_init (GiggleSearchableIface *iface)
 }
 
 static void
-giggle_revision_view_init (GiggleRevisionView *revision_view)
+giggle_revision_view_init (GiggleRevisionView *view)
 {
 	GiggleRevisionViewPriv *priv;
 	GtkWidget              *scrolled_window;
+	GtkWidget              *table;
 	GtkTextBuffer          *buffer;
 	GtkTextIter             iter;
 
-	priv = GET_PRIV (revision_view);
-
+	priv = GET_PRIV (view);
 	priv->git = giggle_git_get ();
 
-	g_object_set (revision_view,
-		      "column-spacing", 12,
-		      "row-spacing", 6,
-		      NULL);
+	table = g_object_new (GTK_TYPE_TABLE,
+			      "column-spacing", 12,
+			      "row-spacing", 6, NULL);
 
 	priv->branches_label = gtk_label_new (_("Branches:"));
 	gtk_misc_set_alignment (GTK_MISC (priv->branches_label), 0.0, 0.5);
 	gtk_widget_show (priv->branches_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->branches_label,
+	gtk_table_attach (GTK_TABLE (table), priv->branches_label,
 			  0, 1, 0, 1,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -149,7 +148,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->branches), 0.0, 0.5);
 	gtk_widget_show (priv->branches);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->branches,
+	gtk_table_attach (GTK_TABLE (table), priv->branches,
 			  1, 2, 0, 1,
 			  GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 
@@ -157,7 +156,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->date_label), 0.0, 0.5);
 	gtk_widget_show (priv->date_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->date_label,
+	gtk_table_attach (GTK_TABLE (table), priv->date_label,
 			  0, 1, 1, 2,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -167,7 +166,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->date), 0.0, 0.5);
 	gtk_widget_show (priv->date);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->date,
+	gtk_table_attach (GTK_TABLE (table), priv->date,
 			  1, 2, 1, 2,
 			  GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 
@@ -175,7 +174,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->sha_label), 0.0, 0.5);
 	gtk_widget_show (priv->sha_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->sha_label,
+	gtk_table_attach (GTK_TABLE (table), priv->sha_label,
 			  0, 1, 2, 3,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -185,7 +184,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->sha), 0.0, 0.5);
 	gtk_widget_show (priv->sha);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->sha,
+	gtk_table_attach (GTK_TABLE (table), priv->sha,
 			  1, 2, 2, 3,
 			  GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 
@@ -193,7 +192,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_misc_set_alignment (GTK_MISC (priv->log_label), 0.0, 0.0);
 	gtk_widget_show (priv->log_label);
 
-	gtk_table_attach (GTK_TABLE (revision_view), priv->log_label,
+	gtk_table_attach (GTK_TABLE (table), priv->log_label,
 			  0, 1, 3, 4,
 			  GTK_FILL, GTK_FILL, 0, 0);
 
@@ -212,7 +211,7 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	gtk_widget_show (priv->log);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->log);
-	gtk_table_attach (GTK_TABLE (revision_view), scrolled_window,
+	gtk_table_attach (GTK_TABLE (table), scrolled_window,
 			  1, 2, 3, 4,
 			  GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 
@@ -221,6 +220,9 @@ giggle_revision_view_init (GiggleRevisionView *revision_view)
 	priv->search_mark = gtk_text_buffer_create_mark (buffer,
 							 "search-mark",
 							 &iter, FALSE);
+
+	gtk_container_add (GTK_CONTAINER (view), table);
+	gtk_widget_show_all (table);
 
 	gtk_widget_grab_focus (priv->log);
 }
@@ -463,7 +465,16 @@ revision_view_update (GiggleRevisionView *view)
 GtkWidget *
 giggle_revision_view_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_REVISION_VIEW, NULL);
+	GtkAction *action;
+
+	action = g_object_new (GTK_TYPE_RADIO_ACTION,
+			       "name", "RevisionView",
+			       "label", _("_Details"),
+			       "tooltip", _("Display revision details"),
+			       "stock-id", GTK_STOCK_PROPERTIES,
+			       "is-important", TRUE, NULL);
+
+	return g_object_new (GIGGLE_TYPE_REVISION_VIEW, "action", action, NULL);
 }
 
 void
