@@ -75,10 +75,6 @@ G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration 
 gboolean                giggle_configuration_get_boolean_field
 							   (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
-unsigned                giggle_configuration_get_enumeration_field
-							   (GiggleConfiguration      *configuration,
-							    GiggleConfigurationField  field);
-
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
 							    const gchar              *value);
@@ -86,10 +82,6 @@ void                    giggle_configuration_set_boolean_field
 							   (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
 							    gboolean                  value);
-void			giggle_configuration_set_enumeration_field
-							   (GiggleConfiguration      *configuration,
-							    GiggleConfigurationField  field,
-							    unsigned                  value);
 
 G_END_DECLS
 

@@ -81,15 +81,6 @@ G_DEFINE_TYPE (GiggleConfiguration, giggle_configuration, G_TYPE_OBJECT);
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_CONFIGURATION, GiggleConfigurationPriv))
 
 
-static GEnumClass *
-get_enum_class (GiggleConfigurationField field)
-{
-	switch (field) {
-	default:
-		g_return_val_if_reached (NULL);
-	}
-}
-
 static void
 giggle_configuration_class_init (GiggleConfigurationClass *class)
 {
@@ -302,31 +293,6 @@ giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
 	return FALSE;
 }
 
-unsigned
-giggle_configuration_get_enumeration_field (GiggleConfiguration      *configuration,
-					    GiggleConfigurationField  field)
-{
-	GEnumClass *enum_class = NULL;
-	GEnumValue *enum_value = NULL;
-	unsigned value = 0;
-	const gchar *str;
-
-	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), 0);
-
-	enum_class = get_enum_class (field);
-	g_return_val_if_fail (NULL != enum_class, 0);
-	str = giggle_configuration_get_field (configuration, field);
-
-	if (str)
-		enum_value = g_enum_get_value_by_nick (enum_class, str);
-	if (enum_value)
-		value = enum_value->value;
-
-	g_type_class_unref (enum_class);
-
-	return value;
-}
-
 void
 giggle_configuration_set_field (GiggleConfiguration      *configuration,
 				GiggleConfigurationField  field,
@@ -361,27 +327,6 @@ giggle_configuration_set_boolean_field (GiggleConfiguration      *configuration,
 
 	giggle_configuration_set_field (configuration, field,
 					value ? "true" : "false");
-}
-
-void
-giggle_configuration_set_enumeration_field (GiggleConfiguration      *configuration,
-					    GiggleConfigurationField  field,
-					    unsigned		      value)
-{
-	GEnumClass *enum_class = NULL;
-	GEnumValue *enum_value = NULL;
-
-	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
-
-	enum_class = get_enum_class (field);
-	g_return_if_fail (NULL != enum_class);
-
-	enum_value = g_enum_get_value (enum_class, value);
-
-	giggle_configuration_set_field (configuration, field,
-					enum_value ? enum_value->value_nick : "");
-
-	g_type_class_unref (enum_class);
 }
 
 void
