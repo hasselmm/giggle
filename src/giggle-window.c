@@ -163,8 +163,8 @@ window_save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
 	GtkAction	 *action;
-	int               current_page;
-	gchar             geometry[25];
+	const char       *main_view;
+	char              geometry[25];
 	gboolean	  show_graph;
 	gboolean          maximized;
 
@@ -174,7 +174,7 @@ window_save_state (GiggleWindow *window)
 		    priv->width, priv->height, priv->x, priv->y);
 
 	maximized = gdk_window_get_state (GTK_WIDGET (window)->window) & GDK_WINDOW_STATE_MAXIMIZED;
-	current_page = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->view_shell));
+	main_view = giggle_view_shell_get_view_name (GIGGLE_VIEW_SHELL (priv->view_shell));
 
 	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
 	show_graph = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
@@ -187,9 +187,9 @@ window_save_state (GiggleWindow *window)
 						CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 						maximized);
 
-	giggle_configuration_set_enumeration_field (priv->configuration,
-						    CONFIG_FIELD_MAIN_WINDOW_PAGE,
-						    current_page);
+	giggle_configuration_set_field (priv->configuration,
+					CONFIG_FIELD_MAIN_WINDOW_VIEW,
+					main_view);
 
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_SHOW_GRAPH,
@@ -308,7 +308,7 @@ window_bind_state (GiggleWindow *window)
 	const char       *geometry;
 	gboolean	  maximized;
 	gboolean	  show_graph;
-	int		  current_page;
+	const char       *main_view;
 
 	priv = GET_PRIV (window);
 
@@ -316,8 +316,8 @@ window_bind_state (GiggleWindow *window)
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
 	maximized = giggle_configuration_get_boolean_field
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED);
-	current_page = giggle_configuration_get_enumeration_field
-		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_PAGE);
+	main_view = giggle_configuration_get_field
+		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_VIEW);
 	show_graph = giggle_configuration_get_boolean_field
 		(priv->configuration, CONFIG_FIELD_SHOW_GRAPH);
 
@@ -334,11 +334,13 @@ window_bind_state (GiggleWindow *window)
 		gtk_window_maximize (GTK_WINDOW (window));
 	}
 
+	if (main_view) {
+		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->view_shell), main_view);
+	}
+
 	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
 	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), show_graph);
 
-	gtk_notebook_set_current_page
-		(GTK_NOTEBOOK (priv->view_shell), current_page);
 
 	gtk_widget_show (GTK_WIDGET (window));
 

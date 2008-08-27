@@ -52,6 +52,10 @@ void           giggle_view_shell_add_placeholder (GiggleViewShell *view_shell,
 void           giggle_view_shell_append_view     (GiggleViewShell *view_shell,
 						  GiggleView      *view);
 
+void           giggle_view_shell_set_view_name   (GiggleViewShell *view_shell,
+						  const char      *view_name);
+const char *   giggle_view_shell_get_view_name   (GiggleViewShell *view_shell);
+
 void           giggle_view_shell_set_ui_manager  (GiggleViewShell *view_shell,
 						  GtkUIManager    *ui_manager);
 GtkUIManager * giggle_view_shell_get_ui_manager  (GiggleViewShell *view_shell);

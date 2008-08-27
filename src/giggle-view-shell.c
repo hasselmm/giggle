@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <string.h>
 
 #include "giggle-view-shell.h"
 
@@ -39,6 +40,7 @@ G_DEFINE_TYPE (GiggleViewShell, giggle_view_shell, GTK_TYPE_NOTEBOOK)
 enum {
 	PROP_0,
 	PROP_UI_MANAGER,
+	PROP_VIEW_NAME,
 };
 
 
@@ -112,10 +114,38 @@ view_shell_get_property (GObject    *object,
 		g_value_set_object (value, priv->ui_manager);
 		break;
 
+	case PROP_VIEW_NAME:
+		g_value_set_string (value, giggle_view_shell_get_view_name (GIGGLE_VIEW_SHELL (object)));
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
 	}
+}
+
+static void
+view_shell_set_view_name (GiggleViewShell *view_shell,
+			  const char      *view_name)
+{
+	GList *children;
+	int    page_num;
+
+	g_return_if_fail (NULL != view_name);
+
+	children = gtk_container_get_children (GTK_CONTAINER (view_shell));
+
+	for (page_num = 0; children; ++page_num) {
+		if (GIGGLE_IS_VIEW (children->data) &&
+			!strcmp (view_name, giggle_view_get_name (children->data))) {
+			gtk_notebook_set_current_page (GTK_NOTEBOOK (view_shell), page_num);
+			break;
+		}
+
+		children = g_list_delete_link (children, children);
+	}
+
+	g_list_free (children);
 }
 
 static void
@@ -128,6 +158,11 @@ view_shell_set_property (GObject      *object,
 	case PROP_UI_MANAGER:
 		view_shell_set_ui_manager (GIGGLE_VIEW_SHELL (object),
 					   g_value_get_object (value));
+		break;
+
+	case PROP_VIEW_NAME:
+		view_shell_set_view_name (GIGGLE_VIEW_SHELL (object),
+					  g_value_get_string (value));
 		break;
 
 	default:
@@ -171,6 +206,14 @@ giggle_view_shell_class_init (GiggleViewShellClass *class)
 							      "ui manager",
 							      "The UI manager to use",
 							      GTK_TYPE_UI_MANAGER,
+							      G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
+					 PROP_VIEW_NAME,
+					 g_param_spec_string ("view-name",
+							      "view name",
+							      "The name of the current view",
+							      NULL,
 							      G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewShellPriv));
@@ -266,14 +309,39 @@ giggle_view_shell_append_view (GiggleViewShell *view_shell,
 		view_shell_set_ui_manager (view_shell, gtk_ui_manager_new ());
 
 	for (i = 0; i < priv->placeholders->len; ++i) {
-		g_print ("path: %s\n", (const char*) priv->placeholders->pdata[i]);
-
 		gtk_ui_manager_add_ui (priv->ui_manager, priv->merge_id,
 				       priv->placeholders->pdata[i],
 				       gtk_action_get_name (action),
 				       gtk_action_get_name (action),
 				       GTK_UI_MANAGER_AUTO, FALSE);
 	}
+}
+
+void
+giggle_view_shell_set_view_name (GiggleViewShell *view_shell,
+				 const char      *view_name)
+{
+	g_return_if_fail (GIGGLE_IS_VIEW_SHELL (view_shell));
+	g_return_if_fail (NULL != view_name);
+
+	g_object_set (view_shell, "view-name", view_name, NULL);
+}
+
+const char *
+giggle_view_shell_get_view_name (GiggleViewShell *view_shell)
+{
+	int        page_num;
+	GtkWidget *view;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (view_shell), NULL);
+
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (view_shell));
+	view = gtk_notebook_get_nth_page (GTK_NOTEBOOK (view_shell), page_num);
+
+	if (GIGGLE_IS_VIEW (view))
+		return giggle_view_get_name (GIGGLE_VIEW (view));
+
+	return NULL;
 }
 
 void

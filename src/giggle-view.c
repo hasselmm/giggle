@@ -35,7 +35,8 @@ static void       view_finalize           (GObject        *object);
 enum {
 	PROP_0,
 	PROP_ACTION,
-	PROP_ACCELERATOR
+	PROP_ACCELERATOR,
+	PROP_NAME
 };
 
 G_DEFINE_ABSTRACT_TYPE (GiggleView, giggle_view, GTK_TYPE_VBOX)
@@ -59,6 +60,10 @@ view_get_property (GObject    *object,
 
 	case PROP_ACCELERATOR:
 		g_value_set_string (value, priv->accelerator);
+		break;
+
+	case PROP_NAME:
+		g_value_set_string (value, giggle_view_get_name (GIGGLE_VIEW (object)));
 		break;
 
 	default:
@@ -149,6 +154,14 @@ giggle_view_class_init (GiggleViewClass *class)
 							      G_PARAM_READWRITE |
 							      G_PARAM_CONSTRUCT_ONLY));
 
+	g_object_class_install_property (object_class,
+					 PROP_NAME,
+					 g_param_spec_string ("name",
+							      "name",
+							      "The name of this view",
+							      NULL,
+							      G_PARAM_READABLE));
+
 	g_type_class_add_private (class, sizeof (GiggleViewPriv));
 }
 
@@ -169,5 +182,20 @@ giggle_view_get_accelerator (GiggleView *view)
 {
 	g_return_val_if_fail (GIGGLE_IS_VIEW (view), NULL);
 	return GET_PRIV (view)->accelerator;
+}
+
+const char *
+giggle_view_get_name (GiggleView *view)
+{
+	GiggleViewPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW (view), NULL);
+
+	priv = GET_PRIV (view);
+
+	if (G_LIKELY (priv->action))
+		return gtk_action_get_name (priv->action);
+
+	return NULL;
 }
 

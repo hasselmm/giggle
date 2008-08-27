@@ -56,14 +56,9 @@ typedef enum {
 	CONFIG_FIELD_EMAIL,
 	CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 	CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
-	CONFIG_FIELD_MAIN_WINDOW_PAGE,
+	CONFIG_FIELD_MAIN_WINDOW_VIEW,
 	CONFIG_FIELD_SHOW_GRAPH
 } GiggleConfigurationField;
-
-typedef enum {
-	MAIN_WINDOW_PAGE_FILE_VIEW,
-	MAIN_WINDOW_PAGE_HISTORY_VIEW
-} GiggleMainWindowPage;
 
 GType                   giggle_configuration_get_type      (void);
 GiggleConfiguration *   giggle_configuration_new           (void);
