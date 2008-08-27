@@ -30,6 +30,7 @@ struct GiggleViewShellPriv {
 	GtkActionGroup *action_group;
 	GPtrArray      *placeholders;
 	GtkAction      *first_action;
+	int		action_value;
 	unsigned        merge_id;
 };
 
@@ -177,11 +178,20 @@ view_shell_switch_page (GtkNotebook     *notebook,
 			guint            page_num)
 {
 	GiggleViewShellPriv *priv;
+	GtkAction           *action;
+	GtkWidget           *view;
+	int                  value;
 
 	priv = GET_PRIV (notebook);
 
-	gtk_radio_action_set_current_value (GTK_RADIO_ACTION (priv->first_action),
-					    page_num);
+	view = gtk_notebook_get_nth_page (notebook, page_num);
+
+	if (GIGGLE_IS_VIEW (view)) {
+		action = giggle_view_get_action (GIGGLE_VIEW (view));
+		g_object_get (action, "value", &value, NULL);
+
+		gtk_radio_action_set_current_value (GTK_RADIO_ACTION (action), value);
+	}
 
 	GTK_NOTEBOOK_CLASS (giggle_view_shell_parent_class)
 		->switch_page (notebook, page, page_num);
@@ -260,8 +270,10 @@ view_shell_value_changed (GtkRadioAction  *action,
                  	  GtkRadioAction  *current,
                  	  GiggleViewShell *view_shell)
 {
-	int page = gtk_radio_action_get_current_value (action);
-	gtk_notebook_set_current_page (GTK_NOTEBOOK (view_shell), page);
+	const char *view_name;
+
+	view_name = gtk_action_get_name (GTK_ACTION (current));
+	view_shell_set_view_name (view_shell, view_name);
 }
 
 void
@@ -282,7 +294,7 @@ giggle_view_shell_append_view (GiggleViewShell *view_shell,
 	g_return_if_fail (GTK_IS_RADIO_ACTION (action));
 	accelerator = giggle_view_get_accelerator (view);
 
-	g_object_set (action, "value", gtk_notebook_get_n_pages (GTK_NOTEBOOK (view_shell)), NULL);
+	g_object_set (action, "value", priv->action_value++, NULL);
 
 	if (!priv->first_action) {
 		priv->first_action = action;
