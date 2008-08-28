@@ -23,14 +23,21 @@
 #include "giggle-view-diff.h"
 #include "giggle-diff-tree-view.h"
 #include "giggle-diff-view.h"
+#include "giggle-label-action.h"
 
 typedef struct GiggleViewDiffPriv GiggleViewDiffPriv;
 
 struct GiggleViewDiffPriv {
-	GtkWidget *hpaned;
-	GtkWidget *file_view;
-	GtkWidget *diff_view;
-	GtkWidget *diff_view_sw;
+	GtkWidget      *hpaned;
+	GtkWidget      *file_view;
+	GtkWidget      *diff_view;
+	GtkWidget      *diff_view_sw;
+
+	GtkActionGroup *action_group;
+	GtkAction      *status_action;
+
+	int		current_change;
+	int		num_changes;
 };
 
 G_DEFINE_TYPE (GiggleViewDiff, giggle_view_diff, GIGGLE_TYPE_VIEW)
@@ -38,58 +45,155 @@ G_DEFINE_TYPE (GiggleViewDiff, giggle_view_diff, GIGGLE_TYPE_VIEW)
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_DIFF, GiggleViewDiffPriv))
 
 static void
-giggle_view_diff_class_init (GiggleViewDiffClass *class)
+view_diff_dispose (GObject *object)
 {
-	g_type_class_add_private (class, sizeof (GiggleViewDiffPriv));
+	GiggleViewDiffPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	if (priv->action_group) {
+		g_object_unref (priv->action_group);
+		priv->action_group = NULL;
+	}
+
+	if (priv->status_action) {
+		g_object_unref (priv->status_action);
+		priv->status_action = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_view_diff_parent_class)->dispose (object);
 }
 
-#if 0
-static GtkWidget *
-view_history_create_toolbar (GiggleViewHistory *view)
+static void
+view_diff_update_status (GiggleViewDiff *view)
 {
-	GiggleViewHistoryPriv *priv;
-	GtkWidget             *toolbar;
-	GtkWidget             *label;
-	GtkToolItem           *item;
+	GiggleViewDiffPriv *priv;
+	GtkAction          *action;
+	char		   *markup;
 
 	priv = GET_PRIV (view);
 
-	toolbar = gtk_toolbar_new ();
+	if (priv->action_group) {
+		gtk_action_group_set_sensitive (priv->action_group, priv->num_changes > 0);
 
-	item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_UP);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
+		action = gtk_action_group_get_action (priv->action_group, "ViewDiffPreviousChange");
+		gtk_action_set_sensitive (action, priv->current_change > 0);
 
-	item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_DOWN);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
+		action = gtk_action_group_get_action (priv->action_group, "ViewDiffNextChange");
+		gtk_action_set_sensitive (action, priv->current_change < priv->num_changes - 1);
+	}
 
-	item = gtk_tool_item_new ();
-	label = gtk_label_new (_("Change <b>1/12</b>"));
-	gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_container_add (GTK_CONTAINER (item), label);
+	markup = g_markup_printf_escaped ("%s <b>%d/%d</b>", _("Change"),
+					  priv->current_change + 1,
+					  priv->num_changes);
 
-	item = gtk_separator_tool_item_new  ();
-	gtk_separator_tool_item_set_draw (GTK_SEPARATOR_TOOL_ITEM (item), FALSE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_expand (item, TRUE);
+	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
 
-	item = gtk_radio_tool_button_new_from_stock (NULL, GTK_STOCK_COPY);
-	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("_Changes"));
-	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (item), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_is_important (item, TRUE);
-
-	priv->revision_tabs = GTK_RADIO_TOOL_BUTTON (item);
-	item = gtk_radio_tool_button_new_with_stock_from_widget (priv->revision_tabs,
-								 GTK_STOCK_DIALOG_INFO);
-	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("_Details"));
-	gtk_tool_button_set_use_underline (GTK_TOOL_BUTTON (item), TRUE);
-	gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-	gtk_tool_item_set_is_important (item, TRUE);
-
-	return toolbar;
+	g_free (markup);
 }
-#endif
+
+static void
+view_diff_previous_change_cb (GtkAction      *action,
+			      GiggleViewDiff *view)
+{
+	GiggleViewDiffPriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (priv->current_change > 0) {
+		priv->current_change -= 1;
+		view_diff_update_status (view);
+		g_print ("show previous change\n");
+	}
+}
+
+static void
+view_diff_next_change_cb (GtkAction      *action,
+			  GiggleViewDiff *view)
+{
+	GiggleViewDiffPriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (priv->current_change < priv->num_changes - 1) {
+		priv->current_change += 1;
+		view_diff_update_status (view);
+		g_print ("show next change\n");
+	}
+}
+
+static void
+view_diff_add_ui (GiggleView   *view,
+		  GtkUIManager *manager)
+{
+	const static char layout[] =
+		"<ui>"
+		"  <toolbar>"
+		"    <placeholder name='Actions'>"
+		"      <toolitem action='ViewDiffPreviousChange' />"
+		"      <toolitem action='ViewDiffNextChange' />"
+		"      <toolitem action='ViewDiffStatus' />"
+		"     </placeholder>"
+		"  </toolbar>"
+		"</ui>";
+
+	static const GtkActionEntry actions[] = {
+		{ "ViewDiffPreviousChange", GTK_STOCK_GO_UP,
+		  N_("_Previous Change"), "<alt>Up", N_("View previous change"),
+		  G_CALLBACK (view_diff_previous_change_cb)
+		},
+		{ "ViewDiffNextChange", GTK_STOCK_GO_DOWN,
+		  N_("_Next Change"), "<alt>Down", N_("View next change"),
+		  G_CALLBACK (view_diff_next_change_cb)
+		},
+	};
+
+	GiggleViewDiffPriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (!priv->action_group) {
+		priv->action_group = gtk_action_group_new (giggle_view_get_name (view));
+		gtk_action_group_set_sensitive (priv->action_group, priv->num_changes > 0);
+		gtk_action_group_set_translation_domain (priv->action_group, GETTEXT_PACKAGE);
+		gtk_action_group_add_actions (priv->action_group, actions, G_N_ELEMENTS (actions), view);
+		gtk_action_group_add_action (priv->action_group, priv->status_action);
+
+		gtk_ui_manager_insert_action_group (manager, priv->action_group, 0);
+		gtk_ui_manager_add_ui_from_string (manager, layout, G_N_ELEMENTS (layout) - 1, NULL);
+		gtk_ui_manager_ensure_update (manager);
+	}
+
+	gtk_action_group_set_visible (priv->action_group, TRUE);
+}
+
+static void
+view_diff_remove_ui (GiggleView *view)
+{
+	GiggleViewDiffPriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (priv->action_group)
+		gtk_action_group_set_visible (priv->action_group, FALSE);
+}
+
+static void
+giggle_view_diff_class_init (GiggleViewDiffClass *class)
+{
+	GObjectClass    *object_class;
+	GiggleViewClass *view_class;
+
+	object_class = G_OBJECT_CLASS (class);
+	view_class = GIGGLE_VIEW_CLASS (class);
+
+	object_class->dispose = view_diff_dispose;
+
+	view_class->add_ui = view_diff_add_ui;
+	view_class->remove_ui = view_diff_remove_ui;
+
+	g_type_class_add_private (class, sizeof (GiggleViewDiffPriv));
+}
 
 static void
 giggle_view_diff_init (GiggleViewDiff *view)
@@ -98,6 +202,8 @@ giggle_view_diff_init (GiggleViewDiff *view)
 	GtkWidget          *scrolled_window;
 
 	priv = GET_PRIV (view);
+
+	priv->status_action = giggle_label_action_new ("ViewDiffStatus");
 
 	gtk_widget_push_composite_child ();
 
@@ -132,6 +238,8 @@ giggle_view_diff_init (GiggleViewDiff *view)
 
 	gtk_container_add (GTK_CONTAINER (view), priv->hpaned);
 	gtk_widget_pop_composite_child ();
+
+	view_diff_update_status (view);
 }
 
 GtkWidget *
@@ -165,5 +273,9 @@ giggle_view_diff_set_revisions (GiggleViewDiff *view,
 
 	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->file_view), revision1, revision2);
 	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view), revision1, revision2, files);
+
+	priv->current_change = 0;
+	priv->num_changes = g_random_int_range (1, 20);
+	view_diff_update_status (view);
 }
 

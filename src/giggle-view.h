@@ -42,12 +42,21 @@ struct GiggleView {
 
 struct GiggleViewClass {
 	GtkVBoxClass parent_class;
+
+	void (* add_ui)    (GiggleView   *view,
+		    	    GtkUIManager *manager);
+	void (* remove_ui) (GiggleView   *view);
 };
 
 GType              giggle_view_get_type          (void);
+
 GtkAction *        giggle_view_get_action        (GiggleView *view);
 const char *       giggle_view_get_accelerator   (GiggleView *view);
 const char *       giggle_view_get_name   	 (GiggleView *view);
+
+void		   giggle_view_add_ui 		 (GiggleView   *view,
+		    				  GtkUIManager *manager);
+void		   giggle_view_remove_ui 	 (GiggleView   *view);
 
 G_END_DECLS
 

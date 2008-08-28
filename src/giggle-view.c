@@ -45,9 +45,9 @@ G_DEFINE_ABSTRACT_TYPE (GiggleView, giggle_view, GTK_TYPE_VBOX)
 
 static void
 view_get_property (GObject    *object,
-			 guint       param_id,
-			 GValue     *value,
-			 GParamSpec *pspec)
+		   guint       param_id,
+		   GValue     *value,
+		   GParamSpec *pspec)
 {
 	GiggleViewPriv *priv;
 
@@ -197,5 +197,25 @@ giggle_view_get_name (GiggleView *view)
 		return gtk_action_get_name (priv->action);
 
 	return NULL;
+}
+
+void
+giggle_view_add_ui (GiggleView   *view,
+		    GtkUIManager *manager)
+{
+	g_return_if_fail (GIGGLE_IS_VIEW (view));
+	g_return_if_fail (GTK_IS_UI_MANAGER (manager));
+
+	if (GIGGLE_VIEW_GET_CLASS (view)->add_ui)
+		GIGGLE_VIEW_GET_CLASS (view)->add_ui (view, manager);
+}
+
+void
+giggle_view_remove_ui (GiggleView   *view)
+{
+	g_return_if_fail (GIGGLE_IS_VIEW (view));
+
+	if (GIGGLE_VIEW_GET_CLASS (view)->add_ui)
+		GIGGLE_VIEW_GET_CLASS (view)->remove_ui (view);
 }
 

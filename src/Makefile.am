@@ -35,6 +35,8 @@ giggle_SOURCES= \
 	giggle-graph-renderer.h \
 	giggle-input-dialog.c \
 	giggle-input-dialog.h \
+	giggle-label-action.c \
+	giggle-label-action.h \
 	giggle-personal-details-window.c \
 	giggle-personal-details-window.h \
 	giggle-remote-editor.c \

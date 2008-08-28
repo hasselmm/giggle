@@ -27,6 +27,7 @@ typedef struct GiggleViewShellPriv GiggleViewShellPriv;
 
 struct GiggleViewShellPriv {
 	GtkUIManager   *ui_manager;
+	GtkWidget      *current_view;
 	GtkActionGroup *action_group;
 	GPtrArray      *placeholders;
 	GtkAction      *first_action;
@@ -184,13 +185,21 @@ view_shell_switch_page (GtkNotebook     *notebook,
 
 	priv = GET_PRIV (notebook);
 
+	if (GIGGLE_IS_VIEW (priv->current_view)) {
+		giggle_view_remove_ui (GIGGLE_VIEW (priv->current_view));
+		priv->current_view = NULL;
+	}
+
 	view = gtk_notebook_get_nth_page (notebook, page_num);
 
 	if (GIGGLE_IS_VIEW (view)) {
+		priv->current_view = view;
+
 		action = giggle_view_get_action (GIGGLE_VIEW (view));
 		g_object_get (action, "value", &value, NULL);
 
 		gtk_radio_action_set_current_value (GTK_RADIO_ACTION (action), value);
+		giggle_view_add_ui (GIGGLE_VIEW (priv->current_view), priv->ui_manager);
 	}
 
 	GTK_NOTEBOOK_CLASS (giggle_view_shell_parent_class)
