@@ -592,8 +592,9 @@ window_add_widget_cb (GtkUIManager *merge,
 	if (GTK_IS_TOOLBAR (widget))
 		gtk_toolbar_set_show_arrow (GTK_TOOLBAR (widget), FALSE);
 
-	gtk_box_pack_start (GTK_BOX (priv->content_vbox),
-			    widget, FALSE, FALSE, 0);
+	if (g_str_has_prefix (gtk_widget_get_name (widget), "Main"))
+		gtk_box_pack_start (GTK_BOX (priv->content_vbox),
+				    widget, FALSE, FALSE, 0);
 }
 
 static void
@@ -733,6 +734,12 @@ window_create_ui_manager (GiggleWindow *window)
 		"    <toolitem action='RefreshHistory'/>"
 		"    <separator/>"
 		"    <toolitem action='Find'/>"
+		"    <placeholder name='Actions' />"
+		"    <separator expand='true'/>"
+		"    <placeholder name='ViewShell' />"
+		"  </toolbar>"
+		"  <toolbar name='ViewHistoryToolbar'>"
+		"    <placeholder name='Actions' />"
 		"    <separator expand='true'/>"
 		"    <placeholder name='ViewShell' />"
 		"  </toolbar>"
@@ -744,6 +751,8 @@ window_create_ui_manager (GiggleWindow *window)
 	GError           *error = NULL;
 
 	priv = GET_PRIV (window);
+
+	priv->ui_manager = gtk_ui_manager_new ();
 
 	g_signal_connect (priv->ui_manager, "add-widget",
 			  G_CALLBACK (window_add_widget_cb),
@@ -1043,15 +1052,15 @@ giggle_window_init (GiggleWindow *window)
 	priv = GET_PRIV (window);
 
 	priv->configuration = giggle_configuration_new ();
-	priv->ui_manager = gtk_ui_manager_new ();
 	priv->git = giggle_git_get ();
 
 	priv->content_vbox = gtk_vbox_new (FALSE, 0);
+	window_create_ui_manager (window);
+
 	priv->view_shell = giggle_view_shell_new_with_ui (priv->ui_manager);
-	priv->history_view = giggle_view_history_new ();
+	priv->history_view = giggle_view_history_new (priv->ui_manager);
 	priv->file_view = giggle_view_file_new ();
 
-	window_create_ui_manager (window);
 	window_create_recent_manager (window);
 	window_create_find_bar (window);
 

@@ -128,7 +128,14 @@ view_diff_add_ui (GiggleView   *view,
 {
 	const static char layout[] =
 		"<ui>"
-		"  <toolbar>"
+		"  <menubar name='MainMenubar'>"
+		"    <menu action='GoMenu'>"
+		"      <separator />"
+		"      <menuitem action='ViewDiffPreviousChange' />"
+		"      <menuitem action='ViewDiffNextChange' />"
+		"    </menu>"
+		"  </menubar>"
+		"  <toolbar name='ViewHistoryToolbar'>"
 		"    <placeholder name='Actions'>"
 		"      <toolitem action='ViewDiffPreviousChange' />"
 		"      <toolitem action='ViewDiffNextChange' />"

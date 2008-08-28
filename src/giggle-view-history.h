@@ -47,7 +47,7 @@ struct GiggleViewHistoryClass {
 };
 
 GType              giggle_view_history_get_type          (void);
-GtkWidget *        giggle_view_history_new               (void);
+GtkWidget *        giggle_view_history_new               (GtkUIManager      *manager);
 
 void               giggle_view_history_set_graph_visible (GiggleViewHistory *view,
 							  gboolean           visible);

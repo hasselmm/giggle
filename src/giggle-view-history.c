@@ -47,6 +47,7 @@ struct GiggleViewHistoryPriv {
 	GtkWidget          *view_diff;
 	GtkWidget          *revision_view;
 	GtkWidget          *revision_list;
+	GtkUIManager	   *ui_manager;
 
 	GiggleGit          *git;
 	GiggleJob          *job;
@@ -56,16 +57,13 @@ struct GiggleViewHistoryPriv {
 	GList              *current_history_elem;
 
 	guint               selection_changed_idle;
-
-	guint               compact_mode : 1;
 };
 
 enum {
-	GIGGLE_VIEW_HISTORY_PAGE_CHANGES,
-	GIGGLE_VIEW_HISTORY_PAGE_DETAILS
+	PROP_0,
+	PROP_UI_MANAGER,
 };
 
-static void     view_history_finalize              (GObject *object);
 
 static void     giggle_view_history_searchable_init             (GiggleSearchableIface *iface);
 static void     giggle_view_history_history_init                (GiggleHistoryIface    *iface);
@@ -104,11 +102,74 @@ enum {
 
 
 static void
+view_history_set_property (GObject      *object,
+			   guint         param_id,
+			   const GValue *value,
+			   GParamSpec   *pspec)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_UI_MANAGER:
+		g_assert (NULL == priv->ui_manager);
+		priv->ui_manager = g_value_dup_object (value);
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+
+static void
+view_history_finalize (GObject *object)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
+	}
+
+	if (priv->diff_current_job) {
+		giggle_git_cancel_job (priv->git, priv->diff_current_job);
+		g_object_unref (priv->diff_current_job);
+		priv->diff_current_job = NULL;
+	}
+
+	g_list_foreach (priv->history, (GFunc) g_free, NULL);
+	g_list_free (priv->history);
+
+	g_object_unref (priv->git);
+
+	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
+}
+
+static void
+view_history_constructed (GObject *object);
+
+static void
 giggle_view_history_class_init (GiggleViewHistoryClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
-	object_class->finalize = view_history_finalize;
+	object_class->set_property = view_history_set_property;
+	object_class->constructed  = view_history_constructed;
+	object_class->finalize     = view_history_finalize;
+
+	g_object_class_install_property (object_class,
+					 PROP_UI_MANAGER,
+					 g_param_spec_object ("ui-manager",
+							      "ui manager",
+							      "The UI manager to use",
+							      GTK_TYPE_UI_MANAGER,
+							      G_PARAM_WRITABLE |
+							      G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewHistoryPriv));
 }
@@ -179,12 +240,12 @@ view_history_git_dir_notify (GiggleViewHistory *view)
 }
 
 static void
-view_history_setup_revision_list (GiggleViewHistory *view)
+view_history_setup_revision_list (GObject *object)
 {
 	GiggleViewHistoryPriv *priv;
 	GtkWidget             *scrolled_window;
 
-	priv = GET_PRIV (view);
+	priv = GET_PRIV (object);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -193,7 +254,7 @@ view_history_setup_revision_list (GiggleViewHistory *view)
 
 	priv->revision_list = giggle_rev_list_view_new ();
 	g_signal_connect (priv->revision_list, "selection-changed",
-			  G_CALLBACK (view_history_revision_list_selection_changed_cb), view);
+			  G_CALLBACK (view_history_revision_list_selection_changed_cb), object);
 #if 0
 	g_signal_connect (priv->revision_list, "key-press-event",
 			  G_CALLBACK (view_history_revision_list_key_press_cb), view);
@@ -240,30 +301,29 @@ view_diff_path_selected (GiggleDiffTreeView *diff_tree_view,
 #endif
 
 static void
-view_history_setup_revision_pane (GiggleViewHistory *view)
+view_history_setup_revision_pane (GObject *object)
 {
 	GiggleViewHistoryPriv *priv;
 	GtkWidget             *vbox;
-	GtkUIManager          *ui_manager;
+	GtkWidget	      *toolbar;
 
-	priv = GET_PRIV (view);
+	priv = GET_PRIV (object);
 
 	gtk_rc_parse_string ("style \"view-history-toolbar-style\" {"
 			     "  GtkToolbar::shadow-type = none"
 			     "}"
-			     "widget_class \"*.<GiggleViewHistory>.*.GtkToolbar\" "
+			     "widget \"*.ViewHistoryToolbar\" "
 			     "style \"view-history-toolbar-style\"");
 
-	priv->revision_shell = giggle_view_shell_new ();
+	toolbar = gtk_ui_manager_get_widget (priv->ui_manager, "/ViewHistoryToolbar");
+
+	priv->revision_shell = giggle_view_shell_new_with_ui (priv->ui_manager);
+	giggle_view_shell_add_placeholder (GIGGLE_VIEW_SHELL (priv->revision_shell),
+					   "/ViewHistoryToolbar/ViewShell");
 	gtk_container_set_border_width (GTK_CONTAINER (priv->revision_shell), 6);
-	ui_manager = giggle_view_shell_get_ui_manager (GIGGLE_VIEW_SHELL (priv->revision_shell));
 
 	vbox = gtk_vbox_new (FALSE, 0);
-
-	gtk_box_pack_start (GTK_BOX (vbox),
-			    gtk_ui_manager_get_widget (ui_manager, "/toolbar"),
-			    FALSE, TRUE, 0);
-
+	gtk_box_pack_start (GTK_BOX (vbox), toolbar, FALSE, TRUE, 0);
 	gtk_box_pack_start_defaults (GTK_BOX (vbox), priv->revision_shell);
 	gtk_paned_pack2 (GTK_PANED (priv->main_vpaned), vbox, FALSE, FALSE);
 	gtk_widget_show_all (vbox);
@@ -287,58 +347,35 @@ view_history_setup_revision_pane (GiggleViewHistory *view)
 static void
 giggle_view_history_init (GiggleViewHistory *view)
 {
-	GiggleViewHistoryPriv *priv;
-
-	priv = GET_PRIV (view);
-
-	/* git interaction */
-	priv->git = giggle_git_get ();
-
-	g_signal_connect_swapped (priv->git, "notify::git-dir",
-				  G_CALLBACK (view_history_git_dir_notify), view);
-	g_signal_connect_swapped (priv->git, "changed",
-				  G_CALLBACK (view_history_git_changed), view);
-
-	gtk_widget_push_composite_child ();
-
-	/* widgets */
-	priv->compact_mode = FALSE;
-	priv->main_vpaned = gtk_vpaned_new ();
-	gtk_widget_show (priv->main_vpaned);
-	gtk_container_add (GTK_CONTAINER (view), priv->main_vpaned);
-
-	view_history_setup_revision_list (view);
-	view_history_setup_revision_pane (view);
-
-	gtk_widget_pop_composite_child ();
-
 }
 
 static void
-view_history_finalize (GObject *object)
+view_history_constructed (GObject *object)
 {
 	GiggleViewHistoryPriv *priv;
 
 	priv = GET_PRIV (object);
 
-	if (priv->job) {
-		giggle_git_cancel_job (priv->git, priv->job);
-		g_object_unref (priv->job);
-		priv->job = NULL;
-	}
+	/* git interaction */
+	priv->git = giggle_git_get ();
 
-	if (priv->diff_current_job) {
-		giggle_git_cancel_job (priv->git, priv->diff_current_job);
-		g_object_unref (priv->diff_current_job);
-		priv->diff_current_job = NULL;
-	}
+	g_signal_connect_swapped (priv->git, "notify::git-dir",
+				  G_CALLBACK (view_history_git_dir_notify), object);
+	g_signal_connect_swapped (priv->git, "changed",
+				  G_CALLBACK (view_history_git_changed), object);
 
-	g_list_foreach (priv->history, (GFunc) g_free, NULL);
-	g_list_free (priv->history);
+	gtk_widget_push_composite_child ();
 
-	g_object_unref (priv->git);
+	/* widgets */
+	priv->main_vpaned = gtk_vpaned_new ();
+	gtk_widget_show (priv->main_vpaned);
+	gtk_container_add (GTK_CONTAINER (object), priv->main_vpaned);
 
-	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
+	view_history_setup_revision_list (object);
+	view_history_setup_revision_pane (object);
+
+	gtk_widget_pop_composite_child ();
+
 }
 
 typedef struct {
@@ -743,9 +780,11 @@ view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
 #endif
 
 GtkWidget *
-giggle_view_history_new (void)
+giggle_view_history_new (GtkUIManager *manager)
 {
 	GtkAction *action;
+
+	g_return_val_if_fail (GTK_IS_UI_MANAGER (manager), NULL);
 
 	action = g_object_new (GTK_TYPE_RADIO_ACTION,
 			       "name", "HistoryView",
@@ -756,7 +795,7 @@ giggle_view_history_new (void)
 
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY,
 			     "action", action, "accelerator", "F5",
-			     NULL);
+			     "ui-manager", manager, NULL);
 }
 
 void
