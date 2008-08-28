@@ -33,7 +33,6 @@
 typedef struct GiggleDiffViewPriv GiggleDiffViewPriv;
 
 struct GiggleDiffViewPriv {
-	gboolean        compact_mode;
 	GiggleGit      *git;
 
 	GtkTextMark    *search_mark;
@@ -168,9 +167,6 @@ diff_view_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_COMPACT_MODE:
-		g_value_set_boolean (value, priv->compact_mode);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -188,10 +184,6 @@ diff_view_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_COMPACT_MODE:
-		giggle_diff_view_set_compact_mode (GIGGLE_DIFF_VIEW (object),
-						   g_value_get_boolean (value));
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -371,52 +363,4 @@ giggle_diff_view_diff_current (GiggleDiffView *diff_view,
 			    priv->job,
 			    diff_view_job_callback,
 			    diff_view);
-}
-
-gboolean
-giggle_diff_view_get_compact_mode (GiggleDiffView *view)
-{
-	GiggleDiffViewPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_DIFF_VIEW (view), FALSE);
-
-	priv = GET_PRIV (view);
-
-	return priv->compact_mode;
-}
-
-void
-giggle_diff_view_set_compact_mode (GiggleDiffView *view,
-				   gboolean        compact_mode)
-{
-	GiggleDiffViewPriv   *priv;
-	PangoFontDescription *font_desc;
-	gint                  size;
-
-	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (view));
-
-	priv = GET_PRIV (view);
-
-	if (compact_mode != priv->compact_mode) {
-		priv->compact_mode = (compact_mode == TRUE);
-
-		if (!compact_mode) {
-			/* Reset to default font to get the default size. */
-			gtk_widget_modify_font (GTK_WIDGET (view), NULL);
-
-			/* Then set the right font. */
-			font_desc = pango_font_description_from_string ("monospace");
-			gtk_widget_modify_font (GTK_WIDGET (view), font_desc);
-			pango_font_description_free (font_desc);
-		} else {
-			/* Get the existing font_desc, and change the size. */
-			font_desc = pango_font_description_copy (GTK_WIDGET (view)->style->font_desc);
-			size = pango_font_description_get_size (font_desc);
-			pango_font_description_set_size (font_desc, size * PANGO_SCALE_SMALL);
-			gtk_widget_modify_font (GTK_WIDGET (view), font_desc);
-			pango_font_description_free (font_desc);
-		}
-
-		g_object_notify (G_OBJECT (view), "compact-mode");
-	}
 }
