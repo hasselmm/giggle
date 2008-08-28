@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <string.h>
 
 #include "giggle-git-diff-tree.h"
 
@@ -29,6 +30,9 @@ struct GiggleGitDiffTreePriv {
 	GiggleRevision *rev2;
 
 	GList          *files;
+	GHashTable     *actions;
+	GHashTable     *sha_table1;
+	GHashTable     *sha_table2;
 };
 
 static void     git_diff_tree_finalize            (GObject           *object);
@@ -89,8 +93,15 @@ giggle_git_diff_tree_class_init (GiggleGitDiffTreeClass *class)
 }
 
 static void
-giggle_git_diff_tree_init (GiggleGitDiffTree *diff_tree)
+giggle_git_diff_tree_init (GiggleGitDiffTree *job)
 {
+	GiggleGitDiffTreePriv *priv;
+
+	priv = GET_PRIV (job);
+
+	priv->actions    = g_hash_table_new      (g_str_hash, g_str_equal);
+	priv->sha_table1 = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_free);
+	priv->sha_table2 = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_free);
 }
 
 static void
@@ -110,6 +121,10 @@ git_diff_tree_finalize (GObject *object)
 
 	g_list_foreach (priv->files, (GFunc) g_free, NULL);
 	g_list_free (priv->files);
+
+	g_hash_table_destroy (priv->actions);
+	g_hash_table_destroy (priv->sha_table1);
+	g_hash_table_destroy (priv->sha_table2);
 
 	G_OBJECT_CLASS (giggle_git_diff_tree_parent_class)->finalize (object);
 }
@@ -181,7 +196,7 @@ git_diff_tree_get_command_line (GiggleJob *job, gchar **command_line)
 		sha2 = giggle_revision_get_sha (priv->rev2);
 
 	if (sha1 && sha2) {
-		*command_line = g_strconcat (GIT_COMMAND " diff-tree -r ", sha1, " ", sha2, NULL);
+		*command_line = g_strconcat (GIT_COMMAND " diff-tree -r ", sha2, " ", sha1, NULL);
 	} else if (sha1) {
 		*command_line = g_strconcat (GIT_COMMAND " diff-files -r ", sha1, NULL);
 	} else if (sha2) {
@@ -199,8 +214,11 @@ git_diff_tree_handle_output (GiggleJob   *job,
 			gsize        output_len)
 {
 	GiggleGitDiffTreePriv  *priv;
-	gchar                 **lines, **line;
-	gint                    i;
+	char                  **lines, *file;
+	char			sha1[41], sha2[41];
+	unsigned		mode1, mode2;
+	char			action;
+	int                     i, n;
 
 	priv = GET_PRIV (job);
 
@@ -210,11 +228,21 @@ git_diff_tree_handle_output (GiggleJob   *job,
 	lines = g_strsplit (output_str, "\n", -1);
 
 	for (i = 0; lines[i] && *lines[i]; i++) {
-		line = g_strsplit (lines[i], "\t", -1);
+		if (5 != sscanf (lines[i], ":%6d %6d %40s %40s %c\t%n",
+				 &mode1, &mode2, sha1, sha2, &action, &n))
+			continue;
 
 		/* add filename */
-		priv->files = g_list_prepend (priv->files, g_strdup (line[1]));
-		g_strfreev (line);
+		file = g_strdup (lines[i] + n);
+		priv->files = g_list_prepend (priv->files, file);
+
+		/* add meta information */
+		if (strcmp (sha1, "0000000000000000000000000000000000000000"))
+			g_hash_table_insert (priv->sha_table1, file, g_strdup (sha1));
+		if (strcmp (sha2, "0000000000000000000000000000000000000000"))
+			g_hash_table_insert (priv->sha_table2, file, g_strdup (sha2));
+
+		g_hash_table_insert (priv->actions, file, GINT_TO_POINTER ((int) action));
 	}
 
 	priv->files = g_list_reverse (priv->files);
@@ -234,13 +262,56 @@ giggle_git_diff_tree_new (GiggleRevision *rev1, GiggleRevision *rev2)
 }
 
 GList *
-giggle_git_diff_tree_get_files (GiggleGitDiffTree *diff_tree)
+giggle_git_diff_tree_get_files (GiggleGitDiffTree *job)
 {
 	GiggleGitDiffTreePriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF_TREE (diff_tree), NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF_TREE (job), NULL);
 
-	priv = GET_PRIV (diff_tree);
+	priv = GET_PRIV (job);
 
 	return priv->files;
 }
+
+const char *
+giggle_git_diff_tree_get_sha1 (GiggleGitDiffTree *job,
+			       const char        *file)
+{
+	GiggleGitDiffTreePriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF_TREE (job), NULL);
+	g_return_val_if_fail (NULL != file, NULL);
+
+	priv = GET_PRIV (job);
+
+	return g_hash_table_lookup (priv->sha_table1, file);
+}
+
+const char *
+giggle_git_diff_tree_get_sha2 (GiggleGitDiffTree *job,
+			       const char        *file)
+{
+	GiggleGitDiffTreePriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF_TREE (job), NULL);
+	g_return_val_if_fail (NULL != file, NULL);
+
+	priv = GET_PRIV (job);
+
+	return g_hash_table_lookup (priv->sha_table2, file);
+}
+
+char
+giggle_git_diff_tree_get_action (GiggleGitDiffTree *job,
+				 const char        *file)
+{
+	GiggleGitDiffTreePriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_GIT_DIFF_TREE (job), '\0');
+	g_return_val_if_fail (NULL != file, '\0');
+
+	priv = GET_PRIV (job);
+
+	return GPOINTER_TO_INT (g_hash_table_lookup (priv->actions, file));
+}
+

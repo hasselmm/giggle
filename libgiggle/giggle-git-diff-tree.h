@@ -50,8 +50,13 @@ GType		      giggle_git_diff_tree_get_type   (void);
 GiggleJob *           giggle_git_diff_tree_new        (GiggleRevision *rev1,
 						       GiggleRevision *rev2);
 
-GList *               giggle_git_diff_tree_get_files  (GiggleGitDiffTree *diff_tree);
-
+GList *               giggle_git_diff_tree_get_files  (GiggleGitDiffTree *job);
+const char *          giggle_git_diff_tree_get_sha1   (GiggleGitDiffTree *job,
+						       const char        *file);
+const char *          giggle_git_diff_tree_get_sha2   (GiggleGitDiffTree *job,
+						       const char        *file);
+char                  giggle_git_diff_tree_get_action (GiggleGitDiffTree *job,
+						       const char        *file);
 
 G_END_DECLS
 

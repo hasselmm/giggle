@@ -41,6 +41,7 @@ struct GiggleDiffTreeViewPriv {
 
 enum {
 	COL_PATH,
+	COL_ICON,
 	N_COLUMNS
 };
 
@@ -93,6 +94,7 @@ diff_tree_view_job_callback (GiggleGit *git,
 	GiggleDiffTreeViewPriv *priv;
 	GtkTreeIter             iter;
 	GList                  *files;
+	const char	       *icon;
 
 	view = GIGGLE_DIFF_TREE_VIEW (user_data);
 	priv = GET_PRIV (view);
@@ -113,9 +115,30 @@ diff_tree_view_job_callback (GiggleGit *git,
 		files = giggle_git_diff_tree_get_files (GIGGLE_GIT_DIFF_TREE (priv->job));
 
 		while (files) {
+			switch (giggle_git_diff_tree_get_action
+					(GIGGLE_GIT_DIFF_TREE (priv->job),
+					 files->data)) {
+			case 'A':
+				icon = GTK_STOCK_NEW;
+				break;
+
+			case 'D':
+				icon = GTK_STOCK_DELETE;
+				break;
+
+			case 'M':
+				icon = GTK_STOCK_EDIT;
+				break;
+
+			default:
+				icon = NULL;
+				break;
+			}
+
 			gtk_list_store_append (priv->store, &iter);
 			gtk_list_store_set (priv->store, &iter,
 					    COL_PATH, files->data,
+					    COL_ICON, icon,
 					    -1);
 			files = files->next;
 		}
@@ -141,6 +164,14 @@ giggle_diff_tree_view_init (GiggleDiffTreeView *view)
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 
+	renderer = gtk_cell_renderer_pixbuf_new ();
+
+	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
+						     -1, NULL,
+						     renderer,
+						     "stock-id", COL_ICON,
+						     NULL);
+
 	renderer = gtk_cell_renderer_text_new ();
 
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
@@ -149,7 +180,7 @@ giggle_diff_tree_view_init (GiggleDiffTreeView *view)
 						     "text", COL_PATH,
 						     NULL);
 
-	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING);
+	priv->store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (view),
 				 GTK_TREE_MODEL (priv->store));
 
