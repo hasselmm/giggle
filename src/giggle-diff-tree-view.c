@@ -218,20 +218,18 @@ giggle_diff_tree_view_set_revisions (GiggleDiffTreeView *view,
 
 	gtk_list_store_clear (priv->store);
 
-	if (from && to) {
-		if (priv->job) {
-			giggle_git_cancel_job (priv->git, priv->job);
-			g_object_unref (priv->job);
-			priv->job = NULL;
-		}
-
-		priv->job = giggle_git_diff_tree_new (from, to);
-
-		giggle_git_run_job (priv->git,
-				    priv->job,
-				    diff_tree_view_job_callback,
-				    view);
+	if (priv->job) {
+		giggle_git_cancel_job (priv->git, priv->job);
+		g_object_unref (priv->job);
+		priv->job = NULL;
 	}
+
+	priv->job = giggle_git_diff_tree_new (from, to);
+
+	giggle_git_run_job (priv->git,
+			    priv->job,
+			    diff_tree_view_job_callback,
+			    view);
 }
 
 gchar *

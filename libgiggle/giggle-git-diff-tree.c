@@ -170,12 +170,25 @@ static gboolean
 git_diff_tree_get_command_line (GiggleJob *job, gchar **command_line)
 {
 	GiggleGitDiffTreePriv *priv;
+	const char *sha1 = NULL;
+	const char *sha2 = NULL;
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf (GIT_COMMAND " diff-tree -r %s %s",
-					 giggle_revision_get_sha (priv->rev1),
-					 giggle_revision_get_sha (priv->rev2));
+	if (priv->rev1)
+		sha1 = giggle_revision_get_sha (priv->rev1);
+	if (priv->rev2)
+		sha2 = giggle_revision_get_sha (priv->rev2);
+
+	if (sha1 && sha2) {
+		*command_line = g_strconcat (GIT_COMMAND " diff-tree -r ", sha1, " ", sha2, NULL);
+	} else if (sha1) {
+		*command_line = g_strconcat (GIT_COMMAND " diff-files -r ", sha1, NULL);
+	} else if (sha2) {
+		*command_line = g_strconcat (GIT_COMMAND " diff-files -r -R ", sha2, NULL);
+	} else {
+		*command_line = g_strdup (GIT_COMMAND " diff-files -r");
+	}
 
 	return TRUE;
 }
@@ -211,8 +224,8 @@ git_diff_tree_handle_output (GiggleJob   *job,
 GiggleJob *
 giggle_git_diff_tree_new (GiggleRevision *rev1, GiggleRevision *rev2)
 {
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1), NULL);
-	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2), NULL);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev1) || !rev1, NULL);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (rev2) || !rev2, NULL);
 
 	return g_object_new (GIGGLE_TYPE_GIT_DIFF_TREE,
 			     "revision-1", rev1,
