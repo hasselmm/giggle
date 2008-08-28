@@ -58,6 +58,9 @@ void               giggle_diff_view_set_revisions     (GiggleDiffView *diff_view
 void               giggle_diff_view_diff_current      (GiggleDiffView *diff_view,
 						       GList          *files);
 
+void               giggle_diff_view_scroll_to_file    (GiggleDiffView *diff_view,
+						       const char     *filename);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_DIFF_VIEW_H__ */

@@ -38,6 +38,8 @@ struct GiggleDiffViewPriv {
 	GtkTextMark    *search_mark;
 	gchar          *search_term;
 
+	GtkTextTag     *header_tag;
+
 	/* last run job */
 	GiggleJob      *job;
 };
@@ -107,6 +109,7 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 	GtkSourceLanguage         *language;
 	GtkSourceLanguageManager  *manager;
 	GtkTextIter                iter;
+	GtkStyle		  *style;
 
 	priv = GET_PRIV (diff_view);
 
@@ -131,10 +134,18 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 		priv->search_mark = gtk_text_buffer_create_mark (buffer,
 								 "search-mark",
 								 &iter, FALSE);
+
+		style = gtk_widget_get_style (GTK_WIDGET (diff_view));
+
+		priv->header_tag = gtk_text_buffer_create_tag (buffer, NULL, "editable", FALSE,
+							       "paragraph-background-gdk", &style->bg[GTK_STATE_NORMAL],
+								NULL);
+
 		g_object_unref (buffer);
 	}
 
 	g_object_unref (manager);
+
 }
 
 static void
@@ -229,6 +240,57 @@ diff_view_do_search (GiggleDiffView *view,
 }
 
 static void
+diff_view_parse_patch (GiggleDiffView *view)
+{
+	GiggleDiffViewPriv *priv;
+	GtkTextBuffer      *buffer;
+	char               *line, *filename = NULL;
+	GtkTextIter         line_start, line_end;
+	GtkTextIter         header_start, header_end;
+	gboolean	    within_header = TRUE;
+
+	priv = GET_PRIV (view);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	gtk_text_buffer_get_start_iter (buffer, &line_start);
+	header_start = line_start;
+	header_end = line_start;
+	line_end = line_start;
+
+	while (gtk_text_iter_forward_to_line_end (&line_end)) {
+		line = gtk_text_buffer_get_text (buffer, &line_start, &line_end, FALSE);
+
+		if (g_str_has_prefix (line, "@@ ")) {
+			if (within_header) {
+				gtk_text_buffer_apply_tag (buffer, priv->header_tag,
+							   &header_start, &header_end);
+				gtk_text_buffer_create_mark (buffer, filename, &header_start, TRUE);
+
+				within_header = FALSE;
+			}
+		} else if (!strchr (" +-", *line)) {
+			if (!within_header) {
+				header_start = line_start;
+				within_header = TRUE;
+			}
+		} else if (g_str_has_prefix (line, "--- a/") || g_str_has_prefix (line, "+++ b/")) {
+			g_free (filename);
+			filename = g_strdup (line + 6);
+		}
+
+		g_free (line);
+
+		if (!gtk_text_iter_forward_line (&line_end))
+			break;
+
+		header_end = line_end;
+		line_start = line_end;
+	}
+
+	g_free (filename);
+}
+
+static void
 diff_view_job_callback (GiggleGit *git,
 			GiggleJob *job,
 			GError    *error,
@@ -257,6 +319,8 @@ diff_view_job_callback (GiggleGit *git,
 			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
 			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
 			-1);
+
+		diff_view_parse_patch (view);
 
 		if (priv->search_term) {
 			diff_view_do_search (view, priv->search_term);
@@ -364,3 +428,24 @@ giggle_diff_view_diff_current (GiggleDiffView *diff_view,
 			    diff_view_job_callback,
 			    diff_view);
 }
+
+void
+giggle_diff_view_scroll_to_file (GiggleDiffView *diff_view,
+			    	 const char     *filename)
+{
+	GtkTextMark *mark;
+
+	g_return_if_fail (GIGGLE_IS_DIFF_VIEW (diff_view));
+	g_return_if_fail (NULL != filename);
+
+        mark = gtk_text_buffer_get_mark
+		(gtk_text_view_get_buffer (GTK_TEXT_VIEW (diff_view)),
+		 filename);
+
+	if (mark) {
+		gtk_text_view_scroll_to_mark (GTK_TEXT_VIEW (diff_view),
+					      mark, 0.0, TRUE, 0.0, 0.0);
+	}
+}
+
+
