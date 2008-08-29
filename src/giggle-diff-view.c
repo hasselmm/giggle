@@ -109,10 +109,34 @@ diff_view_set_current_hunk (GiggleDiffView *view,
 			    int             hunk_index)
 {
 	GiggleDiffViewPriv *priv;
+	gboolean	    invisible;
+	unsigned	    i, n_hunks;
+	GtkTextTag	   *meta_tag = NULL;
 
 	priv = GET_PRIV (view);
 
+	n_hunks = priv->hunk_tags->len / 2;
+
+	g_return_if_fail (hunk_index >= -1);
+	g_return_if_fail (hunk_index < n_hunks);
+
 	priv->current_hunk = hunk_index;
+
+	for (i = 0, hunk_index; i < n_hunks; ++i) {
+		invisible = (hunk_index >= 0 && hunk_index != i);
+g_print ("i=%d, invisible=%d, hunk_index=%d\n", i, invisible, hunk_index);
+
+		if (priv->hunk_tags->pdata[i * 2] != meta_tag) {
+			g_object_set (priv->hunk_tags->pdata[i * 2],
+				      "invisible", invisible, NULL);
+		}
+
+		if (!invisible)
+			meta_tag = priv->hunk_tags->pdata[i * 2];
+
+		g_object_set (priv->hunk_tags->pdata[i * 2 + 1],
+			      "invisible", invisible, NULL);
+	}
 }
 
 static void
@@ -302,22 +326,29 @@ diff_view_apply_meta_tag (GiggleDiffViewParser *parser)
 }
 
 static void
-diff_view_apply_hunk_tag (GiggleDiffViewParser *parser)
+diff_view_create_hunk_tag (GiggleDiffViewParser *parser)
 {
 	static char *hunk_colors[] = { "red", "green", "blue" };
 
 	parser->hunk_tag = gtk_text_buffer_create_tag
 		(parser->buffer, NULL, "paragraph-background",
-		 hunk_colors[(parser->tags->len / 2) % 3],
-		 NULL);
+		 hunk_colors[(parser->tags->len / 2) % 3], NULL);
+
+	g_ptr_array_add (parser->tags, parser->meta_tag);
+	g_ptr_array_add (parser->tags, parser->hunk_tag);
+}
+
+static void
+diff_view_apply_hunk_tag (GiggleDiffViewParser *parser)
+{
+g_print ("applied %p to %d..%d\n", parser->hunk_tag,
+	 gtk_text_iter_get_line (&parser->hunk_start),	
+	 gtk_text_iter_get_line (&parser->hunk_end));
 
 	gtk_text_buffer_apply_tag (parser->buffer, parser->hunk_tag,
 				   &parser->hunk_start, &parser->hunk_end);
 
 	parser->hunk_start = parser->line_start;
-
-	g_ptr_array_add (parser->tags, parser->meta_tag);
-	g_ptr_array_add (parser->tags, parser->hunk_tag);
 }
 
 static void
@@ -353,7 +384,12 @@ diff_view_parse_patch (GiggleDiffView *view)
 				diff_view_apply_meta_tag (&parser);
 			}
 
-			diff_view_apply_hunk_tag (&parser);
+			if (parser.hunk_tag)
+				diff_view_apply_hunk_tag (&parser);
+
+g_print ("%s\n", line);
+			diff_view_create_hunk_tag (&parser);
+g_print ("created %p\n", parser.hunk_tag);
 		} else if (!strchr (" +-", *line)) {
 			if (parser.hunk_tag) {
 				diff_view_apply_hunk_tag (&parser);
