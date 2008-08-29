@@ -35,9 +35,6 @@ struct GiggleViewDiffPriv {
 
 	GtkActionGroup *action_group;
 	GtkAction      *status_action;
-
-	int		current_change;
-	int		num_changes;
 };
 
 G_DEFINE_TYPE (GiggleViewDiff, giggle_view_diff, GIGGLE_TYPE_VIEW)
@@ -65,31 +62,42 @@ view_diff_dispose (GObject *object)
 }
 
 static void
+view_diff_patch_loaded (GiggleDiffView *view)
+{
+	giggle_diff_view_set_current_hunk (view, 0);
+}
+
+static void
 view_diff_update_status (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
 	GtkAction          *action;
-	char		   *markup;
+	char		   *markup, *format;
+	int		    current_hunk, n_hunks;
 
 	priv = GET_PRIV (view);
 
+	g_object_get (priv->diff_view,
+		      "current-hunk", &current_hunk,
+		      "n-hunks", &n_hunks, NULL);
+
 	if (priv->action_group) {
-		gtk_action_group_set_sensitive (priv->action_group, priv->num_changes > 0);
+		gtk_action_group_set_sensitive (priv->action_group, n_hunks > 0);
 
 		action = gtk_action_group_get_action (priv->action_group, "ViewDiffPreviousChange");
-		gtk_action_set_sensitive (action, priv->current_change > 0);
+		gtk_action_set_sensitive (action, current_hunk > 0);
 
 		action = gtk_action_group_get_action (priv->action_group, "ViewDiffNextChange");
-		gtk_action_set_sensitive (action, priv->current_change < priv->num_changes - 1);
+		gtk_action_set_sensitive (action, current_hunk < n_hunks - 1);
 	}
 
-	markup = g_markup_printf_escaped ("%s <b>%d/%d</b>", _("Change"),
-					  priv->current_change + 1,
-					  priv->num_changes);
+	format = g_strdup_printf ("%s <b>%s</b>", _("Change"), _("%d of %d"));
+	markup = g_markup_printf_escaped (format, current_hunk + 1, n_hunks);
 
 	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
 
 	g_free (markup);
+	g_free (format);
 }
 
 static void
@@ -97,13 +105,15 @@ view_diff_previous_change_cb (GtkAction      *action,
 			      GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
+	int		    current_hunk;
 
 	priv = GET_PRIV (view);
 
-	if (priv->current_change > 0) {
-		priv->current_change -= 1;
-		view_diff_update_status (view);
-		g_print ("show previous change\n");
+	current_hunk = giggle_diff_view_get_current_hunk (GIGGLE_DIFF_VIEW (priv->diff_view));
+
+	if (current_hunk > 0) {
+		giggle_diff_view_set_current_hunk (GIGGLE_DIFF_VIEW (priv->diff_view),
+						   current_hunk -1);
 	}
 }
 
@@ -112,13 +122,16 @@ view_diff_next_change_cb (GtkAction      *action,
 			  GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
+	int		    current_hunk, n_hunks;
 
 	priv = GET_PRIV (view);
 
-	if (priv->current_change < priv->num_changes - 1) {
-		priv->current_change += 1;
-		view_diff_update_status (view);
-		g_print ("show next change\n");
+	current_hunk = giggle_diff_view_get_current_hunk (GIGGLE_DIFF_VIEW (priv->diff_view));
+	n_hunks = giggle_diff_view_get_n_hunks (GIGGLE_DIFF_VIEW (priv->diff_view));
+
+	if (current_hunk < n_hunks - 1) {
+		giggle_diff_view_set_current_hunk (GIGGLE_DIFF_VIEW (priv->diff_view),
+						   current_hunk + 1);
 	}
 }
 
@@ -156,12 +169,15 @@ view_diff_add_ui (GiggleView   *view,
 	};
 
 	GiggleViewDiffPriv *priv;
+	int                 n_hunks;
 
 	priv = GET_PRIV (view);
 
 	if (!priv->action_group) {
+		n_hunks = giggle_diff_view_get_n_hunks (GIGGLE_DIFF_VIEW (priv->diff_view));
 		priv->action_group = gtk_action_group_new (giggle_view_get_name (view));
-		gtk_action_group_set_sensitive (priv->action_group, priv->num_changes > 0);
+
+		gtk_action_group_set_sensitive (priv->action_group, n_hunks > 0);
 		gtk_action_group_set_translation_domain (priv->action_group, GETTEXT_PACKAGE);
 		gtk_action_group_add_actions (priv->action_group, actions, G_N_ELEMENTS (actions), view);
 		gtk_action_group_add_action (priv->action_group, priv->status_action);
@@ -255,6 +271,11 @@ giggle_view_diff_init (GiggleViewDiff *view)
 	priv->diff_view = giggle_diff_view_new ();
 	gtk_container_add (GTK_CONTAINER (priv->diff_view_sw), priv->diff_view);
 
+	g_signal_connect (priv->diff_view, "notify::n-hunks",
+			  G_CALLBACK (view_diff_patch_loaded), NULL);
+	g_signal_connect_swapped (priv->diff_view, "notify::current-hunk",
+				  G_CALLBACK (view_diff_update_status), view);
+
 	/* hpaned */
 	priv->hpaned = gtk_hpaned_new ();
 	gtk_paned_pack1 (GTK_PANED (priv->hpaned), scrolled_window, FALSE, FALSE);
@@ -299,8 +320,6 @@ giggle_view_diff_set_revisions (GiggleViewDiff *view,
 	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->file_view), revision1, revision2);
 	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view), revision1, revision2, files);
 
-	priv->current_change = 0;
-	priv->num_changes = g_random_int_range (1, 20);
 	view_diff_update_status (view);
 }
 

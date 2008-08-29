@@ -58,6 +58,12 @@ void               giggle_diff_view_set_revisions     (GiggleDiffView *diff_view
 void               giggle_diff_view_diff_current      (GiggleDiffView *diff_view,
 						       GList          *files);
 
+void               giggle_diff_view_set_current_hunk  (GiggleDiffView *diff_view,
+						       int             hunk_index);
+int                giggle_diff_view_get_current_hunk  (GiggleDiffView *diff_view);
+
+int                giggle_diff_view_get_n_hunks       (GiggleDiffView *diff_view);
+
 void               giggle_diff_view_scroll_to_file    (GiggleDiffView *diff_view,
 						       const char     *filename);
 
