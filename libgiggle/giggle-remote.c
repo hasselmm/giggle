@@ -222,6 +222,49 @@ giggle_remote_new_from_file (gchar const *filename)
 	return remote;
 }
 
+void
+giggle_remote_apply_config (GiggleRemote *remote,
+			    GHashTable   *config)
+{
+	GiggleRemotePriv   *priv;
+	GiggleRemoteBranch *branch;
+	const char         *url, *pull, *push;
+	char               *key;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (remote));
+	g_return_if_fail (NULL != config);
+
+	priv = GET_PRIV (remote);
+
+	key = g_strconcat ("remote.", priv->name, ".url", NULL);
+	url = g_hash_table_lookup (config, key);
+	g_free (key);
+
+	key = g_strconcat ("remote.", priv->name, ".fetch", NULL);
+	pull = g_hash_table_lookup (config, key);
+	g_free (key);
+
+	key = g_strconcat ("remote.", priv->name, ".push", NULL);
+	push = g_hash_table_lookup (config, key);
+	g_free (key);
+
+	if (url) {
+		giggle_remote_set_url (remote, url);
+	}
+
+	if (pull) {
+		branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PULL, pull);
+		giggle_remote_add_branch (remote, branch);
+		g_object_unref (branch);
+	}
+
+	if (push) {
+		branch = giggle_remote_branch_new (GIGGLE_REMOTE_DIRECTION_PUSH, push);
+		giggle_remote_add_branch (remote, branch);
+		g_object_unref (branch);
+	}
+}
+
 GList *
 giggle_remote_get_branches (GiggleRemote *remote)
 {

@@ -60,6 +60,9 @@ void                  giggle_remote_set_url         (GiggleRemote *remote,
 void                  giggle_remote_save_to_file    (GiggleRemote *remote,
 						     gchar const  *filename);
 
+void                  giggle_remote_apply_config    (GiggleRemote *remote,
+						     GHashTable   *config);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_REMOTE_H__ */

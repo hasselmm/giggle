@@ -22,6 +22,8 @@
 
 #include "giggle-dispatcher.h"
 #include "giggle-git.h"
+#include "giggle-git-read-config.h"
+#include "giggle-git-remote-list.h"
 #include "giggle-remote.h"
 
 #define d(x) x
@@ -422,11 +424,73 @@ giggle_git_update_description (GiggleGit *git)
 }
 
 static void
+giggle_git_remote_config_cb (GiggleGit *git,
+			     GiggleJob *job,
+			     GError    *error,
+			     gpointer   user_data)
+{
+	GiggleGitPriv *priv;
+	GHashTable    *config;
+	GList         *l;
+
+	priv = GET_PRIV (git);
+
+	/* apply configuration */
+	config = giggle_git_read_config_get_config (GIGGLE_GIT_READ_CONFIG (job));
+
+	for (l = priv->remotes; l; l = l->next) {
+		giggle_remote_apply_config (l->data, config);
+	}
+
+	g_object_unref (job);
+
+	/* update */
+	priv->remotes = g_list_reverse (priv->remotes);
+	g_object_notify (G_OBJECT (git), "remotes");
+}
+
+static void
+giggle_git_remote_list_cb (GiggleGit *git,
+			   GiggleJob *job,
+			   GError    *error,
+			   gpointer   user_data)
+{
+	GiggleGitPriv *priv;
+	GiggleRemote  *remote;
+	GList         *names, *l;
+	char          *path;
+
+	priv = GET_PRIV (git);
+
+	g_return_if_fail (NULL == priv->remotes);
+
+	/* receive remote list */
+	names = giggle_git_remote_list_get_names (GIGGLE_GIT_REMOTE_LIST (job));
+
+	for (l = names; l; l = l->next) {
+		path = g_build_filename (priv->git_dir, "remotes", l->data, NULL);
+
+		if (g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
+			remote = giggle_remote_new_from_file (path);
+		} else {
+			remote = giggle_remote_new (l->data);
+		}
+
+		priv->remotes = g_list_prepend (priv->remotes, remote);
+		g_free (path);
+	}
+
+	g_object_unref (job);
+
+	/* receive configuration of remotes */
+	giggle_git_run_job (git, giggle_git_read_config_new (),
+			    giggle_git_remote_config_cb, NULL);
+}
+
+static void
 giggle_git_update_remotes (GiggleGit* git)
 {
 	GiggleGitPriv *priv;
-	gchar         *path;
-	GDir          *dir;
 
 	priv = GET_PRIV (git);
 
@@ -435,26 +499,9 @@ giggle_git_update_remotes (GiggleGit* git)
 	g_list_free (priv->remotes);
 	priv->remotes = NULL;
 
-	/* list files and add them */
-	path = g_build_filename (priv->git_dir, "remotes", NULL);
-	dir = g_dir_open (path, 0, NULL);
-
-	if (dir) {
-		const gchar *file;
-
-		for(file = g_dir_read_name(dir); file; file = g_dir_read_name(dir)) {
-			gchar *filename = g_build_filename (path, file, NULL);
-			priv->remotes = g_list_prepend (priv->remotes, giggle_remote_new_from_file (filename));
-			g_free (filename);
-		}
-
-		g_dir_close (dir);
-	}
-	priv->remotes = g_list_reverse (priv->remotes);
-	g_free (path);
-
-	/* update */
-	g_object_notify (G_OBJECT (git), "remotes");
+	/* list remotes */
+	giggle_git_run_job (git, giggle_git_remote_list_new (),
+			    giggle_git_remote_list_cb, NULL);
 }
 
 const gchar *
