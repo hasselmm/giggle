@@ -91,6 +91,8 @@ libgiggle_git_la_SOURCES = \
 	giggle-git-read-config.h \
 	giggle-git-refs.c \
 	giggle-git-refs.h \
+	giggle-git-remote-list.c \
+	giggle-git-remote-list.h \
 	giggle-git-revisions.c \
 	giggle-git-revisions.h \
 	giggle-git-write-config.c \
