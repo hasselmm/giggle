@@ -140,20 +140,25 @@ remote_editor_tree_cell_data_func (GtkTreeViewColumn *tree_column,
 				   gpointer           data)
 {
 	GiggleRemoteBranch *branch = NULL;
+	GtkWidget          *widget;
+	GtkStyle           *style;
 
 	gtk_tree_model_get (model, iter,
 			    COL_BRANCH, &branch,
 			    -1);
 
+	widget = gtk_tree_view_column_get_tree_view (tree_column);
+	style = gtk_widget_get_style (widget);
+
 	if (branch) {
 		g_object_set (cell,
-			      "foreground", "black",
+			      "foreground-gdk", &style->text[GTK_STATE_NORMAL],
 			      "text", giggle_remote_branch_get_refspec (branch),
 			      NULL);
 		g_object_unref (branch);
 	} else {
 		g_object_set (cell,
-			      "foreground", "slategray",
+			      "foreground-gdk", &style->text[GTK_STATE_INSENSITIVE],
 			      "text", _("Double click to add mapping..."),
 			      NULL);
 	}

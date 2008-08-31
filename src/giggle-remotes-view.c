@@ -95,20 +95,25 @@ remotes_view_cell_data_func (GtkTreeViewColumn *column,
 			     gpointer           data)
 {
 	GiggleRemote *remote = NULL;
+	GtkWidget    *widget;
+	GtkStyle     *style;
 
 	gtk_tree_model_get (model, iter,
 			    COL_REMOTE, &remote,
 			    -1);
 
+	widget = gtk_tree_view_column_get_tree_view (column);
+	style = gtk_widget_get_style (widget);
+
 	if (GIGGLE_IS_REMOTE (remote)) {
 		g_object_set (cell,
-			      "foreground", "black",
+			      "foreground-gdk", &style->text[GTK_STATE_NORMAL],
 			      "text", giggle_remote_get_name (remote),
 			      NULL);
 		g_object_unref (remote);
 	} else {
 		g_object_set (cell,
-			      "foreground", "slategray",
+			      "foreground-gdk", &style->text[GTK_STATE_INSENSITIVE],
 			      "text", _("Double click to add remote..."),
 			      NULL);
 	}
