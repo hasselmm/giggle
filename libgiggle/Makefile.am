@@ -16,6 +16,7 @@ dist_ENUMS_TEMPLATES= \
 h_files = \
 	giggle-configuration.h \
 	giggle-git-list-files.h \
+	giggle-remote.h \
 	giggle-remote-branch.h
 
 libgiggle_la_SOURCES = \

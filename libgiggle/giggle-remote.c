@@ -25,19 +25,24 @@
 #include <glib/gstdio.h>
 
 #include "giggle-remote.h"
+#include "giggle-enums.h"
 
 typedef struct GiggleRemotePriv GiggleRemotePriv;
 
 struct GiggleRemotePriv {
-	gchar *name;
-	gchar *url;
+	GiggleRemoteMechanism  mechanism;
+	gchar                 *icon_name;
+	gchar                 *name;
+	gchar                 *url;
 
-	GList *branches; // of GiggleRemoteBranch
+	GList                 *branches; // of GiggleRemoteBranch
 };
 
 enum {
 	PROP_0,
 	PROP_BRANCHES,
+	PROP_ICON_NAME,
+	PROP_MECHANISM,
 	PROP_NAME,
 	PROP_URL
 };
@@ -71,6 +76,19 @@ giggle_remote_class_init (GiggleRemoteClass *class)
 						 	       "The list of remote branches",
 							       G_PARAM_READABLE));
 	g_object_class_install_property (object_class,
+					 PROP_ICON_NAME,
+					 g_param_spec_string ("icon-name", "Icon Name",
+							      "This remote's icon",
+							      NULL, G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_MECHANISM,
+					 g_param_spec_enum ("mechanism", "Mechanism",
+							    "This remote's mechanism",
+							    GIGGLE_TYPE_REMOTE_MECHANISM,
+							    GIGGLE_REMOTE_MECHANISM_GIT,
+							    G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
 					 PROP_NAME,
 					 g_param_spec_string ("name", "Name",
 							      "This remote's name",
@@ -99,6 +117,7 @@ remote_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	g_free (priv->icon_name);
 	g_free (priv->name);
 	g_free (priv->url);
 
@@ -107,11 +126,31 @@ remote_finalize (GObject *object)
 	G_OBJECT_CLASS (giggle_remote_parent_class)->finalize (object);
 }
 
+static const char *
+remote_get_icon_name (GiggleRemotePriv *priv)
+{
+	if (priv->icon_name)
+		return priv->icon_name;
+
+	switch (priv->mechanism) {
+	case GIGGLE_REMOTE_MECHANISM_GIT:
+		return "giggle-scm-git";
+
+	case GIGGLE_REMOTE_MECHANISM_GIT_SVN:
+		return "giggle-scm-svn";
+
+	case GIGGLE_REMOTE_MECHANISM_INVALID:
+		break;
+	}
+
+	g_return_val_if_reached (NULL);
+}
+
 static void
 remote_get_property (GObject    *object,
-		    guint       param_id,
-		    GValue     *value,
-		    GParamSpec *pspec)
+		     guint       param_id,
+		     GValue     *value,
+		     GParamSpec *pspec)
 {
 	GiggleRemotePriv *priv;
 
@@ -120,6 +159,9 @@ remote_get_property (GObject    *object,
 	switch (param_id) {
 	case PROP_BRANCHES:
 		g_value_set_pointer (value, priv->branches);
+		break;
+	case PROP_ICON_NAME:
+		g_value_set_string (value, remote_get_icon_name (priv));
 		break;
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
@@ -135,20 +177,26 @@ remote_get_property (GObject    *object,
 
 static void
 remote_set_property (GObject      *object,
-		    guint         param_id,
-		    const GValue *value,
-		    GParamSpec   *pspec)
+		     guint         param_id,
+		     const GValue *value,
+		     GParamSpec   *pspec)
 {
 	GiggleRemotePriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_ICON_NAME:
+		giggle_remote_set_icon_name (GIGGLE_REMOTE (object),
+					     g_value_get_string (value));
+		break;
 	case PROP_NAME:
-		giggle_remote_set_name (GIGGLE_REMOTE (object), g_value_get_string (value));
+		giggle_remote_set_name (GIGGLE_REMOTE (object),
+					g_value_get_string (value));
 		break;
 	case PROP_URL:
-		giggle_remote_set_url (GIGGLE_REMOTE (object), g_value_get_string (value));
+		giggle_remote_set_url (GIGGLE_REMOTE (object),
+				       g_value_get_string (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -222,6 +270,23 @@ giggle_remote_new_from_file (gchar const *filename)
 	return remote;
 }
 
+G_GNUC_PURE static const char *
+remote_get_config_prefix (GiggleRemoteMechanism mechanism)
+{
+	switch (mechanism) {
+	case GIGGLE_REMOTE_MECHANISM_GIT:
+		return "remote.";
+
+	case GIGGLE_REMOTE_MECHANISM_GIT_SVN:
+		return "svn-remote.";
+
+	case GIGGLE_REMOTE_MECHANISM_INVALID:
+		break;
+	}
+
+	g_return_val_if_reached (NULL);
+}
+
 void
 giggle_remote_apply_config (GiggleRemote *remote,
 			    GHashTable   *config)
@@ -229,6 +294,7 @@ giggle_remote_apply_config (GiggleRemote *remote,
 	GiggleRemotePriv   *priv;
 	GiggleRemoteBranch *branch;
 	const char         *url, *pull, *push;
+	const char         *prefix = NULL;
 	char               *key;
 
 	g_return_if_fail (GIGGLE_IS_REMOTE (remote));
@@ -236,15 +302,18 @@ giggle_remote_apply_config (GiggleRemote *remote,
 
 	priv = GET_PRIV (remote);
 
-	key = g_strconcat ("remote.", priv->name, ".url", NULL);
+	prefix = remote_get_config_prefix (priv->mechanism);
+	g_return_if_fail (NULL != prefix);
+
+	key = g_strconcat (prefix, priv->name, ".url", NULL);
 	url = g_hash_table_lookup (config, key);
 	g_free (key);
 
-	key = g_strconcat ("remote.", priv->name, ".fetch", NULL);
+	key = g_strconcat (prefix, priv->name, ".fetch", NULL);
 	pull = g_hash_table_lookup (config, key);
 	g_free (key);
 
-	key = g_strconcat ("remote.", priv->name, ".push", NULL);
+	key = g_strconcat (prefix, priv->name, ".push", NULL);
 	push = g_hash_table_lookup (config, key);
 	g_free (key);
 
@@ -286,6 +355,61 @@ giggle_remote_remove_branches (GiggleRemote *self)
 	g_list_free (priv->branches);
 	priv->branches = NULL;
 	g_object_notify (G_OBJECT (self), "branches");
+}
+
+const gchar *
+giggle_remote_get_icon_name (GiggleRemote *remote)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote), NULL);
+
+	return remote_get_icon_name (GET_PRIV (remote));
+}
+
+void
+giggle_remote_set_icon_name (GiggleRemote *self,
+			     gchar const  *icon_name)
+{
+	GiggleRemotePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+	g_return_if_fail (!icon_name || *icon_name);
+
+	priv = GET_PRIV (self);
+
+	if (icon_name == priv->icon_name) {
+		return;
+	}
+
+	g_free (priv->icon_name);
+	priv->icon_name = g_strdup (icon_name);
+
+	g_object_notify (G_OBJECT (self), "icon-name");
+}
+
+GiggleRemoteMechanism
+giggle_remote_get_mechanism (GiggleRemote *remote)
+{
+	g_return_val_if_fail (GIGGLE_IS_REMOTE (remote),
+			      GIGGLE_REMOTE_MECHANISM_INVALID);
+
+	return GET_PRIV (remote)->mechanism;
+}
+
+void
+giggle_remote_set_mechanism (GiggleRemote          *self,
+			     GiggleRemoteMechanism  mechanism)
+{
+	GiggleRemotePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_REMOTE (self));
+	g_return_if_fail (mechanism < GIGGLE_REMOTE_MECHANISM_INVALID);
+
+	priv = GET_PRIV (self);
+
+	if (mechanism != priv->mechanism) {
+		priv->mechanism = mechanism;
+		g_object_notify (G_OBJECT (self), "mechanism");
+	}
 }
 
 const gchar *

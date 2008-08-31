@@ -36,6 +36,12 @@ G_BEGIN_DECLS
 typedef struct GiggleRemote      GiggleRemote;
 typedef struct GiggleRemoteClass GiggleRemoteClass;
 
+typedef enum {
+	GIGGLE_REMOTE_MECHANISM_GIT,
+	GIGGLE_REMOTE_MECHANISM_GIT_SVN,
+	GIGGLE_REMOTE_MECHANISM_INVALID
+} GiggleRemoteMechanism;
+
 struct GiggleRemote {
 	GObject parent;
 };
@@ -45,23 +51,29 @@ struct GiggleRemoteClass {
 };
 
 GType		      giggle_remote_get_type        (void);
-GiggleRemote *        giggle_remote_new             (gchar const  *name);
-GiggleRemote *        giggle_remote_new_from_file   (gchar const  *filename);
-void                  giggle_remote_add_branch      (GiggleRemote *remote,
-						     GiggleRemoteBranch *branch);
-GList *               giggle_remote_get_branches    (GiggleRemote *remote);
-void                  giggle_remote_remove_branches (GiggleRemote *remote);
-const gchar *         giggle_remote_get_name        (GiggleRemote *remote);
-void                  giggle_remote_set_name        (GiggleRemote *remote,
-						     gchar const  *name);
-const gchar *         giggle_remote_get_url         (GiggleRemote *remote);
-void                  giggle_remote_set_url         (GiggleRemote *remote,
-					             gchar const  *url);
-void                  giggle_remote_save_to_file    (GiggleRemote *remote,
-						     gchar const  *filename);
+GiggleRemote *        giggle_remote_new             (gchar const            *name);
+GiggleRemote *        giggle_remote_new_from_file   (gchar const            *filename);
+void                  giggle_remote_add_branch      (GiggleRemote           *remote,
+						     GiggleRemoteBranch     *branch);
+GList *               giggle_remote_get_branches    (GiggleRemote           *remote);
+void                  giggle_remote_remove_branches (GiggleRemote           *remote);
+const gchar *         giggle_remote_get_icon_name   (GiggleRemote           *remote);
+void                  giggle_remote_set_icon_name   (GiggleRemote           *remote,
+						     gchar const            *name);
+GiggleRemoteMechanism giggle_remote_get_mechanism   (GiggleRemote           *remote);
+void                  giggle_remote_set_mechanism   (GiggleRemote           *remote,
+						     GiggleRemoteMechanism   mechanism);
+const gchar *         giggle_remote_get_name        (GiggleRemote           *remote);
+void                  giggle_remote_set_name        (GiggleRemote           *remote,
+						     gchar const            *name);
+const gchar *         giggle_remote_get_url         (GiggleRemote           *remote);
+void                  giggle_remote_set_url         (GiggleRemote           *remote,
+					             gchar const            *url);
+void                  giggle_remote_save_to_file    (GiggleRemote           *remote,
+						     gchar const            *filename);
 
-void                  giggle_remote_apply_config    (GiggleRemote *remote,
-						     GHashTable   *config);
+void                  giggle_remote_apply_config    (GiggleRemote           *remote,
+						     GHashTable             *config);
 
 G_END_DECLS
 
