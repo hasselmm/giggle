@@ -1,5 +1,5 @@
 icon16dir = $(datadir)/icons/hicolor/16x16/apps
-icon16_DATA = 16x16/giggle.png
+icon16_DATA = 16x16/giggle.png 16x16/giggle-scm-git.png 16x16/giggle-scm-svn.png
 
 icon22dir = $(datadir)/icons/hicolor/22x22/apps
 icon22_DATA = 22x22/giggle.png
@@ -8,7 +8,7 @@ icon32dir = $(datadir)/icons/hicolor/32x32/apps
 icon32_DATA = 32x32/giggle.png
 
 icon48dir = $(datadir)/icons/hicolor/48x48/apps
-icon48_DATA = 48x48/giggle.png
+icon48_DATA = 48x48/giggle.png 48x48/giggle-scm-svn.png
 
 svgicondir = $(datadir)/icons/hicolor/scalable/apps
 svgicon_DATA = scalable/giggle.svg
