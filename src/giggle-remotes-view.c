@@ -88,6 +88,31 @@ remotes_view_update (GiggleRemotesView *view)
 }
 
 static void
+remotes_view_icon_data_func (GtkTreeViewColumn *column,
+			     GtkCellRenderer   *cell,
+			     GtkTreeModel      *model,
+			     GtkTreeIter       *iter,
+			     gpointer           data)
+{
+	GiggleRemote *remote = NULL;
+
+	gtk_tree_model_get (model, iter,
+			    COL_REMOTE, &remote,
+			    -1);
+
+	if (GIGGLE_IS_REMOTE (remote)) {
+		g_object_set (cell,
+			      "icon-name", giggle_remote_get_icon_name (remote),
+			      NULL);
+		g_object_unref (remote);
+	} else {
+		g_object_set (cell,
+			      "icon-name", "gtk-new",
+			      NULL);
+	}
+}
+
+static void
 remotes_view_cell_data_func (GtkTreeViewColumn *column,
 			     GtkCellRenderer   *cell,
 			     GtkTreeModel      *model,
@@ -203,6 +228,12 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 	priv = GET_PRIV (view);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
+
+	renderer = gtk_cell_renderer_pixbuf_new ();
+	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
+						    _("Icon"), renderer,
+						    remotes_view_icon_data_func,
+						    NULL, NULL);
 
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
