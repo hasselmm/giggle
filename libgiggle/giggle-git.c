@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <string.h>
 
 #include "giggle-dispatcher.h"
 #include "giggle-git.h"
@@ -429,22 +430,50 @@ giggle_git_remote_config_cb (GiggleGit *git,
 			     GError    *error,
 			     gpointer   user_data)
 {
-	GiggleGitPriv *priv;
-	GHashTable    *config;
-	GList         *l;
+	GiggleGitPriv  *priv;
+	GiggleRemote   *remote;
+	GHashTable     *config;
+	GHashTableIter  iter;
+	GList          *l;
+	char           *name;
+	const char     *key, *suffix;
 
 	priv = GET_PRIV (git);
 
-	/* apply configuration */
 	config = giggle_git_read_config_get_config (GIGGLE_GIT_READ_CONFIG (job));
 
+	/* apply configuration */
 	for (l = priv->remotes; l; l = l->next) {
 		giggle_remote_apply_config (l->data, config);
 	}
 
-	g_object_unref (job);
+	/* find svn remotes */
+	g_hash_table_iter_init (&iter, config);
+	while (g_hash_table_iter_next (&iter, (gpointer) &key, NULL)) {
+		if (!g_str_has_prefix (key, "svn-remote."))
+			continue;
+
+		key += strlen ("svn-remote.");
+		suffix = strchr (key, '.');
+
+		if (!suffix || strcmp (suffix, ".url"))
+			continue;
+
+		name = g_strndup (key, suffix - key);
+
+		remote = giggle_remote_new (name);
+		giggle_remote_set_mechanism (remote, GIGGLE_REMOTE_MECHANISM_GIT_SVN);
+		giggle_remote_apply_config (remote, config);
+
+
+		priv->remotes = g_list_prepend (priv->remotes, remote);
+
+		g_free (name);
+	}
+
 
 	/* update */
+	g_object_unref (job);
 	priv->remotes = g_list_reverse (priv->remotes);
 	g_object_notify (G_OBJECT (git), "remotes");
 }
