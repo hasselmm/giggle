@@ -20,17 +20,22 @@
 
 #include <config.h>
 #include <glib/gi18n.h>
+#include <pango/pango.h>
 #include "giggle-label-action.h"
 
 typedef struct GiggleLabelActionPriv GiggleLabelActionPriv;
 
 struct GiggleLabelActionPriv {
-	gboolean use_markup : 1;
+	PangoEllipsizeMode ellipsize;
+	gboolean	   use_markup : 1;
+	gboolean	   selectable : 1;
 };
 
 enum {
 	PROP_0,
-	PROP_USE_MARKUP
+	PROP_ELLIPSIZE,
+	PROP_USE_MARKUP,
+	PROP_SELECTABLE
 };
 
 G_DEFINE_TYPE (GiggleLabelAction, giggle_label_action, GTK_TYPE_ACTION)
@@ -41,19 +46,30 @@ static void
 label_action_connect_proxy (GtkAction *action,
 			    GtkWidget *widget)
 {
-	char      *label = NULL;
-	gboolean   use_markup;
-	GtkWidget *child;
+	char		   *label = NULL;
+	gboolean	    use_markup;
+	gboolean	    selectable;
+	PangoEllipsizeMode  ellipsize;
+	GtkWidget	   *child;
 
 	GTK_ACTION_CLASS (giggle_label_action_parent_class)->connect_proxy (action, widget);
 
-	g_object_get (action, "label", &label, "use-markup", &use_markup, NULL);
+	g_object_get (action,
+		      "label", &label, "use-markup", &use_markup,
+		      "selectable", &selectable, "ellipsize", &ellipsize, NULL);
 
 	if (GTK_IS_TOOL_ITEM (widget)) {
 		child = gtk_bin_get_child (GTK_BIN (widget));
 
-		if (GTK_IS_LABEL (child))
-			g_object_set (child, "label", label, "use-markup", use_markup, NULL);
+		if (GTK_IS_LABEL (child)) {
+			g_object_set (child, "label", label,
+				      "use-markup", use_markup,
+				      "selectable", selectable,
+				      "ellipsize", ellipsize, NULL);
+		}
+
+		gtk_tool_item_set_expand (GTK_TOOL_ITEM (widget),
+					  ellipsize != PANGO_ELLIPSIZE_NONE);
 	}
 
 	g_free (label);
@@ -77,6 +93,8 @@ label_action_create_tool_item (GtkAction *action)
 
 	item = gtk_tool_item_new ();
 	label = gtk_label_new (NULL);
+
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_container_add (GTK_CONTAINER (item), label);
 	gtk_widget_show (label);
 
@@ -94,8 +112,16 @@ label_action_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_ELLIPSIZE:
+		g_value_set_enum (value, priv->ellipsize);
+		break;
+
 	case PROP_USE_MARKUP:
 		g_value_set_boolean (value, priv->use_markup);
+		break;
+
+	case PROP_SELECTABLE:
+		g_value_set_boolean (value, priv->selectable);
 		break;
 
 	default:
@@ -115,8 +141,16 @@ label_action_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_ELLIPSIZE:
+		priv->ellipsize = g_value_get_enum (value);
+		break;
+
 	case PROP_USE_MARKUP:
 		priv->use_markup = g_value_get_boolean (value);
+		break;
+
+	case PROP_SELECTABLE:
+		priv->selectable = g_value_get_boolean (value);
 		break;
 
 	default:
@@ -137,10 +171,27 @@ giggle_label_action_class_init (GiggleLabelActionClass *class)
 	action_class->create_tool_item = label_action_create_tool_item;
 
 	g_object_class_install_property (object_class,
+					 PROP_ELLIPSIZE,
+					 g_param_spec_enum ("ellipsize",
+							    "Ellipsize",
+							    "The preferred place to ellipsize the string",
+							    PANGO_TYPE_ELLIPSIZE_MODE,
+							    PANGO_ELLIPSIZE_NONE,
+							    G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
 					 PROP_USE_MARKUP,
 					 g_param_spec_boolean ("use-markup",
-							       "use markup",
+							       "Use Markup",
 							       "Wether to use markup",
+							       FALSE,
+							       G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
+					 PROP_SELECTABLE,
+					 g_param_spec_boolean ("selectable",
+							       "Selectable",
+							       "Whether the label text can be selected with the mouse",
 							       FALSE,
 							       G_PARAM_READWRITE));
 
@@ -170,6 +221,23 @@ giggle_label_action_set_text (GiggleLabelAction *action,
 }
 
 void
+giggle_label_action_set_ellipsize (GiggleLabelAction *action,
+				   PangoEllipsizeMode mode)
+{
+	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
+
+	g_object_set (action, "ellipsize", mode, NULL);
+	label_action_update_proxies (GTK_ACTION (action));
+}
+
+PangoEllipsizeMode
+giggle_label_action_get_ellipsize (GiggleLabelAction *action)
+{
+	g_return_val_if_fail (GIGGLE_IS_LABEL_ACTION (action), PANGO_ELLIPSIZE_NONE);
+	return GET_PRIV (action)->ellipsize;
+}
+
+void
 giggle_label_action_set_markup (GiggleLabelAction *action,
 				const char        *markup)
 {
@@ -195,5 +263,22 @@ giggle_label_action_get_use_markup (GiggleLabelAction *action)
 {
 	g_return_val_if_fail (GIGGLE_IS_LABEL_ACTION (action), FALSE);
 	return GET_PRIV (action)->use_markup;
+}
+
+void
+giggle_label_action_set_selectable (GiggleLabelAction *action,
+				    gboolean           selectable)
+{
+	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
+
+	g_object_set (action, "selectable", selectable, NULL);
+	label_action_update_proxies (GTK_ACTION (action));
+}
+
+gboolean
+giggle_label_action_get_selectable (GiggleLabelAction *action)
+{
+	g_return_val_if_fail (GIGGLE_IS_LABEL_ACTION (action), FALSE);
+	return GET_PRIV (action)->selectable;
 }
 

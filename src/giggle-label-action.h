@@ -50,9 +50,18 @@ void		   giggle_label_action_set_text          (GiggleLabelAction *action,
 							  const char        *text);
 void		   giggle_label_action_set_markup        (GiggleLabelAction *action,
 							  const char        *markup);
+
+void		   giggle_label_action_set_ellipsize     (GiggleLabelAction *action,
+							  PangoEllipsizeMode mode);
+PangoEllipsizeMode giggle_label_action_get_ellipsize     (GiggleLabelAction *action);
+
 void		   giggle_label_action_set_use_markup    (GiggleLabelAction *action,
 							  gboolean           use_markup);
 gboolean	   giggle_label_action_get_use_markup    (GiggleLabelAction *action);
+
+void		   giggle_label_action_set_selectable    (GiggleLabelAction *action,
+							  gboolean           selectable);
+gboolean	   giggle_label_action_get_selectable    (GiggleLabelAction *action);
 
 G_END_DECLS
 
