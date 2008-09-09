@@ -28,9 +28,8 @@ typedef struct GiggleViewPriv GiggleViewPriv;
 struct GiggleViewPriv {
 	GtkAction *action;
 	char      *accelerator;
+	GtkWidget *parent_view;
 };
-
-static void       view_finalize           (GObject        *object);
 
 enum {
 	PROP_0,
@@ -39,7 +38,15 @@ enum {
 	PROP_NAME
 };
 
+enum {
+	ADD_UI,
+	REMOVE_UI,
+	LAST_SIGNAL
+};
+
 G_DEFINE_ABSTRACT_TYPE (GiggleView, giggle_view, GTK_TYPE_VBOX)
+
+static guint signals[LAST_SIGNAL] = { 0, };
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW, GiggleViewPriv))
 
@@ -127,14 +134,77 @@ view_dispose (GObject *object)
 }
 
 static void
+view_realize (GtkWidget *widget)
+{
+	GiggleViewPriv *priv;
+	GtkWidget      *parent;
+
+	priv = GET_PRIV (widget);
+
+	g_return_if_fail (NULL == priv->parent_view);
+
+	parent = gtk_widget_get_parent (widget);
+
+	if (parent)
+		parent = gtk_widget_get_ancestor (parent, GIGGLE_TYPE_VIEW);
+
+	if (parent) {
+		priv->parent_view = parent;
+
+		g_object_add_weak_pointer (G_OBJECT (priv->parent_view),
+					 (gpointer) &priv->parent_view);
+
+		g_signal_connect_swapped (priv->parent_view, "add-ui",
+				  	  G_CALLBACK (giggle_view_add_ui),
+					  widget);
+
+		g_signal_connect_swapped (priv->parent_view, "remove-ui",
+				  	  G_CALLBACK (giggle_view_remove_ui),
+					  widget);
+	}
+
+	GTK_WIDGET_CLASS (giggle_view_parent_class)->realize (widget);
+}
+
+static void
+view_unrealize (GtkWidget *widget)
+{
+	GiggleViewPriv *priv;
+
+	priv = GET_PRIV (widget);
+
+	if (priv->parent_view) {
+		g_signal_handlers_disconnect_by_func (priv->parent_view,
+						      giggle_view_add_ui,
+						      widget);
+
+		g_signal_handlers_disconnect_by_func (priv->parent_view,
+						      giggle_view_remove_ui,
+						      widget);
+
+		g_object_remove_weak_pointer (G_OBJECT (priv->parent_view),
+					    (gpointer) &priv->parent_view);
+
+		priv->parent_view = NULL;
+
+	}
+
+	GTK_WIDGET_CLASS (giggle_view_parent_class)->unrealize (widget);
+}
+
+static void
 giggle_view_class_init (GiggleViewClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->get_property = view_get_property;
 	object_class->set_property = view_set_property;
 	object_class->finalize     = view_finalize;
 	object_class->dispose      = view_dispose;
+
+	widget_class->realize      = view_realize;
+	widget_class->unrealize    = view_unrealize;
 
 	g_object_class_install_property (object_class,
 					 PROP_ACTION,
@@ -161,6 +231,16 @@ giggle_view_class_init (GiggleViewClass *class)
 							      "The name of this view",
 							      NULL,
 							      G_PARAM_READABLE));
+
+	signals[ADD_UI] = g_signal_new ("add-ui", GIGGLE_TYPE_VIEW, G_SIGNAL_RUN_FIRST,
+					G_STRUCT_OFFSET (GiggleViewClass, add_ui),
+					NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+					G_TYPE_NONE, 1, GTK_TYPE_UI_MANAGER);
+
+	signals[REMOVE_UI] = g_signal_new ("remove-ui", GIGGLE_TYPE_VIEW, G_SIGNAL_RUN_LAST,
+					   G_STRUCT_OFFSET (GiggleViewClass, remove_ui),
+					   NULL, NULL, g_cclosure_marshal_VOID__VOID,
+					   G_TYPE_NONE, 0);
 
 	g_type_class_add_private (class, sizeof (GiggleViewPriv));
 }
@@ -206,8 +286,7 @@ giggle_view_add_ui (GiggleView   *view,
 	g_return_if_fail (GIGGLE_IS_VIEW (view));
 	g_return_if_fail (GTK_IS_UI_MANAGER (manager));
 
-	if (GIGGLE_VIEW_GET_CLASS (view)->add_ui)
-		GIGGLE_VIEW_GET_CLASS (view)->add_ui (view, manager);
+	g_signal_emit (view, signals[ADD_UI], 0, manager);
 }
 
 void
@@ -215,7 +294,6 @@ giggle_view_remove_ui (GiggleView   *view)
 {
 	g_return_if_fail (GIGGLE_IS_VIEW (view));
 
-	if (GIGGLE_VIEW_GET_CLASS (view)->add_ui)
-		GIGGLE_VIEW_GET_CLASS (view)->remove_ui (view);
+	g_signal_emit (view, signals[REMOVE_UI], 0);
 }
 
