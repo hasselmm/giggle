@@ -258,7 +258,7 @@ giggle_view_shell_new (void)
 		"<ui>"
 		"  <toolbar>"
 		"    <placeholder name='Actions' />"
-		"    <separator expand='true' />"
+		"    <separator name='ViewShellSeparator' expand='true' />"
 		"    <placeholder name='ViewShell' />"
 		"  </toolbar>"
 		"</ui>";

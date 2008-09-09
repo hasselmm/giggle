@@ -32,14 +32,18 @@ struct GiggleViewDiffPriv {
 	GtkWidget      *file_view;
 	GtkWidget      *diff_view;
 	GtkWidget      *diff_view_sw;
+	GtkWidget      *view_shell_separator;
 
 	GtkActionGroup *action_group;
 	GtkAction      *status_action;
+
+	GiggleRevision *revision;
 };
 
 G_DEFINE_TYPE (GiggleViewDiff, giggle_view_diff, GIGGLE_TYPE_VIEW)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_DIFF, GiggleViewDiffPriv))
+#define PATH_VIEW_SHELL_SEPARATOR "/ViewHistoryToolbar/ViewShellSeparator"
 
 static void
 view_diff_dispose (GObject *object)
@@ -72,7 +76,7 @@ view_diff_update_status (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
 	GtkAction          *action;
-	char		   *markup, *format;
+	char		   *format, *prefix, *markup;
 	int		    current_hunk, n_hunks;
 
 	priv = GET_PRIV (view);
@@ -91,13 +95,35 @@ view_diff_update_status (GiggleViewDiff *view)
 		gtk_action_set_sensitive (action, current_hunk < n_hunks - 1);
 	}
 
-	format = g_strdup_printf ("%s <b>%s</b>", _("Change"), _("%d of %d"));
-	markup = g_markup_printf_escaped (format, current_hunk + 1, n_hunks);
+	format = g_strdup_printf ("<b>%s %s</b>", _("Change"), _("%d of %d"));
+	prefix = g_markup_printf_escaped (format, current_hunk + 1, n_hunks);
+
+	g_free (format);
+
+	if (priv->revision) {
+		char             date[256];
+		const struct tm *tm;
+
+		tm = giggle_revision_get_date (priv->revision);
+
+		if (tm) {
+			strftime (date, sizeof (date), "%c, ", tm);
+		} else {
+			*date = '\0';
+		}
+
+		markup = g_strconcat (prefix, " - ", date,
+				      giggle_revision_get_sha (priv->revision), "\n",
+				      giggle_revision_get_short_log (priv->revision), NULL);
+	} else {
+		markup = g_strconcat (prefix, "\n", _("Uncommitted changes"), NULL);
+	}
+
+	g_free (prefix);
 
 	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
 
 	g_free (markup);
-	g_free (format);
 }
 
 static void
@@ -173,6 +199,8 @@ view_diff_add_ui (GiggleView   *view,
 
 	priv = GET_PRIV (view);
 
+	priv->view_shell_separator = gtk_ui_manager_get_widget (manager, PATH_VIEW_SHELL_SEPARATOR);
+
 	if (!priv->action_group) {
 		n_hunks = giggle_diff_view_get_n_hunks (GIGGLE_DIFF_VIEW (priv->diff_view));
 		priv->action_group = gtk_action_group_new (giggle_view_get_name (view));
@@ -187,6 +215,9 @@ view_diff_add_ui (GiggleView   *view,
 		gtk_ui_manager_ensure_update (manager);
 	}
 
+	if (priv->view_shell_separator)
+		gtk_widget_hide (priv->view_shell_separator);
+
 	gtk_action_group_set_visible (priv->action_group, TRUE);
 }
 
@@ -199,6 +230,9 @@ view_diff_remove_ui (GiggleView *view)
 
 	if (priv->action_group)
 		gtk_action_group_set_visible (priv->action_group, FALSE);
+
+	if (priv->view_shell_separator)
+		gtk_widget_show (priv->view_shell_separator);
 }
 
 static void
@@ -242,6 +276,8 @@ giggle_view_diff_init (GiggleViewDiff *view)
 	priv = GET_PRIV (view);
 
 	priv->status_action = giggle_label_action_new ("ViewDiffStatus");
+	giggle_label_action_set_selectable (GIGGLE_LABEL_ACTION (priv->status_action), TRUE);
+	giggle_label_action_set_ellipsize (GIGGLE_LABEL_ACTION (priv->status_action), PANGO_ELLIPSIZE_END);
 
 	gtk_widget_push_composite_child ();
 
@@ -316,6 +352,7 @@ giggle_view_diff_set_revisions (GiggleViewDiff *view,
 	g_return_if_fail (GIGGLE_IS_REVISION (revision2) || !revision2);
 
 	priv = GET_PRIV (view);
+	priv->revision = revision1;
 
 	giggle_diff_tree_view_set_revisions (GIGGLE_DIFF_TREE_VIEW (priv->file_view), revision1, revision2);
 	giggle_diff_view_set_revisions (GIGGLE_DIFF_VIEW (priv->diff_view), revision1, revision2, files);

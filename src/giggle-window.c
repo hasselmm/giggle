@@ -740,7 +740,7 @@ window_create_ui_manager (GiggleWindow *window)
 		"  </toolbar>"
 		"  <toolbar name='ViewHistoryToolbar'>"
 		"    <placeholder name='Actions' />"
-		"    <separator expand='true'/>"
+		"    <separator name='ViewShellSeparator' expand='true'/>"
 		"    <placeholder name='ViewShell' />"
 		"  </toolbar>"
 		"  <accelerator action='FindSlash'/>"
