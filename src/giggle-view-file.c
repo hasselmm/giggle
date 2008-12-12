@@ -417,6 +417,9 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	priv->source_view = gtk_source_view_new ();
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->source_view), FALSE);
+	gtk_source_view_set_show_line_numbers (GTK_SOURCE_VIEW (priv->source_view), TRUE);
+	gtk_source_view_set_highlight_current_line (GTK_SOURCE_VIEW (priv->source_view), TRUE);
+
 	monospaced = pango_font_description_from_string ("Mono");
 	gtk_widget_modify_font (priv->source_view, monospaced);
 	pango_font_description_free (monospaced);
