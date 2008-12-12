@@ -944,7 +944,7 @@ file_list_create_patch_callback (GiggleGit *git,
 							     GTK_BUTTONS_OK,
 							     "<b>%s</b>",
 							     primary_str);
-		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s", secondary_str);
 
 		g_free (primary_str);
 	} else {
@@ -970,7 +970,7 @@ file_list_create_patch_callback (GiggleGit *git,
 								     GTK_BUTTONS_OK,
 								     "<b>%s</b>",
 								     primary_str);
-			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), secondary_str);
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s", secondary_str);
 
 			g_free (primary_str);
 			g_error_free (save_error);
@@ -999,8 +999,8 @@ file_list_create_patch_callback (GiggleGit *git,
 								     GTK_BUTTONS_OK,
 								     "<b>%s</b>",
 								     primary_str);
-			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), 
-								  secondary_str);
+			gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
+								  "%s", secondary_str);
 			
 			g_free (secondary_str);
 			g_free (primary_str);
