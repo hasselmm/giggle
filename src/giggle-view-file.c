@@ -41,6 +41,10 @@ struct GiggleViewFilePriv {
 	GtkWidget      *file_list;
 	GtkWidget      *revision_list;
 	GtkWidget      *source_view;
+	GtkWidget      *goto_toolbar;
+	GtkWidget      *goto_entry;
+
+	GtkActionGroup *action_group;
 
 	GiggleGit      *git;
 	GiggleJob      *job;
@@ -78,16 +82,94 @@ view_file_dispose (GObject *object)
 		priv->current_revision = NULL;
 	}
 
+	if (priv->action_group) {
+		g_object_unref (priv->action_group);
+		priv->action_group = NULL;
+	}
+
 	G_OBJECT_CLASS (giggle_view_file_parent_class)->dispose (object);
+}
+
+static void
+view_file_goto_line_cb (GtkAction      *action,
+			GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (view);
+
+	g_object_set
+		(priv->goto_toolbar, "visible",
+		 !GTK_WIDGET_VISIBLE (priv->goto_toolbar), NULL);
+
+	gtk_widget_grab_focus (priv->goto_entry);
+}
+
+static void
+view_file_add_ui (GiggleView   *view,
+		  GtkUIManager *manager)
+{
+	const static char layout[] =
+		"<ui>"
+		"  <menubar name='MainMenubar'>"
+		"    <menu action='GoMenu'>"
+		"      <separator />"
+		"      <menuitem action='ViewFileGotoLine' />"
+		"    </menu>"
+		"  </menubar>"
+		"</ui>";
+
+	static const GtkActionEntry actions[] = {
+		{ "ViewFileGotoLine", GTK_STOCK_JUMP_TO,
+		  N_("_Goto Line Number"), "<control>L",
+		  N_("Highlight specified line number"),
+		  G_CALLBACK (view_file_goto_line_cb)
+		},
+	};
+
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (!priv->action_group) {
+		priv->action_group = gtk_action_group_new (giggle_view_get_name (view));
+
+		gtk_action_group_set_translation_domain (priv->action_group, GETTEXT_PACKAGE);
+		gtk_action_group_add_actions (priv->action_group, actions, G_N_ELEMENTS (actions), view);
+
+		gtk_ui_manager_insert_action_group (manager, priv->action_group, 0);
+		gtk_ui_manager_add_ui_from_string (manager, layout, G_N_ELEMENTS (layout) - 1, NULL);
+		gtk_ui_manager_ensure_update (manager);
+	}
+
+	gtk_action_group_set_visible (priv->action_group, TRUE);
+}
+
+static void
+view_file_remove_ui (GiggleView *view)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (view);
+
+	if (priv->action_group)
+		gtk_action_group_set_visible (priv->action_group, FALSE);
 }
 
 static void
 giggle_view_file_class_init (GiggleViewFileClass *class)
 {
-	GObjectClass    *object_class = G_OBJECT_CLASS (class);
+	GObjectClass    *object_class;
+	GiggleViewClass *view_class;
+
+	object_class = G_OBJECT_CLASS (class);
+	view_class = GIGGLE_VIEW_CLASS (class);
 
 	object_class->finalize = view_file_finalize;
 	object_class->dispose = view_file_dispose;
+
+	view_class->add_ui = view_file_add_ui;
+	view_class->remove_ui = view_file_remove_ui;
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewFilePriv));
 }
@@ -179,6 +261,9 @@ view_file_set_source_code (GiggleViewFile *view,
 	gtk_widget_set_sensitive (priv->revision_list, NULL != text);
 	gtk_widget_set_sensitive (priv->source_view, NULL != text);
 	gtk_text_buffer_set_text (buffer, text ? text : "", len);
+
+	if (priv->action_group)
+		gtk_action_group_set_sensitive (priv->action_group, NULL != text);
 
 	if (text)
 		language = view_file_find_language (view, text, len);
@@ -362,12 +447,131 @@ view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 	view_file_read_source_code (view);
 }
 
+static gboolean
+is_numeric (const char *text)
+{
+	int i, end;
+
+	return (1 == sscanf (text, "%d%n", &i, &end) && '\0' == text[end]);
+}
+
+static gboolean
+goto_entry_key_press_event_cb (GtkWidget   *widget,
+			       GdkEventKey *event)
+{
+	if ('\0' == event->string[0] ||
+	    is_numeric (event->string) ||
+	    0 == strcmp (event->string, "\r"))
+		return FALSE;
+
+	gdk_beep ();
+
+	return TRUE;
+}
+
+static void
+goto_entry_insert_text_cb (GtkEditable *editable,
+                           char        *new_text,
+                           int          new_text_length,
+                           int         *position)
+{
+	if (!is_numeric (new_text)) {
+		g_signal_stop_emission_by_name (editable, "insert-text");
+		gdk_beep ();
+	}
+}
+
+static void
+goto_entry_activate_cb (GtkEntry       *entry,
+			GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv;
+	const char         *text;
+	int                 line;
+	GtkTextIter         iter;
+	GtkTextBuffer	   *buffer;
+
+	priv = GET_PRIV (view);
+	text = gtk_entry_get_text (entry);
+
+	if (1 == sscanf (text, "%d", &line)) {
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->source_view));
+		gtk_text_buffer_get_iter_at_line (buffer, &iter, line - 1);
+
+		gtk_text_view_scroll_to_iter
+			(GTK_TEXT_VIEW (priv->source_view), &iter,
+			 FALSE, 0, 0.0, 0.0);
+
+		gtk_text_buffer_place_cursor (buffer, &iter);
+	}
+}
+
+static void
+goto_item_clicked_cb (GtkObject *button,
+	 	      GtkWidget *entry)
+{
+	g_signal_emit_by_name (entry, "activate", 0);
+}
+
+static GtkWidget *
+goto_toolbar_init (GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv;
+	GtkToolItem	   *item;
+	GtkWidget	   *alignment, *box, *label;
+
+	priv = GET_PRIV (view);
+
+	priv->goto_toolbar = gtk_toolbar_new ();
+	gtk_widget_set_no_show_all (priv->goto_toolbar, TRUE);
+
+	label = gtk_label_new_with_mnemonic (_("Line Number:"));
+
+	priv->goto_entry = gtk_entry_new ();
+	gtk_entry_set_width_chars (GTK_ENTRY (priv->goto_entry), 8);
+	gtk_entry_set_max_length (GTK_ENTRY (priv->goto_entry), 16);
+	gtk_label_set_mnemonic_widget (GTK_LABEL (label), priv->goto_entry);
+
+	box = gtk_hbox_new (FALSE, 12);
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), priv->goto_entry, TRUE, TRUE, 0);
+
+	alignment = gtk_alignment_new (0.0, 0.5, 1.0, 0.0);
+	gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 0, 0, 2, 2);
+	gtk_container_add (GTK_CONTAINER (alignment), box);
+
+	item = gtk_tool_item_new ();
+	gtk_container_add (GTK_CONTAINER (item), alignment);
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->goto_toolbar), item, -1);
+	gtk_widget_show_all (GTK_WIDGET (item));
+
+	g_signal_connect
+		(priv->goto_entry, "key-press-event",
+		 G_CALLBACK (goto_entry_key_press_event_cb), NULL);
+	g_signal_connect
+		(priv->goto_entry, "insert-text",
+		 G_CALLBACK (goto_entry_insert_text_cb), NULL);
+	g_signal_connect
+		(priv->goto_entry, "activate",
+		 G_CALLBACK (goto_entry_activate_cb), view);
+
+	item = gtk_tool_button_new_from_stock (GTK_STOCK_JUMP_TO);
+	gtk_tool_item_set_is_important (item, TRUE);
+	gtk_toolbar_insert (GTK_TOOLBAR (priv->goto_toolbar), item, -1);
+	gtk_widget_show_all (GTK_WIDGET (item));
+
+	g_signal_connect
+		(item, "clicked",
+		 G_CALLBACK (goto_item_clicked_cb), priv->goto_entry);
+
+	return priv->goto_toolbar;
+}
 
 static void
 giggle_view_file_init (GiggleViewFile *view)
 {
 	GiggleViewFilePriv   *priv;
-	GtkWidget            *hpaned, *vpaned;
+	GtkWidget            *vbox, *hpaned, *vpaned;
 	GtkWidget            *scrolled_window;
 	GtkTreeSelection     *selection;
 	PangoFontDescription *monospaced;
@@ -379,9 +583,10 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	gtk_widget_push_composite_child ();
 
+	goto_toolbar_init (view);
+
 	hpaned = gtk_hpaned_new ();
 	gtk_widget_show (hpaned);
-	gtk_container_add (GTK_CONTAINER (view), hpaned);
 
 	vpaned = gtk_vpaned_new ();
 	gtk_widget_show (vpaned);
@@ -444,6 +649,13 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
 	gtk_paned_pack2 (GTK_PANED (vpaned), scrolled_window, FALSE, TRUE);
+
+	vbox = gtk_vbox_new (FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), hpaned, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), priv->goto_toolbar, FALSE, TRUE, 0);
+	gtk_container_add (GTK_CONTAINER (view), vbox);
+
+	gtk_widget_show (vbox);
 
 	gtk_widget_pop_composite_child ();
 }
