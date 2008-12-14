@@ -70,3 +70,41 @@ tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
 	return FALSE;
 }
 
+gboolean
+tree_view_select_row_by_string (GtkWidget  *treeview,
+				int	    column,
+				const char *pattern)
+{
+	GtkTreeSelection   *selection;
+	GtkTreeModel	   *model;
+	GtkTreeIter	    iter;
+	char               *text;
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview));
+
+	if (gtk_tree_selection_get_selected (selection, &model, &iter))
+		gtk_tree_model_get (model, &iter, column, &text, -1);
+
+	if (!g_strcmp0 (text, pattern)) {
+		g_free (text);
+		return TRUE;
+	}
+
+	if (gtk_tree_model_get_iter_first (model, &iter)) {
+		do {
+			gtk_tree_model_get (model, &iter, column, &text, -1);
+
+			if (!g_strcmp0 (text, pattern)) {
+				gtk_tree_selection_select_iter (selection, &iter);
+				g_free (text);
+				return TRUE;
+			}
+
+			g_free (text);
+		} while (gtk_tree_model_iter_next (model, &iter));
+	}
+
+	return TRUE;
+}
+
+

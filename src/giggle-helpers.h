@@ -30,6 +30,10 @@ G_BEGIN_DECLS
 gboolean tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
 						   GdkEventKey *event);
 
+gboolean tree_view_select_row_by_string           (GtkWidget   *treeview,
+						   int          column,
+						   const char  *pattern);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_DUMMY_H__ */

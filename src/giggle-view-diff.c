@@ -19,10 +19,14 @@
  */
 
 #include <config.h>
+
 #include <glib/gi18n.h>
+
 #include "giggle-view-diff.h"
+
 #include "giggle-diff-tree-view.h"
 #include "giggle-diff-view.h"
+#include "giggle-helpers.h"
 #include "giggle-label-action.h"
 
 typedef struct GiggleViewDiffPriv GiggleViewDiffPriv;
@@ -72,52 +76,18 @@ view_diff_patch_loaded (GiggleDiffView *view)
 }
 
 static void
-view_diff_select_current_file (GiggleViewDiff *view)
-{
-	GiggleViewDiffPriv *priv;
-	GtkTreeSelection   *selection;
-	GtkTreeModel	   *model;
-	GtkTreeIter	    iter;
-
-	const char	   *current_file;
-	char		   *selected_file = NULL;
-
-	priv = GET_PRIV (view);
-
-	current_file = giggle_diff_view_get_current_file (GIGGLE_DIFF_VIEW (priv->diff_view));
-	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->file_view));
-
-	if (gtk_tree_selection_get_selected (selection, &model, &iter))
-		gtk_tree_model_get (model, &iter, 0, &selected_file, -1);
-
-	if (g_strcmp0 (current_file, selected_file)) {
-		if (gtk_tree_model_get_iter_first (model, &iter)) {
-			do {
-				g_free (selected_file);
-				gtk_tree_model_get (model, &iter, 0, &selected_file, -1);
-
-				if (!g_strcmp0 (current_file, selected_file)) {
-					gtk_tree_selection_select_iter (selection, &iter);
-					break;
-				}
-			} while (gtk_tree_model_iter_next (model, &iter));
-		}
-	}
-
-	g_free (selected_file);
-}
-
-static void
 view_diff_update_status (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
 	GtkAction          *action;
 	char		   *format, *prefix, *markup;
 	int		    current_hunk, n_hunks;
+	char	   	   *current_file;
 
 	priv = GET_PRIV (view);
 
 	g_object_get (priv->diff_view,
+		      "current-file", &current_file,
 		      "current-hunk", &current_hunk,
 		      "n-hunks", &n_hunks, NULL);
 
@@ -155,11 +125,11 @@ view_diff_update_status (GiggleViewDiff *view)
 		markup = g_strconcat (prefix, "\n", _("Uncommitted changes"), NULL);
 	}
 
-	g_free (prefix);
-
 	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
-	view_diff_select_current_file (view);
+	tree_view_select_row_by_string (priv->file_view, 0, current_file);
 
+	g_free (current_file);
+	g_free (prefix);
 	g_free (markup);
 }
 
