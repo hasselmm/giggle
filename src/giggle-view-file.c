@@ -835,6 +835,7 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 {
 	char            *markup = NULL, date[256];
 	GiggleRevision  *revision;
+	GdkRectangle     bounds;
 	GtkTextIter      iter;
 	GSList          *l;
 
@@ -861,6 +862,16 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 			 _("SHA:"),      giggle_revision_get_sha (revision),
 			 giggle_revision_get_short_log (revision));
 
+		gtk_text_view_get_line_yrange (GTK_TEXT_VIEW (widget),
+				               &iter, &bounds.y, &bounds.height);
+		gtk_text_view_buffer_to_window_coords (GTK_TEXT_VIEW (widget),
+						       GTK_TEXT_WINDOW_WIDGET,
+						       0, bounds.y, NULL, &bounds.y);
+
+		bounds.x = 0;
+		bounds.width = widget->allocation.width;
+
+		gtk_tooltip_set_tip_area (tooltip, &bounds);
 		gtk_tooltip_set_markup (tooltip, markup);
 
 		g_free (markup);
