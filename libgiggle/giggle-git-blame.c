@@ -71,7 +71,7 @@ git_blame_dispose (GObject *object)
 	}
 
 	if (priv->revision_cache) {
-		g_hash_table_unref (priv->revision_cache);
+		g_hash_table_destroy (priv->revision_cache);
 		priv->revision_cache = NULL;
 	}
 
@@ -200,8 +200,10 @@ git_blame_handle_output (GiggleJob   *job,
 			g_object_set (chunk->revision, "author", author, NULL);
 			g_free (author);
 		} else if (1 == sscanf (start, "author-time %d\n", &i)) {
+			struct tm *date = g_new (struct tm, 1);
+
 			time = i;
-			g_object_set (chunk->revision, "date", gmtime (&time), NULL);
+			g_object_set (chunk->revision, "date", gmtime_r (&time, date), NULL);
 		} else if (g_str_has_prefix (start, "summary ")) {
 			char *summary = g_strndup (start + 8, end - start - 8);
 			g_object_set (chunk->revision, "short-log", summary, NULL);
@@ -255,7 +257,9 @@ giggle_git_blame_init (GiggleGitBlame *blame)
 	priv = GET_PRIV (blame);
 
 	priv->chunks = g_ptr_array_new ();
-	priv->revision_cache = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
+
+	priv->revision_cache = g_hash_table_new_full (g_str_hash, g_str_equal,
+						      g_free, g_object_unref);
 }
 
 GiggleJob *
