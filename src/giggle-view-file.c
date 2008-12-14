@@ -535,13 +535,23 @@ is_numeric (const char *text)
 }
 
 static gboolean
-goto_entry_key_press_event_cb (GtkWidget   *widget,
-			       GdkEventKey *event)
+goto_entry_key_press_event_cb (GtkWidget      *widget,
+			       GdkEventKey    *event,
+			       GiggleViewFile *view)
 {
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (view);
+
 	if ('\0' == event->string[0] ||
 	    is_numeric (event->string) ||
-	    0 == strcmp (event->string, "\r"))
+	    !strcmp (event->string, "\r"))
 		return FALSE;
+
+	if (!strcmp (event->string, "\033")) {
+		gtk_widget_hide (priv->goto_toolbar);
+		return TRUE;
+	}
 
 	gdk_beep ();
 
@@ -626,10 +636,10 @@ goto_toolbar_init (GiggleViewFile *view)
 
 	g_signal_connect
 		(priv->goto_entry, "key-press-event",
-		 G_CALLBACK (goto_entry_key_press_event_cb), NULL);
+		 G_CALLBACK (goto_entry_key_press_event_cb), view);
 	g_signal_connect
 		(priv->goto_entry, "insert-text",
-		 G_CALLBACK (goto_entry_insert_text_cb), NULL);
+		 G_CALLBACK (goto_entry_insert_text_cb), view);
 	g_signal_connect
 		(priv->goto_entry, "activate",
 		 G_CALLBACK (goto_entry_activate_cb), view);
