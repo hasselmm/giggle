@@ -180,12 +180,23 @@ git_write_config_get_command_line (GiggleJob  *job,
 				   gchar     **command_line)
 {
 	GiggleGitWriteConfigPriv *priv;
+	char                     *value;
 
 	priv = GET_PRIV (job);
 
-	*command_line = g_strdup_printf (GIT_COMMAND " repo-config %s %s \"%s\"",
-					 (priv->global) ? "--global" : "",
-					 priv->field, priv->value);
+	if (priv->value) {
+		value = g_shell_quote (priv->value);
+
+		*command_line = g_strdup_printf (GIT_COMMAND " repo-config %s %s %s",
+					         priv->global ? "--global" : "",
+						 priv->field, value);
+
+		g_free (value);
+	} else {
+		*command_line = g_strdup_printf (GIT_COMMAND " repo-config %s --unset %s",
+					         priv->global ? "--global" : "", priv->field);
+	}
+
 	return TRUE;
 }
 
