@@ -67,6 +67,8 @@ int                giggle_diff_view_get_n_hunks       (GiggleDiffView *diff_view
 void               giggle_diff_view_scroll_to_file    (GiggleDiffView *diff_view,
 						       const char     *filename);
 
+const char *       giggle_diff_view_get_current_file  (GiggleDiffView *diff_view);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_DIFF_VIEW_H__ */

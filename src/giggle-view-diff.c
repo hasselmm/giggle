@@ -72,6 +72,42 @@ view_diff_patch_loaded (GiggleDiffView *view)
 }
 
 static void
+view_diff_select_current_file (GiggleViewDiff *view)
+{
+	GiggleViewDiffPriv *priv;
+	GtkTreeSelection   *selection;
+	GtkTreeModel	   *model;
+	GtkTreeIter	    iter;
+
+	const char	   *current_file;
+	char		   *selected_file = NULL;
+
+	priv = GET_PRIV (view);
+
+	current_file = giggle_diff_view_get_current_file (GIGGLE_DIFF_VIEW (priv->diff_view));
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->file_view));
+
+	if (gtk_tree_selection_get_selected (selection, &model, &iter))
+		gtk_tree_model_get (model, &iter, 0, &selected_file, -1);
+
+	if (g_strcmp0 (current_file, selected_file)) {
+		if (gtk_tree_model_get_iter_first (model, &iter)) {
+			do {
+				g_free (selected_file);
+				gtk_tree_model_get (model, &iter, 0, &selected_file, -1);
+
+				if (!g_strcmp0 (current_file, selected_file)) {
+					gtk_tree_selection_select_iter (selection, &iter);
+					break;
+				}
+			} while (gtk_tree_model_iter_next (model, &iter));
+		}
+	}
+
+	g_free (selected_file);
+}
+
+static void
 view_diff_update_status (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
@@ -122,6 +158,7 @@ view_diff_update_status (GiggleViewDiff *view)
 	g_free (prefix);
 
 	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
+	view_diff_select_current_file (view);
 
 	g_free (markup);
 }

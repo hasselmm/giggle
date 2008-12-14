@@ -614,4 +614,24 @@ giggle_diff_view_scroll_to_file (GiggleDiffView *diff_view,
 	}
 }
 
+const char *
+giggle_diff_view_get_current_file (GiggleDiffView *diff_view)
+{
+	GiggleDiffViewPriv *priv;
+	GiggleDiffViewHunk *hunk = NULL;
+	GiggleDiffViewFile *file = NULL;
+
+	g_return_val_if_fail (GIGGLE_IS_DIFF_VIEW (diff_view), NULL);
+
+	priv = GET_PRIV (diff_view);
+
+	if (priv->current_hunk >= 0)
+		hunk = diff_view_get_hunk (priv, priv->current_hunk);
+	if (hunk)
+		file = diff_view_get_file (priv, hunk->file);
+	if (file)
+		return file->filename;
+
+	return NULL;
+}
 
