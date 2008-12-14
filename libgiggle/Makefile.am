@@ -70,6 +70,8 @@ libgiggle_git_la_SOURCES = \
 	giggle-git-add-ref.h \
 	giggle-git-authors.c \
 	giggle-git-authors.h \
+	giggle-git-blame.c \
+	giggle-git-blame.h \
 	giggle-git-cat-file.c \
 	giggle-git-cat-file.h \
 	giggle-git-commit.c \

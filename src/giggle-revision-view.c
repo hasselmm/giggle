@@ -138,18 +138,6 @@ giggle_revision_view_init (GiggleRevisionView *view)
 			      "column-spacing", 12,
 			      "row-spacing", 6, NULL);
 
-	priv->branches = gtk_label_new (NULL);
-	gtk_label_set_ellipsize (GTK_LABEL (priv->branches), PANGO_ELLIPSIZE_END);
-	gtk_label_set_selectable (GTK_LABEL (priv->branches), TRUE);
-	gtk_misc_set_alignment (GTK_MISC (priv->branches), 0.0, 0.5);
-	gtk_widget_show (priv->branches);
-
-	gtk_table_attach (GTK_TABLE (table),
-			  revision_view_create_label (_("Branches:"), 0.0, 0.5),
-			  0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach (GTK_TABLE (table), priv->branches,
-			  1, 2, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
-
 	priv->date = gtk_label_new (NULL);
 	gtk_label_set_ellipsize (GTK_LABEL (priv->date), PANGO_ELLIPSIZE_END);
 	gtk_label_set_selectable (GTK_LABEL (priv->date), TRUE);
@@ -158,9 +146,9 @@ giggle_revision_view_init (GiggleRevisionView *view)
 
 	gtk_table_attach (GTK_TABLE (table),
 			  revision_view_create_label (_("Date:"), 0.0, 0.5),
-			  0, 1, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+			  0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 	gtk_table_attach (GTK_TABLE (table), priv->date,
-			  1, 2, 1, 2,
+			  1, 2, 0, 1,
 			  GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 
 	priv->sha = gtk_label_new (NULL);
@@ -171,8 +159,20 @@ giggle_revision_view_init (GiggleRevisionView *view)
 
 	gtk_table_attach (GTK_TABLE (table),
 			  revision_view_create_label (_("SHA:"), 0.0, 0.5),
-			  0, 1, 2, 3, GTK_FILL, GTK_FILL, 0, 0);
+			  0, 1, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
 	gtk_table_attach (GTK_TABLE (table), priv->sha,
+			  1, 2, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+
+	priv->branches = gtk_label_new (NULL);
+	gtk_label_set_ellipsize (GTK_LABEL (priv->branches), PANGO_ELLIPSIZE_END);
+	gtk_label_set_selectable (GTK_LABEL (priv->branches), TRUE);
+	gtk_misc_set_alignment (GTK_MISC (priv->branches), 0.0, 0.5);
+	gtk_widget_show (priv->branches);
+
+	gtk_table_attach (GTK_TABLE (table),
+			  revision_view_create_label (_("Branches:"), 0.0, 0.5),
+			  0, 1, 2, 3, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_table_attach (GTK_TABLE (table), priv->branches,
 			  1, 2, 2, 3, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);

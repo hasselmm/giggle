@@ -200,7 +200,7 @@ giggle_git_list_tree_class_init (GiggleGitListTreeClass *class)
 					 PROP_REVISION,
 					 g_param_spec_object ("revision",
 							      "revision",
-							      "revision the folder to list",
+							      "revision of the folder to list",
 							      GIGGLE_TYPE_REVISION,
 							      G_PARAM_READWRITE |
 							      G_PARAM_CONSTRUCT_ONLY));
