@@ -701,6 +701,7 @@ static GdkPixbuf *
 render_category_icon (GiggleViewFilePriv *priv,
 		      const char         *name)
 {
+	double           r, g, b;
 	double		 x0, y0, x1, y1;
 	int		 width, height;
 	gboolean         start = FALSE;
@@ -724,38 +725,42 @@ render_category_icon (GiggleViewFilePriv *priv,
 	gradient = cairo_pattern_create_linear (0, 0, 0, height - 1);
 	canvas = cairo_create (image);
 
-	x0 = 1;
+	x0 = 2;
 	y0 = 0;
-	x1 = width - 2;
+	x1 = width - 3;
 	y1 = height - 1;
 
-	if (start) {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, 0, 0, 0, 0.0);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.1, 0, 0, 0, 0.1);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.4, 0, 0, 0, 0.3);
+	r = priv->source_view->style->base[GTK_STATE_SELECTED].red   / 65535.0;
+	g = priv->source_view->style->base[GTK_STATE_SELECTED].green / 65535.0;
+	b = priv->source_view->style->base[GTK_STATE_SELECTED].blue  / 65535.0;
 
-		cairo_move_to  (canvas, x0, y0 + 8);
-		cairo_curve_to (canvas, x0, y0, x0, y0, x0 + 8, y0);
-		cairo_line_to  (canvas, x1 - 8, y0);
-		cairo_curve_to (canvas, x1, y0, x1, y0, x1, y0 + 8);
+	if (start) {
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.00);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.1, r, g, b, 0.05);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.4, r, g, b, 0.15);
+
+		cairo_move_to  (canvas, x0,     y0 + 9);
+		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (canvas, x1 - 8, y0 + 1);
+		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
 	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, 0, 0, 0, 0.2);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.10);
 
 		cairo_move_to (canvas, x0, y0);
 		cairo_line_to (canvas, x1, y0);
 	}
 
 	if (end) {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, 0, 0, 0, 0.0);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.9, 0, 0, 0, 0.1);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.6, 0, 0, 0, 0.2);
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.00);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.9, r, g, b, 0.05);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.6, r, g, b, 0.10);
 
-		cairo_line_to  (canvas, x1, y1 - 8);
-		cairo_curve_to (canvas, x1, y1, x1, y1, x1 - 8, y1);
-		cairo_line_to  (canvas, x0 + 8, y1);
-		cairo_curve_to (canvas, x0, y1, x0, y1, x0, y1 - 8);
+		cairo_line_to  (canvas, x1,     y1 - 9);
+		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (canvas, x0 + 8, y1 - 1);
+		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
 	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, 0, 0, 0, 0.2);
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.10);
 
 		cairo_line_to (canvas, x1, y1);
 		cairo_line_to (canvas, x0, y1);
@@ -771,24 +776,24 @@ render_category_icon (GiggleViewFilePriv *priv,
 
 	if (start) {
 		if (end) {
-			cairo_move_to  (canvas, x0, y0 + 8);
+			cairo_move_to  (canvas, x0, y0 + 9);
 		} else {
 			cairo_move_to  (canvas, x0, y1);
 			cairo_line_to  (canvas, x0, y0 + 8);
 		}
 
-		cairo_curve_to (canvas, x0, y0, x0, y0, x0 + 8, y0);
-		cairo_line_to  (canvas, x1 - 8, y0);
-		cairo_curve_to (canvas, x1, y0, x1, y0, x1, y0 + 8);
+		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (canvas, x1 - 8, y0 + 1);
+		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
 	} else {
 		cairo_move_to (canvas, x1, y0);
 	}
 
 	if (end) {
-		cairo_line_to  (canvas, x1, y1 - 8);
-		cairo_curve_to (canvas, x1, y1, x1, y1, x1 - 8, y1);
-		cairo_line_to  (canvas, x0 + 8, y1);
-		cairo_curve_to (canvas, x0, y1, x0, y1, x0, y1 - 8);
+		cairo_line_to  (canvas, x1,     y1 - 9);
+		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (canvas, x0 + 8, y1 - 1);
+		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
 	} else {
 		cairo_line_to (canvas, x1, y1 + 1);
 		cairo_move_to (canvas, x0, y1);
@@ -798,7 +803,7 @@ render_category_icon (GiggleViewFilePriv *priv,
 		cairo_line_to (canvas, x0, y0);
 
 	cairo_set_line_width (canvas, 1);
-	gdk_cairo_set_source_color (canvas, &priv->source_view->style->base[GTK_STATE_SELECTED]);
+	cairo_set_source_rgba (canvas, r, g, b, 0.3);
 	cairo_stroke (canvas);
 
 	pixbuf = create_pixbuf_from_image (image);
