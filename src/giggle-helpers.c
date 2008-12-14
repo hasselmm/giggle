@@ -107,4 +107,22 @@ tree_view_select_row_by_string (GtkWidget  *treeview,
 	return TRUE;
 }
 
+GtkActionGroup *
+ui_manager_get_action_group (GtkUIManager *manager,
+			     const char   *group_name)
+{
+	GList *groups;
+
+	groups = gtk_ui_manager_get_action_groups (manager);
+
+	while (groups) {
+		if (!g_strcmp0 (group_name,
+				gtk_action_group_get_name (groups->data)))
+			return groups->data;
+
+		groups = groups->next;
+	}
+
+	return NULL;
+}
 

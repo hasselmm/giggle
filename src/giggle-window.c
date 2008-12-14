@@ -27,17 +27,19 @@
 #include <stdlib.h>
 
 #include "giggle-window.h"
-#include "libgiggle/giggle-git.h"
-#include "giggle-personal-details-window.h"
-#include "giggle-view-summary.h"
-#include "giggle-view-history.h"
-#include "giggle-view-file.h"
-#include "giggle-view-shell.h"
-#include "libgiggle/giggle-searchable.h"
-#include "giggle-diff-window.h"
-#include "libgiggle/giggle-configuration.h"
-#include "libgiggle/giggle-history.h"
+
 #include "eggfindbar.h"
+#include "giggle-diff-window.h"
+#include "giggle-helpers.h"
+#include "giggle-personal-details-window.h"
+#include "giggle-view-file.h"
+#include "giggle-view-history.h"
+#include "giggle-view-shell.h"
+#include "giggle-view-summary.h"
+#include "libgiggle/giggle-configuration.h"
+#include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-history.h"
+#include "libgiggle/giggle-searchable.h"
 
 #ifdef GDK_WINDOWING_QUARTZ
 #include "ige-mac-menu.h"
@@ -95,7 +97,6 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #if 0
 #define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
 #endif
-#define FIND_PATH			"/ui/MainMenubar/EditMenu/Find"
 #if 0
 #define FORWARD_HISTORY_PATH		"/ui/MainToolbar/ForwardHistory"
 #endif
@@ -600,6 +601,25 @@ window_add_widget_cb (GtkUIManager *merge,
 static void
 window_create_ui_manager (GiggleWindow *window)
 {
+	static const GtkActionEntry find_action_entries[] = {
+		{ "Find", GTK_STOCK_FIND,
+		  N_("_Find..."), "<control>F", N_("Find..."),
+		  G_CALLBACK (window_action_find_cb)
+		},
+		{ "FindSlash", NULL,
+		  NULL, "slash", NULL,
+		  G_CALLBACK (window_action_find_cb)
+		},
+		{ "FindNext", NULL,
+		  N_("Find _Next"), "<control>G", N_("Find next"),
+		  G_CALLBACK (window_action_find_next_cb)
+		},
+		{ "FindPrev", NULL,
+		  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
+		  G_CALLBACK (window_action_find_prev_cb)
+		},
+	};
+
 	static const GtkActionEntry action_entries[] = {
 		{ "ProjectMenu", NULL,
 		  N_("_Project"), NULL, NULL,
@@ -646,22 +666,6 @@ window_create_ui_manager (GiggleWindow *window)
 		{ "PersonalDetails", GTK_STOCK_PREFERENCES,
 		  N_("_Personal Details"), NULL, N_("Edit Personal details"),
 		  G_CALLBACK (window_action_personal_details_cb)
-		},
-		{ "Find", GTK_STOCK_FIND,
-		  N_("_Find..."), "<control>F", N_("Find..."),
-		  G_CALLBACK (window_action_find_cb)
-		},
-		{ "FindSlash", NULL,
-		  NULL, "slash", NULL,
-		  G_CALLBACK (window_action_find_cb)
-		},
-		{ "FindNext", NULL,
-		  N_("Find _Next"), "<control>G", N_("Find next"),
-		  G_CALLBACK (window_action_find_next_cb)
-		},
-		{ "FindPrev", NULL,
-		  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
-		  G_CALLBACK (window_action_find_prev_cb)
 		},
 		{ "About", GTK_STOCK_ABOUT,
 		  N_("_About"), NULL, N_("About this application"),
@@ -768,6 +772,16 @@ window_create_ui_manager (GiggleWindow *window)
 	gtk_action_group_add_toggle_actions (action_group, toggle_action_entries,
 					     G_N_ELEMENTS (toggle_action_entries),
 					     window);
+
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+	g_object_unref (action_group);
+
+	action_group = gtk_action_group_new ("FindActions");
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
+
+	gtk_action_group_add_actions (action_group, find_action_entries,
+				      G_N_ELEMENTS (find_action_entries),
+				      window);
 
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 	g_object_unref (action_group);
@@ -972,7 +986,7 @@ window_notebook_switch_page_cb (GtkNotebook     *notebook,
 				GiggleWindow    *window)
 {
 	GiggleWindowPriv *priv;
-	GtkAction        *action;
+	GtkActionGroup   *action_group;
 	GtkWidget        *page_widget;
 	gboolean	  searchable;
 
@@ -982,8 +996,8 @@ window_notebook_switch_page_cb (GtkNotebook     *notebook,
 	searchable = GIGGLE_IS_SEARCHABLE (page_widget);
 
 	/* Update find */
-	action = gtk_ui_manager_get_action (priv->ui_manager, FIND_PATH);
-	gtk_action_set_sensitive (action, searchable);
+	action_group = ui_manager_get_action_group (priv->ui_manager, "FindActions");
+	gtk_action_group_set_sensitive (action_group, searchable);
 
 	if (!searchable)
 		gtk_widget_hide (priv->find_bar);

@@ -21,18 +21,21 @@
 #ifndef __GIGGLE_HELPERS_H__
 #define __GIGGLE_HELPERS_H__
 
-#include <gtk/gtkwidget.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
 /* returns TRUE if the key press was delete and at least one row has been
  * deleted */
-gboolean tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
-						   GdkEventKey *event);
+gboolean         tree_view_delete_selection_on_list_store (GtkWidget    *treeview,
+							   GdkEventKey  *event);
 
-gboolean tree_view_select_row_by_string           (GtkWidget   *treeview,
-						   int          column,
-						   const char  *pattern);
+gboolean         tree_view_select_row_by_string           (GtkWidget    *treeview,
+							   int           column,
+							   const char   *pattern);
+
+GtkActionGroup * ui_manager_get_action_group		  (GtkUIManager *manager,
+							   const char   *group_name);
 
 G_END_DECLS
 
