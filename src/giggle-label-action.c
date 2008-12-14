@@ -26,16 +26,24 @@
 typedef struct GiggleLabelActionPriv GiggleLabelActionPriv;
 
 struct GiggleLabelActionPriv {
+	GtkJustification   justify;
 	PangoEllipsizeMode ellipsize;
-	gboolean	   use_markup : 1;
-	gboolean	   selectable : 1;
+	float		   xalign, yalign;
+
+	unsigned           use_markup : 1;
+	unsigned           selectable : 1;
+
+	int		   proxies_frozen;
 };
 
 enum {
 	PROP_0,
+	PROP_JUSTIFY,
 	PROP_ELLIPSIZE,
 	PROP_USE_MARKUP,
-	PROP_SELECTABLE
+	PROP_SELECTABLE,
+	PROP_XALIGN,
+	PROP_YALIGN,
 };
 
 G_DEFINE_TYPE (GiggleLabelAction, giggle_label_action, GTK_TYPE_ACTION)
@@ -46,30 +54,32 @@ static void
 label_action_connect_proxy (GtkAction *action,
 			    GtkWidget *widget)
 {
-	char		   *label = NULL;
-	gboolean	    use_markup;
-	gboolean	    selectable;
-	PangoEllipsizeMode  ellipsize;
-	GtkWidget	   *child;
+	GiggleLabelActionPriv *priv;
+	char		      *label;
+	GtkWidget	      *child;
+
+	priv = GET_PRIV (action);
 
 	GTK_ACTION_CLASS (giggle_label_action_parent_class)->connect_proxy (action, widget);
-
-	g_object_get (action,
-		      "label", &label, "use-markup", &use_markup,
-		      "selectable", &selectable, "ellipsize", &ellipsize, NULL);
+	g_object_get (action, "label", &label, NULL);
 
 	if (GTK_IS_TOOL_ITEM (widget)) {
 		child = gtk_bin_get_child (GTK_BIN (widget));
 
 		if (GTK_IS_LABEL (child)) {
-			g_object_set (child, "label", label,
-				      "use-markup", use_markup,
-				      "selectable", selectable,
-				      "ellipsize", ellipsize, NULL);
+			g_object_set (child,
+				      "label",      label ? label : "",
+				      "use-markup", priv->use_markup,
+				      "xalign",     priv->xalign,
+				      "yalign",     priv->yalign,
+				      "selectable", priv->selectable,
+				      "ellipsize",  priv->ellipsize,
+				      "justify",    priv->justify,
+				      NULL);
 		}
 
 		gtk_tool_item_set_expand (GTK_TOOL_ITEM (widget),
-					  ellipsize != PANGO_ELLIPSIZE_NONE);
+					  priv->ellipsize != PANGO_ELLIPSIZE_NONE);
 	}
 
 	g_free (label);
@@ -80,9 +90,25 @@ label_action_update_proxies (GtkAction *action)
 {
 	GSList *l;
 
+	if (GET_PRIV (action)->proxies_frozen > 0)
+		return;
+
 	for (l = gtk_action_get_proxies (action); l; l = l->next)
 		gtk_action_connect_proxy (action, l->data);
 		
+}
+
+static void
+label_action_freeze_update_proxies (GiggleLabelAction *action)
+{
+	GET_PRIV (action)->proxies_frozen += 1;
+}
+
+static void
+label_action_thaw_update_proxies (GiggleLabelAction *action)
+{
+	GET_PRIV (action)->proxies_frozen -= 1;
+	label_action_update_proxies (GTK_ACTION (action));
 }
 
 static GtkWidget *
@@ -112,6 +138,10 @@ label_action_get_property (GObject    *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_JUSTIFY:
+		g_value_set_enum (value, priv->justify);
+		break;
+
 	case PROP_ELLIPSIZE:
 		g_value_set_enum (value, priv->ellipsize);
 		break;
@@ -122,6 +152,14 @@ label_action_get_property (GObject    *object,
 
 	case PROP_SELECTABLE:
 		g_value_set_boolean (value, priv->selectable);
+		break;
+
+	case PROP_XALIGN:
+		g_value_set_float (value, priv->xalign);
+		break;
+
+	case PROP_YALIGN:
+		g_value_set_float (value, priv->yalign);
 		break;
 
 	default:
@@ -141,6 +179,10 @@ label_action_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
+	case PROP_JUSTIFY:
+		priv->justify = g_value_get_enum (value);
+		break;
+
 	case PROP_ELLIPSIZE:
 		priv->ellipsize = g_value_get_enum (value);
 		break;
@@ -153,10 +195,20 @@ label_action_set_property (GObject      *object,
 		priv->selectable = g_value_get_boolean (value);
 		break;
 
+	case PROP_XALIGN:
+		priv->xalign = g_value_get_float (value);
+		break;
+
+	case PROP_YALIGN:
+		priv->yalign = g_value_get_float (value);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
+		return;
 	}
+
+	label_action_update_proxies (GTK_ACTION (object));
 }
 
 static void
@@ -169,6 +221,15 @@ giggle_label_action_class_init (GiggleLabelActionClass *class)
 	object_class->set_property     = label_action_set_property;
 	action_class->connect_proxy    = label_action_connect_proxy;
 	action_class->create_tool_item = label_action_create_tool_item;
+
+	g_object_class_install_property (object_class,
+					 PROP_JUSTIFY,
+					 g_param_spec_enum ("justify",
+							    "Justify",
+							    "The alignment of the lines",
+							    GTK_TYPE_JUSTIFICATION,
+							    GTK_JUSTIFY_LEFT,
+							    G_PARAM_READWRITE));
 
 	g_object_class_install_property (object_class,
 					 PROP_ELLIPSIZE,
@@ -195,12 +256,31 @@ giggle_label_action_class_init (GiggleLabelActionClass *class)
 							       FALSE,
 							       G_PARAM_READWRITE));
 
+	g_object_class_install_property (object_class,
+					 PROP_XALIGN,
+					 g_param_spec_float ("xalign",
+							     "Horizontal Alignment",
+							     "Horizontal alignment, from 0 (left) to 1 (right)",
+							     0, 1, 0.0, G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
+					 PROP_YALIGN,
+					 g_param_spec_float ("yalign",
+							     "Vertical Alignment",
+							     "Vertical alignment, from 0 (top) to 1 (bottom)",
+							     0, 1, 0.5, G_PARAM_READWRITE));
+
 	g_type_class_add_private (class, sizeof (GiggleLabelActionPriv));
 }
 
 static void
 giggle_label_action_init (GiggleLabelAction *view)
 {
+	GiggleLabelActionPriv *priv;
+
+	priv = GET_PRIV (view);
+	priv->xalign = 0.0;
+	priv->yalign = 0.5;
 }
 
 GtkAction *
@@ -216,8 +296,9 @@ giggle_label_action_set_text (GiggleLabelAction *action,
 	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
 	g_return_if_fail (NULL != text);
 
+	label_action_freeze_update_proxies (action);
 	g_object_set (action, "label", text, "use-markup", FALSE, NULL);
-	label_action_update_proxies (GTK_ACTION (action));
+	label_action_thaw_update_proxies (action);
 }
 
 void
@@ -225,9 +306,7 @@ giggle_label_action_set_ellipsize (GiggleLabelAction *action,
 				   PangoEllipsizeMode mode)
 {
 	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
-
 	g_object_set (action, "ellipsize", mode, NULL);
-	label_action_update_proxies (GTK_ACTION (action));
 }
 
 PangoEllipsizeMode
@@ -238,14 +317,30 @@ giggle_label_action_get_ellipsize (GiggleLabelAction *action)
 }
 
 void
+giggle_label_action_set_justify (GiggleLabelAction *action,
+				 GtkJustification   justify)
+{
+	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
+	g_object_set (action, "justify", justify, NULL);
+}
+
+GtkJustification
+giggle_label_action_get_justify (GiggleLabelAction *action)
+{
+	g_return_val_if_fail (GIGGLE_IS_LABEL_ACTION (action), GTK_JUSTIFY_LEFT);
+	return GET_PRIV (action)->justify;
+}
+
+void
 giggle_label_action_set_markup (GiggleLabelAction *action,
 				const char        *markup)
 {
 	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
 	g_return_if_fail (NULL != markup);
 
+	label_action_freeze_update_proxies (action);
 	g_object_set (action, "label", markup, "use-markup", TRUE, NULL);
-	label_action_update_proxies (GTK_ACTION (action));
+	label_action_thaw_update_proxies (action);
 }
 
 void
@@ -253,9 +348,7 @@ giggle_label_action_set_use_markup (GiggleLabelAction *action,
 				    gboolean           use_markup)
 {
 	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
-
 	g_object_set (action, "use-markup", use_markup, NULL);
-	label_action_update_proxies (GTK_ACTION (action));
 }
 
 gboolean
@@ -270,9 +363,7 @@ giggle_label_action_set_selectable (GiggleLabelAction *action,
 				    gboolean           selectable)
 {
 	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
-
 	g_object_set (action, "selectable", selectable, NULL);
-	label_action_update_proxies (GTK_ACTION (action));
 }
 
 gboolean
@@ -280,5 +371,34 @@ giggle_label_action_get_selectable (GiggleLabelAction *action)
 {
 	g_return_val_if_fail (GIGGLE_IS_LABEL_ACTION (action), FALSE);
 	return GET_PRIV (action)->selectable;
+}
+
+void
+giggle_label_action_set_alignment (GiggleLabelAction *action,
+				   float	      xalign,
+				   float	      yalign)
+{
+	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
+
+	label_action_freeze_update_proxies (action);
+	g_object_set (action, "xalign", xalign, "yalign", yalign, NULL);
+	label_action_thaw_update_proxies (action);
+}
+
+void
+giggle_label_action_get_alignment (GiggleLabelAction *action,
+				   float	     *xalign,
+				   float	     *yalign)
+{
+	GiggleLabelActionPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_LABEL_ACTION (action));
+
+	priv = GET_PRIV (action);
+
+	if (xalign)
+		*xalign = priv->xalign;
+	if (yalign)
+		*yalign = priv->yalign;
 }
 

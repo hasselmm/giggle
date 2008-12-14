@@ -63,6 +63,18 @@ void		   giggle_label_action_set_selectable    (GiggleLabelAction *action,
 							  gboolean           selectable);
 gboolean	   giggle_label_action_get_selectable    (GiggleLabelAction *action);
 
+void               giggle_label_action_set_alignment     (GiggleLabelAction *action,
+							  float	             xalign,
+							  float	             yalign);
+void               giggle_label_action_get_alignment     (GiggleLabelAction *action,
+							  float	            *xalign,
+							  float	            *yalign);
+
+void		   giggle_label_action_set_justify       (GiggleLabelAction *action,
+							  GtkJustification   justify);
+GtkJustification   giggle_label_action_get_justify       (GiggleLabelAction *action);
+
+
 G_END_DECLS
 
 #endif /* __GIGGLE_LABEL_ACTION_H__ */
