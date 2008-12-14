@@ -18,8 +18,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GIGGLE_DUMMY_H__
-#define __GIGGLE_DUMMY_H__
+#ifndef __GIGGLE_HELPERS_H__
+#define __GIGGLE_HELPERS_H__
 
 #include <gtk/gtkwidget.h>
 

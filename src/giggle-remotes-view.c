@@ -26,7 +26,7 @@
 #include "giggle-remotes-view.h"
 #include "giggle-remote-editor.h"
 #include "libgiggle/giggle-remote.h"
-#include "giggle-tree-view-helpers.h"
+#include "giggle-helpers.h"
 #include "giggle-window.h"
 
 typedef struct GiggleRemotesViewPriv GiggleRemotesViewPriv;

@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#include "giggle-tree-view-helpers.h"
+#include "giggle-helpers.h"
 
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtktreeselection.h>

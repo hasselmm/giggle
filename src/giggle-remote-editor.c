@@ -30,7 +30,7 @@
 #include <gtk/gtktreeview.h>
 #include <glade/glade.h>
 
-#include "giggle-tree-view-helpers.h"
+#include "giggle-helpers.h"
 
 typedef struct GiggleRemoteEditorPriv GiggleRemoteEditorPriv;
 

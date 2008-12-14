@@ -33,6 +33,8 @@ giggle_SOURCES= \
 	giggle-file-list.h \
 	giggle-graph-renderer.c \
 	giggle-graph-renderer.h \
+	giggle-helpers.c \
+	giggle-helpers.h \
 	giggle-input-dialog.c \
 	giggle-input-dialog.h \
 	giggle-label-action.c \
@@ -51,8 +53,6 @@ giggle_SOURCES= \
 	giggle-revision-view.h \
 	giggle-short-list.c \
 	giggle-short-list.h \
-	giggle-tree-view-helpers.c \
-	giggle-tree-view-helpers.h \
 	giggle-view.c \
 	giggle-view.h \
 	giggle-view-diff.c \
