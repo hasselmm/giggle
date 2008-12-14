@@ -24,12 +24,14 @@
 #include <glib/gi18n.h>
 #include <fnmatch.h>
 #include <string.h>
+#include <gtksourceview/gtksourceiter.h>
 
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-blame.h"
 #include "libgiggle/giggle-git-cat-file.h"
 #include "libgiggle/giggle-git-list-tree.h"
 #include "libgiggle/giggle-git-revisions.h"
+#include "libgiggle/giggle-searchable.h"
 
 #include "giggle-view-file.h"
 #include "giggle-file-list.h"
@@ -53,10 +55,13 @@ struct GiggleViewFilePriv {
 
 	char           *current_file;
 	GiggleRevision *current_revision;
-	
 };
 
-G_DEFINE_TYPE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW)
+static void giggle_view_file_searchable_init (GiggleSearchableIface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
+						giggle_view_file_searchable_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
 
@@ -883,6 +888,87 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 	return FALSE;
 }
 
+static gboolean
+view_file_search (GiggleSearchable      *searchable,
+		  const gchar           *search_term,
+		  GiggleSearchDirection  direction,
+		  gboolean               full_search)
+{
+	GiggleViewFilePriv   *priv;
+	GtkSourceSearchFlags  flags;
+	gboolean	      result = FALSE;
+	int		      cursor_position;
+	GtkTextIter	      start, end, cursor;
+	GtkTextIter	      match_start, match_end;
+	GtkTextBuffer        *buffer;
+
+	priv = GET_PRIV (searchable);
+
+	flags = GTK_SOURCE_SEARCH_TEXT_ONLY |
+		GTK_SOURCE_SEARCH_CASE_INSENSITIVE;
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->source_view));
+	g_object_get (buffer, "cursor-position", &cursor_position, NULL);
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+
+	cursor = start;
+	gtk_text_iter_forward_chars (&cursor, cursor_position);
+
+	switch (direction) {
+	case GIGGLE_SEARCH_DIRECTION_NEXT:
+		result = gtk_source_iter_forward_search (&cursor, search_term,
+							 flags, &match_start, &match_end, NULL);
+
+		if (result && gtk_text_iter_get_offset (&cursor) == gtk_text_iter_get_offset (&match_start)) {
+			gtk_text_iter_forward_char (&cursor);
+
+			result = gtk_source_iter_forward_search (&cursor, search_term,
+								 flags, &match_start, &match_end, NULL);
+		}
+
+		if (!result) {
+			result = gtk_source_iter_forward_search (&start, search_term,
+								 flags, &match_start, &match_end, NULL);
+		}
+
+		break;
+
+	case GIGGLE_SEARCH_DIRECTION_PREV:
+		result = gtk_source_iter_backward_search (&cursor, search_term,
+							  flags, &match_start, &match_end, NULL);
+
+		if (result && gtk_text_iter_get_offset (&cursor) == gtk_text_iter_get_offset (&match_start)) {
+			gtk_text_iter_backward_char (&cursor);
+
+			result = gtk_source_iter_backward_search (&cursor, search_term,
+								  flags, &match_start, &match_end, NULL);
+		}
+
+		if (!result) {
+			result = gtk_source_iter_backward_search (&end, search_term,
+								  flags, &match_start, &match_end, NULL);
+		}
+
+		break;
+	}
+
+	if (result) {
+		gtk_text_buffer_move_mark_by_name (buffer, "insert", &match_start);
+		gtk_text_buffer_move_mark_by_name (buffer, "selection_bound", &match_end);
+
+		gtk_text_view_scroll_to_iter (GTK_TEXT_VIEW (priv->source_view),
+					      &match_start, 0, FALSE, 0, 0);
+	}
+
+	return result;
+}
+
+static void
+giggle_view_file_searchable_init (GiggleSearchableIface *iface)
+{
+	iface->search = view_file_search;
+}
+
 static void
 giggle_view_file_init (GiggleViewFile *view)
 {
@@ -937,6 +1023,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 
 	priv->source_view = gtk_source_view_new ();
+
 	gtk_widget_set_has_tooltip (priv->source_view, TRUE);
 	gtk_text_view_set_editable (GTK_TEXT_VIEW (priv->source_view), FALSE);
 	gtk_source_view_set_show_line_marks (GTK_SOURCE_VIEW (priv->source_view), TRUE);
