@@ -29,13 +29,17 @@
 /* Keep this list in sync with the
  * GiggleConfigurationField enum
  */
-static const gchar *fields[] = {
-	[CONFIG_FIELD_NAME] = "user.name",
-	[CONFIG_FIELD_EMAIL] = "user.email",
-	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] = "giggle.main-window-maximized",
-	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] = "giggle.main-window-geometry",
-	[CONFIG_FIELD_MAIN_WINDOW_VIEW] = "giggle.main-window-view",
-	[CONFIG_FIELD_SHOW_GRAPH] = "giggle.show-graph",
+static const struct {
+	const char *const name;
+	const gboolean    global;
+} fields[] = {
+	[CONFIG_FIELD_NAME] = { "user.name", TRUE },
+	[CONFIG_FIELD_EMAIL] = { "user.email", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] = { "giggle.main-window-maximized", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] = { "giggle.main-window-geometry", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_VIEW] = { "giggle.main-window-view", TRUE },
+	[CONFIG_FIELD_SHOW_GRAPH] = { "giggle.show-graph", TRUE },
+	[CONFIG_FIELD_FILE_VIEW_PATH] = { "giggle.file-view-path", FALSE },
 };
 
 
@@ -153,6 +157,19 @@ configuration_read_callback (GiggleGit *git,
 	(task->func) (task->configuration, success, task->data);
 }
 
+static gboolean
+configuration_is_global (const char *key)
+{
+	int i;
+
+	for (i = 0; i < G_N_ELEMENTS (fields); ++i) {
+		if (!strcmp (key, fields[i].name))
+			return fields[i].global;
+	}
+
+	return TRUE;
+}
+
 static void
 configuration_write (GiggleConfigurationTask *task)
 {
@@ -175,7 +192,8 @@ configuration_write (GiggleConfigurationTask *task)
 		/* FIXME: valid for the parameters that we manage currently,
 		 * but should be figured out per parameter.
 		 */
-		g_object_set (priv->current_job, "global", TRUE, NULL);
+		g_object_set (priv->current_job,
+			      "global", configuration_is_global (key), NULL);
 
 		giggle_git_run_job_full (priv->git,
 					 priv->current_job,
@@ -269,11 +287,11 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 	GiggleConfigurationPriv *priv;
 
 	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), NULL);
-	g_return_val_if_fail (NULL != fields[field], NULL);
+	g_return_val_if_fail (NULL != fields[field].name, NULL);
 
 	priv = GET_PRIV (configuration);
 
-	return g_hash_table_lookup (priv->config, fields[field]);
+	return g_hash_table_lookup (priv->config, fields[field].name);
 }
 
 gboolean
@@ -301,7 +319,7 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	GiggleConfigurationPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
-	g_return_if_fail (NULL != fields[field]);
+	g_return_if_fail (NULL != fields[field].name);
 
 	priv = GET_PRIV (configuration);
 
@@ -311,11 +329,11 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	}
 
 	g_hash_table_insert (priv->config,
-			     g_strdup (fields[field]),
+			     g_strdup (fields[field].name),
 			     g_strdup (value));
 
 	/* insert the key in the changed keys list */
-	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field]));
+	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field].name));
 }
 
 void

@@ -57,7 +57,8 @@ typedef enum {
 	CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 	CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
 	CONFIG_FIELD_MAIN_WINDOW_VIEW,
-	CONFIG_FIELD_SHOW_GRAPH
+	CONFIG_FIELD_SHOW_GRAPH,
+	CONFIG_FIELD_FILE_VIEW_PATH,
 } GiggleConfigurationField;
 
 GType                   giggle_configuration_get_type      (void);
