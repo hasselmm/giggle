@@ -67,6 +67,7 @@ G_DEFINE_TYPE_WITH_CODE (GiggleDiffView, giggle_diff_view, GTK_TYPE_SOURCE_VIEW,
 
 enum {
 	PROP_0,
+	PROP_CURRENT_FILE,
 	PROP_CURRENT_HUNK,
 	PROP_N_HUNKS,
 };
@@ -132,11 +133,17 @@ diff_view_get_property (GObject    *object,
 			GValue     *value,
 			GParamSpec *pspec)
 {
+	GiggleDiffView     *view;
 	GiggleDiffViewPriv *priv;
 
-	priv = GET_PRIV (object);
+	view = GIGGLE_DIFF_VIEW (object);
+	priv = GET_PRIV (view);
 
 	switch (param_id) {
+	case PROP_CURRENT_FILE:
+		g_value_set_string (value, giggle_diff_view_get_current_file (view));
+		break;
+
 	case PROP_CURRENT_HUNK:
 		g_value_set_int (value, priv->current_hunk);
 		break;
@@ -207,6 +214,14 @@ giggle_diff_view_class_init (GiggleDiffViewClass *class)
 	object_class->finalize     = diff_view_finalize;
 	object_class->set_property = diff_view_set_property;
 	object_class->get_property = diff_view_get_property;
+
+	g_object_class_install_property (
+		object_class,
+		PROP_CURRENT_FILE,
+		g_param_spec_string ("current-file",
+				     "Current File",
+				     "Name of the currently selected file",
+				     NULL, G_PARAM_READABLE));
 
 	g_object_class_install_property (
 		object_class,
