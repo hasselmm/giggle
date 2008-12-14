@@ -55,6 +55,11 @@ void               giggle_view_file_set_model         (GiggleViewFile *view_hist
 void               giggle_view_file_set_graph_visible (GiggleViewFile *view,
 						       gboolean        visible);
 
+void               giggle_view_file_set_path          (GiggleViewFile *view,
+						       const char     *path);
+
+const char *       giggle_view_file_get_path          (GiggleViewFile *view);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_VIEW_FILE_H__ */

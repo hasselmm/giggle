@@ -1120,4 +1120,35 @@ giggle_view_file_set_graph_visible (GiggleViewFile *view,
 		GIGGLE_REV_LIST_VIEW (priv->revision_list), visible);
 }
 
+void
+giggle_view_file_set_path (GiggleViewFile *view,
+			   const char     *path)
+{
+	GiggleViewFilePriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_FILE (view));
+	g_return_if_fail (NULL != path);
+
+	priv = GET_PRIV (view);
+
+	giggle_file_list_select (GIGGLE_FILE_LIST (priv->file_list), path);
+}
+
+const char *
+giggle_view_file_get_path (GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv;
+	GList              *files;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_FILE (view), NULL);
+
+	priv = GET_PRIV (view);
+
+	files = giggle_file_list_get_selection (GIGGLE_FILE_LIST (priv->file_list));
+
+	if (files)
+		return files->data;
+
+	return NULL;
+}
 

@@ -168,6 +168,7 @@ window_save_state (GiggleWindow *window)
 	char              geometry[25];
 	gboolean	  show_graph;
 	gboolean          maximized;
+	const char	 *file_view_path;
 
 	priv = GET_PRIV (window);
 
@@ -179,6 +180,8 @@ window_save_state (GiggleWindow *window)
 
 	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
 	show_graph = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
+
+	file_view_path = giggle_view_file_get_path (GIGGLE_VIEW_FILE (priv->file_view));
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
@@ -195,6 +198,10 @@ window_save_state (GiggleWindow *window)
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_SHOW_GRAPH,
 						show_graph);
+
+	giggle_configuration_set_field (priv->configuration,
+					CONFIG_FIELD_FILE_VIEW_PATH,
+					file_view_path);
 
 	giggle_configuration_commit (priv->configuration,
 				     window_configuration_committed_cb,
@@ -310,6 +317,7 @@ window_bind_state (GiggleWindow *window)
 	gboolean	  maximized;
 	gboolean	  show_graph;
 	const char       *main_view;
+	const char       *file_view_path;
 
 	priv = GET_PRIV (window);
 
@@ -321,6 +329,8 @@ window_bind_state (GiggleWindow *window)
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_VIEW);
 	show_graph = giggle_configuration_get_boolean_field
 		(priv->configuration, CONFIG_FIELD_SHOW_GRAPH);
+	file_view_path = giggle_configuration_get_field
+		(priv->configuration, CONFIG_FIELD_FILE_VIEW_PATH);
 
 	if (geometry) {
 		if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
@@ -337,6 +347,10 @@ window_bind_state (GiggleWindow *window)
 
 	if (main_view) {
 		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->view_shell), main_view);
+	}
+
+	if (file_view_path) {
+		giggle_view_file_set_path (GIGGLE_VIEW_FILE (priv->file_view), file_view_path);
 	}
 
 	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
@@ -1024,6 +1038,9 @@ window_directory_changed_cb (GiggleGit    *git,
 	title = g_strdup_printf ("%s - %s", directory, g_get_application_name ());
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
+
+	giggle_configuration_update (priv->configuration,
+				     configuration_updated_cb, window);
 }
 
 static void
@@ -1115,9 +1132,6 @@ giggle_window_init (GiggleWindow *window)
 				  G_CALLBACK (window_update_toolbar_buttons), window);
 
 #endif
-
-	giggle_configuration_update (priv->configuration,
-				     configuration_updated_cb, window);
 }
 
 #if 0

@@ -23,9 +23,9 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
-#include "libgiggle/giggle-git.h"
 #include "giggle-file-list.h"
-#include "giggle-diff-window.h"
+
+#include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-ignore.h"
 #include "libgiggle/giggle-git-list-files.h"
 #include "libgiggle/giggle-git-add.h"
@@ -33,6 +33,9 @@
 #include "libgiggle/giggle-git-diff-tree.h"
 #include "libgiggle/giggle-revision.h"
 #include "libgiggle/giggle-enums.h"
+
+#include "giggle-diff-window.h"
+#include "giggle-helpers.h"
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 
@@ -57,6 +60,8 @@ struct GiggleFileListPriv {
 
 	guint           show_all : 1;
 	guint           compact_mode : 1;
+
+	char           *selected_path;
 };
 
 typedef struct IdleLoaderData IdleLoaderData;
@@ -408,6 +413,8 @@ file_list_finalize (GObject *object)
 		g_object_unref (priv->revision_to);
 	}
 
+	g_free (priv->selected_path);
+
 	G_OBJECT_CLASS (giggle_file_list_parent_class)->finalize (object);
 }
 
@@ -578,6 +585,10 @@ file_list_status_changed (GiggleFileList *list)
 	path = gtk_tree_path_new_first ();
 	gtk_tree_view_expand_row (GTK_TREE_VIEW (list), path, FALSE);
 	gtk_tree_path_free (path);
+
+	if (priv->selected_path)
+		tree_view_select_row_by_string (GTK_WIDGET (list),
+					        COL_REL_PATH, priv->selected_path);
 }
 
 static void
@@ -1568,6 +1579,24 @@ giggle_file_list_get_selection (GiggleFileList *list)
 	g_list_free (rows);
 
 	return g_list_reverse (files);
+}
+
+void
+giggle_file_list_select (GiggleFileList *list,
+			 const char     *path)
+{
+	GiggleFileListPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
+	g_return_if_fail (NULL != path);
+
+	priv = GET_PRIV (list);
+
+	g_free (priv->selected_path);
+	priv->selected_path = g_strdup (path);
+
+	if (gtk_tree_view_get_model (GTK_TREE_VIEW (list)))
+		tree_view_select_row_by_string (GTK_WIDGET (list), COL_REL_PATH, path);
 }
 
 gboolean

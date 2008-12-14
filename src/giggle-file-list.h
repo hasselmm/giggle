@@ -61,6 +61,8 @@ void               giggle_file_list_highlight_revisions (GiggleFileList *list,
 							 GiggleRevision *to);
 
 GList *            giggle_file_list_get_selection     (GiggleFileList *list);
+void		   giggle_file_list_select            (GiggleFileList *list,
+						       const char     *path);
 
 gboolean           giggle_file_list_get_compact_mode  (GiggleFileList *list);
 void               giggle_file_list_set_compact_mode  (GiggleFileList *list,
