@@ -73,12 +73,17 @@ void                    giggle_configuration_commit        (GiggleConfiguration 
 
 G_CONST_RETURN gchar *  giggle_configuration_get_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
+int                     giggle_configuration_get_int_field (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field);
 gboolean                giggle_configuration_get_boolean_field
 							   (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field);
 void                    giggle_configuration_set_field     (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,
 							    const gchar              *value);
+void                    giggle_configuration_set_int_field (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field,
+							    int                       value);
 void                    giggle_configuration_set_boolean_field
 							   (GiggleConfiguration      *configuration,
 							    GiggleConfigurationField  field,

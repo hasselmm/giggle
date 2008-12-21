@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <stdio.h>
 #include <string.h>
 #include "giggle-configuration.h"
 #include "giggle-enums.h"
@@ -335,6 +336,23 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 	return g_hash_table_lookup (priv->config, fields[field].name);
 }
 
+int
+giggle_configuration_get_int_field (GiggleConfiguration      *configuration,
+				    GiggleConfigurationField  field)
+{
+	int          value;
+	const gchar *str;
+
+	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
+
+	str = giggle_configuration_get_field (configuration, field);
+
+	if (!str || 1 != sscanf (str, "%d", &value))
+		value = 0;
+
+	return value;
+}
+
 gboolean
 giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
 					GiggleConfigurationField  field)
@@ -377,6 +395,20 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 			(200, configuration_commit_timeout_cb,
 			 configuration);
 	}
+}
+
+void
+giggle_configuration_set_int_field (GiggleConfiguration      *configuration,
+				    GiggleConfigurationField  field,
+				    int                       value)
+{
+	char *str;
+
+	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
+
+	str = g_strdup_printf ("%d", value);
+	giggle_configuration_set_field (configuration, field, str);
+	g_free (str);
 }
 
 void
