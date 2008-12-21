@@ -84,6 +84,11 @@ void                    giggle_configuration_set_boolean_field
 							    GiggleConfigurationField  field,
 							    gboolean                  value);
 
+void                    giggle_configuration_bind          (GiggleConfiguration      *configuration,
+							    GiggleConfigurationField  field,
+							    GObject                  *object,
+							    const char               *property);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_CONFIGURATION_H__ */
