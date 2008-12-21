@@ -71,6 +71,10 @@ struct GiggleConfigurationBinding {
 	GiggleConfigurationField  field;
 	GParamSpec               *pspec;
 	GObject                  *object;
+
+	void (* update) (GiggleConfigurationBinding *binding);
+	void (* commit) (GiggleConfigurationBinding *binding,
+			 const GValue               *value);
 };
 
 static void     configuration_read_callback    (GiggleGit         *git,
@@ -464,32 +468,76 @@ giggle_configuration_commit (GiggleConfiguration     *configuration,
 }
 
 static void
-configuration_binding_notify_cb (GObject    *object,
-				 GParamSpec *pspec,
-				 gpointer    user_data)
+giggle_configuration_int_binding_update (GiggleConfigurationBinding *binding)
 {
-	GiggleConfigurationBinding *binding = user_data;
-	GValue                      value;
+	int value;
 
-	if (!binding->configuration)
-		return;
+	value = giggle_configuration_get_int_field (binding->configuration,
+						    binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
 
-	g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-	g_object_get_property (object, pspec->name, &value);
+static void
+giggle_configuration_int_binding_commit (GiggleConfigurationBinding *binding,
+					 const GValue               *value)
+{
+	giggle_configuration_set_int_field (binding->configuration,
+					    binding->field,
+					    g_value_get_int (value));
+}
 
-	if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_STRING)) {
-		giggle_configuration_set_field (binding->configuration,
+static void
+giggle_configuration_string_binding_update (GiggleConfigurationBinding *binding)
+{
+	const char *value;
+
+	value = giggle_configuration_get_field (binding->configuration,
+						binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
+
+static void
+giggle_configuration_string_binding_commit (GiggleConfigurationBinding *binding,
+					    const GValue               *value)
+{
+	giggle_configuration_set_field (binding->configuration,
+					binding->field,
+					g_value_get_string (value));
+}
+
+static void
+giggle_configuration_boolean_binding_update (GiggleConfigurationBinding *binding)
+{
+	gboolean value;
+
+	value = giggle_configuration_get_boolean_field (binding->configuration,
+							binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
+
+static void
+giggle_configuration_boolean_binding_commit (GiggleConfigurationBinding *binding,
+					     const GValue               *value)
+{
+	giggle_configuration_set_boolean_field (binding->configuration,
 						binding->field,
-						g_value_get_string (&value));
-	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_BOOLEAN)) {
-		giggle_configuration_set_boolean_field (binding->configuration,
-							binding->field,
-							g_value_get_boolean (&value));
-	} else {
-		g_warn_if_reached ();
+						g_value_get_boolean (value));
+}
+
+static void
+giggle_configuration_binding_free (GiggleConfigurationBinding *binding)
+{
+	if (binding->configuration) {
+		g_object_remove_weak_pointer (G_OBJECT (binding->configuration),
+					      (gpointer) &binding->configuration);
 	}
 
-	g_value_unset (&value);
+	if (binding->object) {
+		g_object_remove_weak_pointer (G_OBJECT (binding->object),
+					      (gpointer) &binding->object);
+	}
+
+	g_slice_free (GiggleConfigurationBinding, binding);
 }
 
 static GiggleConfigurationBinding *
@@ -511,41 +559,40 @@ giggle_configuration_binding_new (GiggleConfiguration      *configuration,
 	g_object_add_weak_pointer (G_OBJECT (binding->object),
 				   (gpointer) &binding->object);
 
+	if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_INT)) {
+		binding->update = giggle_configuration_int_binding_update;
+		binding->commit = giggle_configuration_int_binding_commit;
+	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_STRING)) {
+		binding->update = giggle_configuration_string_binding_update;
+		binding->commit = giggle_configuration_string_binding_commit;
+	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_BOOLEAN)) {
+		binding->update = giggle_configuration_boolean_binding_update;
+		binding->commit = giggle_configuration_boolean_binding_commit;
+	} else {
+		g_critical ("%s: unsupported property type `%s' for \"%s\" of `%s'",
+			    G_STRFUNC, G_PARAM_SPEC_TYPE_NAME (pspec),
+			    pspec->name, G_OBJECT_TYPE_NAME (object));
+
+		giggle_configuration_binding_free (binding);
+		binding = NULL;
+	}
+
 	return binding;
 }
 
 static void
-giggle_configuration_binding_free (GiggleConfigurationBinding *binding)
+configuration_binding_notify_cb (GObject    *object,
+				 GParamSpec *pspec,
+				 gpointer    user_data)
 {
+	GiggleConfigurationBinding *binding = user_data;
+	GValue                      value;
+
 	if (binding->configuration) {
-		g_object_remove_weak_pointer (G_OBJECT (binding->configuration),
-					      (gpointer) &binding->configuration);
-	}
-
-	if (binding->object) {
-		g_object_remove_weak_pointer (G_OBJECT (binding->object),
-					      (gpointer) &binding->object);
-	}
-
-	g_slice_free (GiggleConfigurationBinding, binding);
-}
-
-static void
-giggle_configuration_binding_apply (GiggleConfigurationBinding *binding)
-{
-	const char *string_value;
-	gboolean    boolean_value;
-
-	if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (binding->pspec), G_TYPE_STRING)) {
-		string_value = giggle_configuration_get_field (binding->configuration,
-							       binding->field);
-		g_object_set (binding->object, binding->pspec->name, string_value, NULL);
-	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (binding->pspec), G_TYPE_BOOLEAN)) {
-		boolean_value = giggle_configuration_get_boolean_field (binding->configuration,
-									binding->field);
-		g_object_set (binding->object, binding->pspec->name, boolean_value, NULL);
-	} else {
-		g_warn_if_reached ();
+		g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+		g_object_get_property (object, pspec->name, &value);
+		binding->commit (binding, &value);
+		g_value_unset (&value);
 	}
 }
 
@@ -555,9 +602,9 @@ giggle_configuration_bind (GiggleConfiguration      *configuration,
 			   GObject                  *object,
 			   const char               *property)
 {
+	char                       *notify_signal;
 	GiggleConfigurationBinding *binding;
 	GParamSpec                 *pspec;
-	char                       *notify_signal;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
 	g_return_if_fail (field < G_N_ELEMENTS (fields));
@@ -574,19 +621,10 @@ giggle_configuration_bind (GiggleConfiguration      *configuration,
 		return;
 	}
 
-	if (!g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_STRING) &&
-	    !g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_BOOLEAN)) {
-		g_critical ("%s: unsupported property type `%s' for \"%s\" of `%s'",
-			    G_STRFUNC, G_PARAM_SPEC_TYPE_NAME (pspec),
-			    property, G_OBJECT_TYPE_NAME (object));
-
-		return;
-	}
-
 	binding = giggle_configuration_binding_new (configuration, field,
 						    object, pspec);
 
-	giggle_configuration_binding_apply (binding);
+	binding->update (binding);
 
 	notify_signal = g_strconcat ("notify::", property, NULL);
 
