@@ -57,6 +57,12 @@ struct GiggleViewFilePriv {
 	GiggleRevision *current_revision;
 };
 
+enum {
+	PROP_0,
+	PROP_PATH,
+};
+
+
 static void giggle_view_file_searchable_init (GiggleSearchableIface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW,
@@ -64,6 +70,40 @@ G_DEFINE_TYPE_WITH_CODE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW,
 						giggle_view_file_searchable_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
+
+static void
+view_file_get_property (GObject      *object,
+			guint         param_id,
+			GValue       *value,
+			GParamSpec   *pspec)
+{
+	switch (param_id) {
+	case PROP_PATH:
+		g_value_set_string (value,
+				    giggle_view_file_get_path (GIGGLE_VIEW_FILE (object)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+static void
+view_file_set_property (GObject      *object,
+			guint         param_id,
+			const GValue *value,
+			GParamSpec   *pspec)
+{
+	switch (param_id) {
+	case PROP_PATH:
+		giggle_view_file_set_path (GIGGLE_VIEW_FILE (object),
+					   g_value_get_string (value));
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
 
 static void
 view_file_finalize (GObject *object)
@@ -172,11 +212,20 @@ giggle_view_file_class_init (GiggleViewFileClass *class)
 	object_class = G_OBJECT_CLASS (class);
 	view_class = GIGGLE_VIEW_CLASS (class);
 
+	object_class->get_property = view_file_get_property;
+	object_class->set_property = view_file_set_property;
 	object_class->finalize = view_file_finalize;
 	object_class->dispose = view_file_dispose;
 
 	view_class->add_ui = view_file_add_ui;
 	view_class->remove_ui = view_file_remove_ui;
+
+	g_object_class_install_property (object_class,
+					 PROP_PATH,
+					 g_param_spec_string ("path",
+							      "Path",
+							      "The currently selected path",
+							      NULL, G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewFilePriv));
 }
@@ -506,6 +555,8 @@ view_file_selection_changed_cb (GtkTreeSelection *selection,
 			    priv->job,
 			    view_file_select_file_job_callback,
 			    view);
+
+	g_object_notify (G_OBJECT (view), "path");
 }
 
 static void
