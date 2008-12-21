@@ -49,24 +49,20 @@ struct _GiggleFileListClass {
 	void (* status_changed) (GiggleFileList *list);
 };
 
-GType              giggle_file_list_get_type          (void);
-GtkWidget *        giggle_file_list_new               (void);
+GType              giggle_file_list_get_type            (void);
+GtkWidget *        giggle_file_list_new                 (void);
 
-gboolean           giggle_file_list_get_show_all      (GiggleFileList *list);
-void               giggle_file_list_set_show_all      (GiggleFileList *list,
-						       gboolean        show_all);
+gboolean           giggle_file_list_get_show_all        (GiggleFileList *list);
+void               giggle_file_list_set_show_all        (GiggleFileList *list,
+							 gboolean        show_all);
 
 void               giggle_file_list_highlight_revisions (GiggleFileList *list,
 							 GiggleRevision *from,
 							 GiggleRevision *to);
 
-GList *            giggle_file_list_get_selection     (GiggleFileList *list);
-void		   giggle_file_list_select            (GiggleFileList *list,
-						       const char     *path);
-
-gboolean           giggle_file_list_get_compact_mode  (GiggleFileList *list);
-void               giggle_file_list_set_compact_mode  (GiggleFileList *list,
-						       gboolean        compact_mode);
+GList *            giggle_file_list_get_selection       (GiggleFileList *list);
+void		   giggle_file_list_select              (GiggleFileList *list,
+							 const char     *path);
 
 G_END_DECLS
 
