@@ -204,6 +204,8 @@ view_shell_switch_page (GtkNotebook     *notebook,
 
 	GTK_NOTEBOOK_CLASS (giggle_view_shell_parent_class)
 		->switch_page (notebook, page, page_num);
+
+	g_object_notify (G_OBJECT (notebook), "view-name");
 }
 
 static void
