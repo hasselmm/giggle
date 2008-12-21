@@ -24,6 +24,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <string.h>
 
+#include "libgiggle/giggle-configuration.h"
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-revisions.h"
 #include "libgiggle/giggle-git-refs.h"
@@ -42,21 +43,22 @@
 typedef struct GiggleViewHistoryPriv GiggleViewHistoryPriv;
 
 struct GiggleViewHistoryPriv {
-	GtkWidget          *main_vpaned;
-	GtkWidget          *revision_shell;
-	GtkWidget          *view_diff;
-	GtkWidget          *revision_view;
-	GtkWidget          *revision_list;
-	GtkUIManager	   *ui_manager;
+	GtkWidget               *main_vpaned;
+	GtkWidget               *revision_shell;
+	GtkWidget               *view_diff;
+	GtkWidget               *revision_view;
+	GtkWidget               *revision_list;
+	GtkUIManager            *ui_manager;
 
-	GiggleGit          *git;
-	GiggleJob          *job;
-	GiggleJob          *diff_current_job;
+	GiggleGit               *git;
+	GiggleJob               *job;
+	GiggleJob               *diff_current_job;
+	GiggleConfiguration     *configuration;
 
-	GList              *history; /* reversed list of history elems */
-	GList              *current_history_elem;
+	GList                   *history; /* reversed list of history elems */
+	GList                   *current_history_elem;
 
-	guint               selection_changed_idle;
+	guint                    selection_changed_idle;
 };
 
 enum {
@@ -165,6 +167,7 @@ view_history_finalize (GObject *object)
 	g_list_foreach (priv->history, (GFunc) g_free, NULL);
 	g_list_free (priv->history);
 
+	g_object_unref (priv->configuration);
 	g_object_unref (priv->git);
 
 	G_OBJECT_CLASS (giggle_view_history_parent_class)->finalize (object);
@@ -370,6 +373,20 @@ giggle_view_history_init (GiggleViewHistory *view)
 {
 }
 
+static gboolean
+view_history_idle_cb (gpointer data)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (data);
+
+	giggle_configuration_bind (priv->configuration,
+				   CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION,
+				   G_OBJECT (priv->main_vpaned), "position");
+
+	return FALSE;
+}
+
 static void
 view_history_constructed (GObject *object)
 {
@@ -385,6 +402,8 @@ view_history_constructed (GObject *object)
 	g_signal_connect_swapped (priv->git, "changed",
 				  G_CALLBACK (view_history_git_changed), object);
 
+	priv->configuration = giggle_configuration_new ();
+
 	gtk_widget_push_composite_child ();
 
 	/* widgets */
@@ -397,6 +416,8 @@ view_history_constructed (GObject *object)
 
 	gtk_widget_pop_composite_child ();
 
+	/* bindings */
+	g_idle_add (view_history_idle_cb, object);
 }
 
 typedef struct {

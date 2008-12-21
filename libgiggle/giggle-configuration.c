@@ -34,13 +34,26 @@ static const struct {
 	const char *const name;
 	const gboolean    global;
 } fields[] = {
-	[CONFIG_FIELD_NAME] =                  { "user.name", TRUE },
-	[CONFIG_FIELD_EMAIL] =                 { "user.email", TRUE },
-	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] = { "giggle.main-window-maximized", TRUE },
-	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] =  { "giggle.main-window-geometry", TRUE },
-	[CONFIG_FIELD_MAIN_WINDOW_VIEW] =      { "giggle.main-window-view", TRUE },
-	[CONFIG_FIELD_SHOW_GRAPH] =            { "giggle.show-graph", TRUE },
-	[CONFIG_FIELD_FILE_VIEW_PATH] =        { "giggle.file-view-path", FALSE },
+	[CONFIG_FIELD_NAME] =
+	{ "user.name", TRUE },
+	[CONFIG_FIELD_EMAIL] =
+	{ "user.email", TRUE },
+
+	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] =
+	{ "giggle.main-window-maximized", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] =
+	{ "giggle.main-window-geometry", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_VIEW] =
+	{ "giggle.main-window-view", TRUE },
+
+	[CONFIG_FIELD_SHOW_GRAPH] =
+	{ "giggle.show-graph", TRUE },
+
+	[CONFIG_FIELD_FILE_VIEW_PATH] =
+	{ "giggle.file-view-path", FALSE },
+
+	[CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION] =
+	{ "giggle.history-view-vpane-position", TRUE }
 };
 
 

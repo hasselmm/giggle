@@ -59,6 +59,7 @@ typedef enum {
 	CONFIG_FIELD_MAIN_WINDOW_VIEW,
 	CONFIG_FIELD_SHOW_GRAPH,
 	CONFIG_FIELD_FILE_VIEW_PATH,
+	CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION,
 } GiggleConfigurationField;
 
 GType                   giggle_configuration_get_type      (void);
