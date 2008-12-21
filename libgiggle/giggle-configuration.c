@@ -273,8 +273,11 @@ configuration_commit_timeout_cb (gpointer data)
 	GiggleConfigurationPriv *priv;
 
 	priv = GET_PRIV (configuration);
-	priv->commit_timeout_id = 0;
 
+	if (priv->current_job)
+		return TRUE;
+
+	priv->commit_timeout_id = 0;
 	giggle_configuration_commit (configuration, NULL, NULL);
 
 	return FALSE;
