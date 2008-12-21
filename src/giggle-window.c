@@ -163,12 +163,8 @@ static void
 window_save_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	GtkAction	 *action;
-	const char       *main_view;
 	char              geometry[25];
-	gboolean	  show_graph;
 	gboolean          maximized;
-	const char	 *file_view_path;
 
 	priv = GET_PRIV (window);
 
@@ -176,12 +172,6 @@ window_save_state (GiggleWindow *window)
 		    priv->width, priv->height, priv->x, priv->y);
 
 	maximized = gdk_window_get_state (GTK_WIDGET (window)->window) & GDK_WINDOW_STATE_MAXIMIZED;
-	main_view = giggle_view_shell_get_view_name (GIGGLE_VIEW_SHELL (priv->view_shell));
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
-	show_graph = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action));
-
-	file_view_path = giggle_view_file_get_path (GIGGLE_VIEW_FILE (priv->file_view));
 
 	giggle_configuration_set_field (priv->configuration,
 					CONFIG_FIELD_MAIN_WINDOW_GEOMETRY,
@@ -190,18 +180,6 @@ window_save_state (GiggleWindow *window)
 	giggle_configuration_set_boolean_field (priv->configuration,
 						CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED,
 						maximized);
-
-	giggle_configuration_set_field (priv->configuration,
-					CONFIG_FIELD_MAIN_WINDOW_VIEW,
-					main_view);
-
-	giggle_configuration_set_boolean_field (priv->configuration,
-						CONFIG_FIELD_SHOW_GRAPH,
-						show_graph);
-
-	giggle_configuration_set_field (priv->configuration,
-					CONFIG_FIELD_FILE_VIEW_PATH,
-					file_view_path);
 
 	giggle_configuration_commit (priv->configuration,
 				     window_configuration_committed_cb,
@@ -312,12 +290,9 @@ static void
 window_bind_state (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	GtkAction 	 *action;
 	const char       *geometry;
 	gboolean	  maximized;
-	gboolean	  show_graph;
-	const char       *main_view;
-	const char       *file_view_path;
+	GtkAction 	 *show_graph_action;
 
 	priv = GET_PRIV (window);
 
@@ -325,37 +300,34 @@ window_bind_state (GiggleWindow *window)
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
 	maximized = giggle_configuration_get_boolean_field
 		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED);
-	main_view = giggle_configuration_get_field
-		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_VIEW);
-	show_graph = giggle_configuration_get_boolean_field
-		(priv->configuration, CONFIG_FIELD_SHOW_GRAPH);
-	file_view_path = giggle_configuration_get_field
-		(priv->configuration, CONFIG_FIELD_FILE_VIEW_PATH);
+
+	if (!geometry) {
+		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
+	}
 
 	if (geometry) {
 		if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
 			geometry = NULL;
 	}
 
-	if (!geometry) {
-		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
-	}
-
 	if (maximized) {
 		gtk_window_maximize (GTK_WINDOW (window));
 	}
 
-	if (main_view) {
-		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->view_shell), main_view);
-	}
+	show_graph_action = gtk_ui_manager_get_action
+		(priv->ui_manager, SHOW_GRAPH_PATH);
 
-	if (file_view_path) {
-		giggle_view_file_set_path (GIGGLE_VIEW_FILE (priv->file_view), file_view_path);
-	}
+	giggle_configuration_bind
+		(priv->configuration, CONFIG_FIELD_SHOW_GRAPH,
+		 G_OBJECT (show_graph_action), "active");
 
-	action = gtk_ui_manager_get_action (priv->ui_manager, SHOW_GRAPH_PATH);
-	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), show_graph);
+	giggle_configuration_bind
+		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_VIEW,
+		 G_OBJECT (priv->view_shell), "view-name");
 
+	giggle_configuration_bind
+		(priv->configuration, CONFIG_FIELD_FILE_VIEW_PATH,
+		 G_OBJECT (priv->file_view), "path");
 
 	gtk_widget_show (GTK_WIDGET (window));
 
