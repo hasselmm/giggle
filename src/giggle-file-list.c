@@ -1566,7 +1566,6 @@ giggle_file_list_select (GiggleFileList *list,
 	GiggleFileListPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_FILE_LIST (list));
-	g_return_if_fail (NULL != path);
 
 	priv = GET_PRIV (list);
 

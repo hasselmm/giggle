@@ -1183,7 +1183,6 @@ giggle_view_file_set_path (GiggleViewFile *view,
 	GiggleViewFilePriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_VIEW_FILE (view));
-	g_return_if_fail (NULL != path);
 
 	priv = GET_PRIV (view);
 
