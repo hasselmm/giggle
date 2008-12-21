@@ -102,6 +102,26 @@ enum {
 
 
 static void
+view_history_get_property (GObject      *object,
+			   guint         param_id,
+			   GValue       *value,
+			   GParamSpec   *pspec)
+{
+	GiggleViewHistoryPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_UI_MANAGER:
+		g_value_set_object (value, priv->ui_manager);
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	}
+}
+static void
 view_history_set_property (GObject      *object,
 			   guint         param_id,
 			   const GValue *value,
@@ -158,6 +178,7 @@ giggle_view_history_class_init (GiggleViewHistoryClass *class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
+	object_class->get_property = view_history_get_property;
 	object_class->set_property = view_history_set_property;
 	object_class->constructed  = view_history_constructed;
 	object_class->finalize     = view_history_finalize;
@@ -168,7 +189,7 @@ giggle_view_history_class_init (GiggleViewHistoryClass *class)
 							      "ui manager",
 							      "The UI manager to use",
 							      GTK_TYPE_UI_MANAGER,
-							      G_PARAM_WRITABLE |
+							      G_PARAM_READWRITE |
 							      G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class, sizeof (GiggleViewHistoryPriv));
