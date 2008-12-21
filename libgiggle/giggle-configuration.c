@@ -302,7 +302,7 @@ giggle_configuration_get_field (GiggleConfiguration      *configuration,
 	GiggleConfigurationPriv *priv;
 
 	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), NULL);
-	g_return_val_if_fail (NULL != fields[field].name, NULL);
+	g_return_val_if_fail (field < G_N_ELEMENTS (fields), NULL);
 
 	priv = GET_PRIV (configuration);
 
@@ -319,11 +319,7 @@ giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
 
 	str = giggle_configuration_get_field (configuration, field);
 
-	if (str) {
-		return (strcmp (str, "true") == 0);
-	}
-
-	return FALSE;
+	return !g_strcmp0 (str, "true");
 }
 
 void
@@ -334,7 +330,7 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	GiggleConfigurationPriv *priv;
 
 	g_return_if_fail (GIGGLE_IS_CONFIGURATION (configuration));
-	g_return_if_fail (NULL != fields[field].name);
+	g_return_if_fail (field < G_N_ELEMENTS (fields));
 
 	priv = GET_PRIV (configuration);
 
