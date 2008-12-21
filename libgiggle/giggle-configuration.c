@@ -33,13 +33,13 @@ static const struct {
 	const char *const name;
 	const gboolean    global;
 } fields[] = {
-	[CONFIG_FIELD_NAME] = { "user.name", TRUE },
-	[CONFIG_FIELD_EMAIL] = { "user.email", TRUE },
+	[CONFIG_FIELD_NAME] =                  { "user.name", TRUE },
+	[CONFIG_FIELD_EMAIL] =                 { "user.email", TRUE },
 	[CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED] = { "giggle.main-window-maximized", TRUE },
-	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] = { "giggle.main-window-geometry", TRUE },
-	[CONFIG_FIELD_MAIN_WINDOW_VIEW] = { "giggle.main-window-view", TRUE },
-	[CONFIG_FIELD_SHOW_GRAPH] = { "giggle.show-graph", TRUE },
-	[CONFIG_FIELD_FILE_VIEW_PATH] = { "giggle.file-view-path", FALSE },
+	[CONFIG_FIELD_MAIN_WINDOW_GEOMETRY] =  { "giggle.main-window-geometry", TRUE },
+	[CONFIG_FIELD_MAIN_WINDOW_VIEW] =      { "giggle.main-window-view", TRUE },
+	[CONFIG_FIELD_SHOW_GRAPH] =            { "giggle.show-graph", TRUE },
+	[CONFIG_FIELD_FILE_VIEW_PATH] =        { "giggle.file-view-path", FALSE },
 };
 
 
@@ -51,6 +51,7 @@ struct GiggleConfigurationPriv {
 	GiggleJob    *current_job;
 	GHashTable   *config;
 	GList        *changed_keys;
+	guint         commit_timeout_id;
 };
 
 struct GiggleConfigurationTask {
@@ -238,6 +239,20 @@ configuration_write_callback (GiggleGit *git,
 	configuration_write (task);
 }
 
+static gboolean
+configuration_commit_timeout_cb (gpointer data)
+{
+	GiggleConfiguration     *configuration = data;
+	GiggleConfigurationPriv *priv;
+
+	priv = GET_PRIV (configuration);
+	priv->commit_timeout_id = 0;
+
+	giggle_configuration_commit (configuration, NULL, NULL);
+
+	return FALSE;
+}
+
 GiggleConfiguration *
 giggle_configuration_new (void)
 {
@@ -334,6 +349,12 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 
 	/* insert the key in the changed keys list */
 	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field].name));
+
+	if (!priv->commit_timeout_id) {
+		priv->commit_timeout_id = g_timeout_add
+			(200, configuration_commit_timeout_cb,
+			 configuration);
+	}
 }
 
 void
@@ -376,6 +397,11 @@ giggle_configuration_commit (GiggleConfiguration     *configuration,
 	 * so other commit operations may run without interferences
 	 */
 	priv->changed_keys = NULL;
+
+	if (priv->commit_timeout_id) {
+		g_source_remove (priv->commit_timeout_id);
+		priv->commit_timeout_id = 0;
+	}
 
 	configuration_write (task);
 }
