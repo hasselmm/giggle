@@ -70,7 +70,6 @@ struct GiggleConfigurationBinding {
 	GiggleConfigurationField  field;
 };
 
-static void     configuration_finalize         (GObject           *object);
 static void     configuration_read_callback    (GiggleGit         *git,
 						GiggleJob         *job,
 						GError            *error,
@@ -92,33 +91,22 @@ G_DEFINE_TYPE (GiggleConfiguration, giggle_configuration, G_TYPE_OBJECT);
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_CONFIGURATION, GiggleConfigurationPriv))
 
 
-static void
-giggle_configuration_class_init (GiggleConfigurationClass *class)
+static GObject*
+configuration_constructor (GType                  type,
+			   guint                  n_construct_params,
+			   GObjectConstructParam *construct_params)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	static GObject *instance = NULL;
 
-	object_class->finalize = configuration_finalize;
+	if (G_LIKELY (NULL != instance))
+		return g_object_ref (instance);
 
-	signals[CHANGED] =
-		g_signal_new ("changed",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (GiggleConfigurationClass, changed),
-			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 0);
 
-	g_type_class_add_private (object_class, sizeof (GiggleConfigurationPriv));
-}
+	instance =
+		G_OBJECT_CLASS (giggle_configuration_parent_class)->
+		constructor (type, n_construct_params, construct_params);
 
-static void
-giggle_configuration_init (GiggleConfiguration *config)
-{
-	GiggleConfigurationPriv *priv;
-
-	priv = GET_PRIV (config);
-
-	priv->git = giggle_git_get ();
+	return instance;
 }
 
 static void
@@ -141,6 +129,36 @@ configuration_finalize (GObject *object)
 	g_object_unref (priv->git);
 
 	G_OBJECT_CLASS (giggle_configuration_parent_class)->finalize (object);
+}
+
+static void
+giggle_configuration_class_init (GiggleConfigurationClass *class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (class);
+
+	object_class->constructor = configuration_constructor;
+	object_class->finalize = configuration_finalize;
+
+	signals[CHANGED] =
+		g_signal_new ("changed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleConfigurationClass, changed),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
+
+	g_type_class_add_private (object_class, sizeof (GiggleConfigurationPriv));
+}
+
+static void
+giggle_configuration_init (GiggleConfiguration *config)
+{
+	GiggleConfigurationPriv *priv;
+
+	priv = GET_PRIV (config);
+
+	priv->git = giggle_git_get ();
 }
 
 static void
