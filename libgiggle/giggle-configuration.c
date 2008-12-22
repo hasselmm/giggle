@@ -53,6 +53,7 @@ struct GiggleConfigurationPriv {
 	GiggleJob    *current_job;
 	GHashTable   *config;
 	GList        *changed_keys;
+	GList        *bindings;
 	guint         commit_timeout_id;
 };
 
@@ -71,6 +72,7 @@ struct GiggleConfigurationBinding {
 	GiggleConfigurationField  field;
 	GParamSpec               *pspec;
 	GObject                  *object;
+	gulong                    notify_id;
 
 	void (* update) (GiggleConfigurationBinding *binding);
 	void (* commit) (GiggleConfigurationBinding *binding,
@@ -98,6 +100,170 @@ G_DEFINE_TYPE (GiggleConfiguration, giggle_configuration, G_TYPE_OBJECT);
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_CONFIGURATION, GiggleConfigurationPriv))
 
 
+static void
+giggle_configuration_int_binding_update (GiggleConfigurationBinding *binding)
+{
+	int value;
+
+	value = giggle_configuration_get_int_field (binding->configuration,
+						    binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
+
+static void
+giggle_configuration_int_binding_commit (GiggleConfigurationBinding *binding,
+					 const GValue               *value)
+{
+	giggle_configuration_set_int_field (binding->configuration,
+					    binding->field,
+					    g_value_get_int (value));
+}
+
+static void
+giggle_configuration_string_binding_update (GiggleConfigurationBinding *binding)
+{
+	const char *value;
+
+	value = giggle_configuration_get_field (binding->configuration,
+						binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
+
+static void
+giggle_configuration_string_binding_commit (GiggleConfigurationBinding *binding,
+					    const GValue               *value)
+{
+	giggle_configuration_set_field (binding->configuration,
+					binding->field,
+					g_value_get_string (value));
+}
+
+static void
+giggle_configuration_boolean_binding_update (GiggleConfigurationBinding *binding)
+{
+	gboolean value;
+
+	value = giggle_configuration_get_boolean_field (binding->configuration,
+							binding->field);
+	g_object_set (binding->object, binding->pspec->name, value, NULL);
+}
+
+static void
+giggle_configuration_boolean_binding_commit (GiggleConfigurationBinding *binding,
+					     const GValue               *value)
+{
+	giggle_configuration_set_boolean_field (binding->configuration,
+						binding->field,
+						g_value_get_boolean (value));
+}
+
+static void
+giggle_configuration_binding_free (GiggleConfigurationBinding *binding)
+{
+	if (binding->configuration) {
+		g_object_remove_weak_pointer (G_OBJECT (binding->configuration),
+					      (gpointer) &binding->configuration);
+	}
+
+	if (binding->object) {
+		if (binding->notify_id) {
+			g_signal_handler_disconnect (binding->object,
+						     binding->notify_id);
+		}
+
+		g_object_remove_weak_pointer (G_OBJECT (binding->object),
+					      (gpointer) &binding->object);
+	}
+
+	g_slice_free (GiggleConfigurationBinding, binding);
+}
+
+static GiggleConfigurationBinding *
+giggle_configuration_binding_new (GiggleConfiguration      *configuration,
+				  GiggleConfigurationField  field,
+				  GObject                  *object,
+				  GParamSpec               *pspec)
+{
+	GiggleConfigurationBinding *binding;
+
+	binding = g_slice_new0 (GiggleConfigurationBinding);
+	binding->configuration = configuration;
+	binding->field = field;
+	binding->object = object;
+	binding->pspec = pspec;
+
+	g_object_add_weak_pointer (G_OBJECT (binding->configuration),
+				   (gpointer) &binding->configuration);
+	g_object_add_weak_pointer (G_OBJECT (binding->object),
+				   (gpointer) &binding->object);
+
+	if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_INT)) {
+		binding->update = giggle_configuration_int_binding_update;
+		binding->commit = giggle_configuration_int_binding_commit;
+	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_STRING)) {
+		binding->update = giggle_configuration_string_binding_update;
+		binding->commit = giggle_configuration_string_binding_commit;
+	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_BOOLEAN)) {
+		binding->update = giggle_configuration_boolean_binding_update;
+		binding->commit = giggle_configuration_boolean_binding_commit;
+	} else {
+		g_critical ("%s: unsupported property type `%s' for \"%s\" of `%s'",
+			    G_STRFUNC, G_PARAM_SPEC_TYPE_NAME (pspec),
+			    pspec->name, G_OBJECT_TYPE_NAME (object));
+
+		giggle_configuration_binding_free (binding);
+		binding = NULL;
+	}
+
+	return binding;
+}
+
+static void
+binding_notify_callback (GObject    *object,
+			 GParamSpec *pspec,
+			 gpointer    user_data)
+{
+	GiggleConfigurationBinding *binding = user_data;
+	GValue                      value;
+
+	if (binding->configuration) {
+		g_print ("commiting for \"%s\" on `%s' to `%s'\n",
+			 binding->pspec->name, G_OBJECT_TYPE_NAME (binding->object),
+			 fields[binding->field].name);
+
+		g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+		g_object_get_property (object, pspec->name, &value);
+		binding->commit (binding, &value);
+		g_value_unset (&value);
+	}
+}
+
+static void
+giggle_configuration_binding_update (GiggleConfigurationBinding *binding)
+{
+	char *signal_name;
+
+	if (!binding->object ||
+	    !binding->configuration ||
+	    !GET_PRIV (binding->configuration)->config)
+	       return;
+
+	g_print ("updating `%s' binding for \"%s\" on `%s'\n",
+		 fields[binding->field].name, binding->pspec->name,
+		 G_OBJECT_TYPE_NAME (binding->object));
+
+	binding->update (binding);
+
+	if (G_UNLIKELY (!binding->notify_id)) {
+		signal_name = g_strconcat ("notify::", binding->pspec->name, NULL);
+
+		g_signal_connect (binding->object, signal_name,
+				  G_CALLBACK (binding_notify_callback), binding);
+
+		g_free (signal_name);
+	}
+}
+
 static GObject*
 configuration_constructor (GType                  type,
 			   guint                  n_construct_params,
@@ -122,6 +288,11 @@ configuration_finalize (GObject *object)
 	GiggleConfigurationPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	while (priv->bindings) {
+		giggle_configuration_binding_free (priv->bindings->data);
+		priv->bindings = g_list_delete_link (priv->bindings, priv->bindings);
+	}
 
 	if (priv->current_job) {
 		giggle_git_cancel_job (priv->git, priv->current_job);
@@ -178,6 +349,7 @@ configuration_read_callback (GiggleGit *git,
 	GiggleConfigurationPriv *priv;
 	GHashTable              *config;
 	gboolean                 success;
+	GList                   *l;
 
 	task = (GiggleConfigurationTask *) user_data;
 	priv = GET_PRIV (task->configuration);
@@ -186,7 +358,11 @@ configuration_read_callback (GiggleGit *git,
 	priv->config = g_hash_table_ref (config);
 	success = (error == NULL);
 
-	(task->func) (task->configuration, success, task->data);
+	for (l = priv->bindings; l; l = l->next)
+		giggle_configuration_binding_update (l->data);
+
+	if (task->func)
+		task->func (task->configuration, success, task->data);
 }
 
 static gboolean
@@ -467,142 +643,13 @@ giggle_configuration_commit (GiggleConfiguration     *configuration,
 	configuration_write (task);
 }
 
-static void
-giggle_configuration_int_binding_update (GiggleConfigurationBinding *binding)
-{
-	int value;
-
-	value = giggle_configuration_get_int_field (binding->configuration,
-						    binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
-}
-
-static void
-giggle_configuration_int_binding_commit (GiggleConfigurationBinding *binding,
-					 const GValue               *value)
-{
-	giggle_configuration_set_int_field (binding->configuration,
-					    binding->field,
-					    g_value_get_int (value));
-}
-
-static void
-giggle_configuration_string_binding_update (GiggleConfigurationBinding *binding)
-{
-	const char *value;
-
-	value = giggle_configuration_get_field (binding->configuration,
-						binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
-}
-
-static void
-giggle_configuration_string_binding_commit (GiggleConfigurationBinding *binding,
-					    const GValue               *value)
-{
-	giggle_configuration_set_field (binding->configuration,
-					binding->field,
-					g_value_get_string (value));
-}
-
-static void
-giggle_configuration_boolean_binding_update (GiggleConfigurationBinding *binding)
-{
-	gboolean value;
-
-	value = giggle_configuration_get_boolean_field (binding->configuration,
-							binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
-}
-
-static void
-giggle_configuration_boolean_binding_commit (GiggleConfigurationBinding *binding,
-					     const GValue               *value)
-{
-	giggle_configuration_set_boolean_field (binding->configuration,
-						binding->field,
-						g_value_get_boolean (value));
-}
-
-static void
-giggle_configuration_binding_free (GiggleConfigurationBinding *binding)
-{
-	if (binding->configuration) {
-		g_object_remove_weak_pointer (G_OBJECT (binding->configuration),
-					      (gpointer) &binding->configuration);
-	}
-
-	if (binding->object) {
-		g_object_remove_weak_pointer (G_OBJECT (binding->object),
-					      (gpointer) &binding->object);
-	}
-
-	g_slice_free (GiggleConfigurationBinding, binding);
-}
-
-static GiggleConfigurationBinding *
-giggle_configuration_binding_new (GiggleConfiguration      *configuration,
-				  GiggleConfigurationField  field,
-				  GObject                  *object,
-				  GParamSpec               *pspec)
-{
-	GiggleConfigurationBinding *binding;
-
-	binding = g_slice_new (GiggleConfigurationBinding);
-	binding->configuration = configuration;
-	binding->field = field;
-	binding->object = object;
-	binding->pspec = pspec;
-
-	g_object_add_weak_pointer (G_OBJECT (binding->configuration),
-				   (gpointer) &binding->configuration);
-	g_object_add_weak_pointer (G_OBJECT (binding->object),
-				   (gpointer) &binding->object);
-
-	if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_INT)) {
-		binding->update = giggle_configuration_int_binding_update;
-		binding->commit = giggle_configuration_int_binding_commit;
-	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_STRING)) {
-		binding->update = giggle_configuration_string_binding_update;
-		binding->commit = giggle_configuration_string_binding_commit;
-	} else if (g_type_is_a (G_PARAM_SPEC_VALUE_TYPE (pspec), G_TYPE_BOOLEAN)) {
-		binding->update = giggle_configuration_boolean_binding_update;
-		binding->commit = giggle_configuration_boolean_binding_commit;
-	} else {
-		g_critical ("%s: unsupported property type `%s' for \"%s\" of `%s'",
-			    G_STRFUNC, G_PARAM_SPEC_TYPE_NAME (pspec),
-			    pspec->name, G_OBJECT_TYPE_NAME (object));
-
-		giggle_configuration_binding_free (binding);
-		binding = NULL;
-	}
-
-	return binding;
-}
-
-static void
-configuration_binding_notify_cb (GObject    *object,
-				 GParamSpec *pspec,
-				 gpointer    user_data)
-{
-	GiggleConfigurationBinding *binding = user_data;
-	GValue                      value;
-
-	if (binding->configuration) {
-		g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-		g_object_get_property (object, pspec->name, &value);
-		binding->commit (binding, &value);
-		g_value_unset (&value);
-	}
-}
-
 void
 giggle_configuration_bind (GiggleConfiguration      *configuration,
 			   GiggleConfigurationField  field,
 			   GObject                  *object,
 			   const char               *property)
 {
-	char                       *notify_signal;
+	GiggleConfigurationPriv    *priv;
 	GiggleConfigurationBinding *binding;
 	GParamSpec                 *pspec;
 
@@ -612,6 +659,7 @@ giggle_configuration_bind (GiggleConfiguration      *configuration,
 	g_return_if_fail (G_IS_OBJECT (object));
 	g_return_if_fail (NULL != property);
 
+	priv = GET_PRIV (configuration);
 	pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (object), property);
 
 	if (NULL == pspec) {
@@ -624,14 +672,9 @@ giggle_configuration_bind (GiggleConfiguration      *configuration,
 	binding = giggle_configuration_binding_new (configuration, field,
 						    object, pspec);
 
-	binding->update (binding);
-
-	notify_signal = g_strconcat ("notify::", property, NULL);
-
-	g_signal_connect_data (object, notify_signal,
-			       G_CALLBACK (configuration_binding_notify_cb), binding,
-			       (GClosureNotify) giggle_configuration_binding_free, 0);
-
-	g_free (notify_signal);
+	if (binding) {
+		priv->bindings = g_list_prepend (priv->bindings, binding);
+		giggle_configuration_binding_update (binding);
+	}
 }
 
