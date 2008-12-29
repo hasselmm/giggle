@@ -15,6 +15,7 @@ src/giggle-revision-tooltip.c
 src/giggle-revision-view.c
 src/giggle-rev-list-view.c
 src/giggle-short-list.c
+src/giggle-view-diff.c
 src/giggle-view-file.c
 src/giggle-view-history.c
 src/giggle-view-summary.c
