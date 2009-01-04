@@ -237,7 +237,7 @@ binding_notify_callback (GObject    *object,
 			 gpointer    user_data)
 {
 	GiggleConfigurationBinding *binding = user_data;
-	GValue                      value;
+	GValue                      value = { 0, };
 
 	if (binding->configuration) {
 		g_print ("commiting for \"%s\" on `%s' to `%s'\n",
