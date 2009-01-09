@@ -1,8 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.52)
- 
-AC_INIT(giggle,0.4,http://developer.imendio.com/issues/browse/GGL)
-AC_CONFIG_SRCDIR(src/giggle-main.c)
+
+AC_INIT([giggle],[0.4],
+        [http://bugzilla.gnome.org/enter_bug.cgi?product=giggle])
+
+AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
