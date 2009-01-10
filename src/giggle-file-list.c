@@ -690,6 +690,51 @@ file_list_create_store (GiggleFileList *list)
 }
 
 static void
+file_list_edit_file (GtkAction      *action,
+		     GiggleFileList *list)
+{
+	GiggleFileListPriv  *priv = GET_PRIV (list);
+	GdkAppLaunchContext *context;
+	GdkScreen           *screen;
+	GList               *selection, *l;
+	char                *filename, *uri;
+	GError              *error = NULL;
+	const char          *dir;
+
+	context = gdk_app_launch_context_new ();
+	screen = gtk_widget_get_screen (GTK_WIDGET (list));
+	gdk_app_launch_context_set_screen (context, screen);
+	selection = giggle_file_list_get_selection (list);
+	dir = giggle_git_get_directory (priv->git);
+
+	for (l = selection; l; l = l->next) {
+		filename = g_build_filename (dir, l->data, NULL);
+		uri = g_filename_to_uri (filename, NULL, &error);
+		g_free (filename);
+
+		if (!uri) {
+			g_warning ("%s: %s", G_STRFUNC, error->message);
+			g_clear_error (&error);
+			continue;
+		}
+
+		if (!g_app_info_launch_default_for_uri (uri,
+							G_APP_LAUNCH_CONTEXT (context),
+							&error)) {
+			g_warning ("%s: %s", G_STRFUNC, error->message);
+			g_clear_error (&error);
+		}
+
+		g_free (uri);
+	}
+
+	g_list_foreach (selection, (GFunc) g_free, NULL);
+	g_list_free (selection);
+
+	g_object_unref (context);
+}
+
+static void
 file_list_diff_file (GtkAction      *action,
 		     GiggleFileList *list)
 {
@@ -1384,6 +1429,7 @@ giggle_file_list_init (GiggleFileList *list)
 
 	const GtkActionEntry menu_items [] = {
 		{ "Commit",      NULL,             N_("_Commit Changes"),         NULL, NULL, G_CALLBACK (file_list_diff_file) },
+		{ "Edit",        GTK_STOCK_EDIT,   NULL,                          NULL, NULL, G_CALLBACK (file_list_edit_file) },
 		{ "AddFile",     NULL,             N_("A_dd file to repository"), NULL, NULL, G_CALLBACK (file_list_add_file) },
 		{ "CreatePatch", NULL,             N_("Create _Patch"),           NULL, NULL, G_CALLBACK (file_list_create_patch) },
 		{ "Ignore",      GTK_STOCK_ADD,    N_("_Add to .gitignore"),      NULL, NULL, G_CALLBACK (file_list_ignore_file) },
@@ -1399,6 +1445,7 @@ giggle_file_list_init (GiggleFileList *list)
 		"  <popup name='PopupMenu'>"
 		"    <menuitem action='Commit'/>"
 		"    <separator/>"
+		"    <menuitem action='Edit'/>"
 		"    <menuitem action='AddFile'/>"
 		"    <separator/>"
 		"    <menuitem action='CreatePatch'/>"
