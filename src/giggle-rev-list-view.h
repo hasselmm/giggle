@@ -27,12 +27,12 @@
 
 G_BEGIN_DECLS
 
-#define GIGGLE_TYPE_REVISION_LIST            (giggle_rev_list_view_get_type ())
-#define GIGGLE_REV_LIST_VIEW(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListView))
-#define GIGGLE_REV_LIST_VIEW_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewClass))
-#define GIGGLE_IS_REVISION_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_REVISION_LIST))
-#define GIGGLE_IS_REVISION_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REVISION_LIST))
-#define GIGGLE_REV_LIST_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewClass))
+#define GIGGLE_TYPE_REV_LIST_VIEW            (giggle_rev_list_view_get_type ())
+#define GIGGLE_REV_LIST_VIEW(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_REV_LIST_VIEW, GiggleRevListView))
+#define GIGGLE_REV_LIST_VIEW_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_REV_LIST_VIEW, GiggleRevListViewClass))
+#define GIGGLE_IS_REV_LIST_VIEW(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_REV_LIST_VIEW))
+#define GIGGLE_IS_REV_LIST_VIEW_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_REV_LIST_VIEW))
+#define GIGGLE_REV_LIST_VIEW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_REV_LIST_VIEW, GiggleRevListViewClass))
 
 typedef struct _GiggleRevListView      GiggleRevListView;
 typedef struct _GiggleRevListViewClass GiggleRevListViewClass;

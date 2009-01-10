@@ -175,7 +175,7 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevListView, giggle_rev_list_view, GTK_TYPE_TREE_
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
 						giggle_rev_list_view_clipboard_init))
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REV_LIST_VIEW, GiggleRevListViewPriv))
 
 #define COMMIT_UI_PATH        "/ui/PopupMenu/Commit"
 #define CREATE_BRANCH_UI_PATH "/ui/PopupMenu/CreateBranch"
@@ -1802,7 +1802,7 @@ rev_list_view_create_patch (GtkAction          *action,
 GtkWidget*
 giggle_rev_list_view_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_REVISION_LIST, NULL);
+	return g_object_new (GIGGLE_TYPE_REV_LIST_VIEW, NULL);
 }
 
 void
@@ -1812,7 +1812,7 @@ giggle_rev_list_view_set_model (GiggleRevListView *list,
 	GiggleRevListViewPriv *priv;
 	GType                   type;
 
-	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
+	g_return_if_fail (GIGGLE_IS_REV_LIST_VIEW (list));
 	g_return_if_fail (!model || GTK_IS_TREE_MODEL (model));
 
 	if (model) {
@@ -1835,7 +1835,7 @@ giggle_rev_list_view_get_graph_visible (GiggleRevListView *list)
 {
 	GiggleRevListViewPriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), FALSE);
+	g_return_val_if_fail (GIGGLE_IS_REV_LIST_VIEW (list), FALSE);
 
 	priv = GET_PRIV (list);
 	return priv->show_graph;
@@ -1847,7 +1847,7 @@ giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
 {
 	GiggleRevListViewPriv *priv;
 
-	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
+	g_return_if_fail (GIGGLE_IS_REV_LIST_VIEW (list));
 
 	priv = GET_PRIV (list);
 
@@ -1861,7 +1861,7 @@ giggle_rev_list_view_get_compact_mode (GiggleRevListView *list)
 {
 	GiggleRevListViewPriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), FALSE);
+	g_return_val_if_fail (GIGGLE_IS_REV_LIST_VIEW (list), FALSE);
 
 	priv = GET_PRIV (list);
 	return priv->compact_mode;
@@ -1875,7 +1875,7 @@ giggle_rev_list_view_set_compact_mode (GiggleRevListView *list,
 	GtkRcStyle             *rc_style;
 	gint                    size;
 
-	g_return_if_fail (GIGGLE_IS_REVISION_LIST (list));
+	g_return_if_fail (GIGGLE_IS_REV_LIST_VIEW (list));
 
 	priv = GET_PRIV (list);
 
@@ -1919,7 +1919,7 @@ giggle_rev_list_view_get_selection (GiggleRevListView *list)
 	GtkTreeModel     *model;
 	GList            *rows;
 
-	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), NULL);
+	g_return_val_if_fail (GIGGLE_IS_REV_LIST_VIEW (list), NULL);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
