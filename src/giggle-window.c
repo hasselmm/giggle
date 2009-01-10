@@ -588,47 +588,32 @@ static void
 window_create_ui_manager (GiggleWindow *window)
 {
 	static const GtkActionEntry find_action_entries[] = {
-		{ "Find", GTK_STOCK_FIND,
-		  N_("_Find..."), "<control>F", N_("Find..."),
+		{ "Find", GTK_STOCK_FIND, N_("_Find..."),
+		  "<control>F", N_("Find..."),
 		  G_CALLBACK (window_action_find_cb)
 		},
-		{ "FindSlash", NULL,
-		  NULL, "slash", NULL,
+		{ "FindSlash", NULL, NULL, "slash", NULL,
 		  G_CALLBACK (window_action_find_cb)
 		},
-		{ "FindNext", NULL,
-		  N_("Find _Next"), "<control>G", N_("Find next"),
+		{ "FindNext", NULL, N_("Find _Next"),
+		  "<control>G", N_("Find next match"),
 		  G_CALLBACK (window_action_find_next_cb)
 		},
-		{ "FindPrev", NULL,
-		  N_("Find _Previous"), "<control><shift>G", N_("Find previous"),
+		{ "FindPrev", NULL, N_("Find _Previous"),
+		  "<control><shift>G", N_("Find previous match"),
 		  G_CALLBACK (window_action_find_prev_cb)
 		},
 	};
 
 	static const GtkActionEntry action_entries[] = {
-		{ "ProjectMenu", NULL,
-		  N_("_Project"), NULL, NULL,
-		  NULL
-		},
-		{ "EditMenu", NULL,
-		  N_("_Edit"), NULL, NULL,
-		  NULL
-		},
-		{ "GoMenu", NULL,
-		  N_("_Go"), NULL, NULL,
-		  NULL
-		},
-		{ "ViewMenu", NULL,
-		  N_("_View"), NULL, NULL,
-		  NULL
-		},
-		{ "HelpMenu", NULL,
-		  N_("_Help"), NULL, NULL,
-		  NULL
-		},
-		{ "Open", GTK_STOCK_OPEN,
-		  N_("_Open"), "<control>O", N_("Open a GIT repository"),
+		{ "ProjectMenu", NULL, N_("_Project"), NULL, NULL, NULL },
+		{ "EditMenu",    NULL, N_("_Edit"),    NULL, NULL, NULL },
+		{ "GoMenu",      NULL, N_("_Go"),      NULL, NULL, NULL },
+		{ "ViewMenu",    NULL, N_("_View"),    NULL, NULL, NULL },
+		{ "HelpMenu",    NULL, N_("_Help"),    NULL, NULL, NULL },
+
+		{ "Open", GTK_STOCK_OPEN, NULL,
+		  NULL, N_("Open a GIT repository"),
 		  G_CALLBACK (window_action_open_cb)
 		},
 #if 0
@@ -641,35 +626,37 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_diff_cb)
 		},
 #endif
-		{ "Properties", GTK_STOCK_PROPERTIES,
-		  N_("_Properties"), "<alt>Return", N_("Show and edit project properties"),
+		{ "Properties", GTK_STOCK_PROPERTIES, NULL,
+		  "<alt>Return", N_("Show and edit project properties"),
 		  G_CALLBACK (window_action_properties_cb)
 		},
-		{ "Quit", GTK_STOCK_QUIT,
-		  N_("_Quit"), "<control>Q", N_("Quit the application"),
+		{ "Quit", GTK_STOCK_QUIT, NULL,
+		  "<control>Q", N_("Quit the application"),
 		  G_CALLBACK (window_action_quit_cb)
 		},
-		{ "PersonalDetails", GTK_STOCK_PREFERENCES,
-		  N_("_Personal Details"), NULL, N_("Edit Personal details"),
+
+		{ "PersonalDetails", GTK_STOCK_PREFERENCES, N_("_Personal Details"),
+		  NULL, N_("Edit Personal details"),
 		  G_CALLBACK (window_action_personal_details_cb)
-		},
-		{ "About", GTK_STOCK_ABOUT,
-		  N_("_About"), NULL, N_("About this application"),
-		  G_CALLBACK (window_action_about_cb)
 		},
 
 		/* Toolbar items */
-		{ "BackHistory", GTK_STOCK_GO_BACK,
-		  N_("_Back"), "<alt>Left", NULL,
+		{ "BackHistory", GTK_STOCK_GO_BACK, NULL,
+		  "<alt>Left", N_("Go backward in history"),
 		  NULL /*G_CALLBACK (window_action_history_go_back)*/
 		},
-		{ "ForwardHistory", GTK_STOCK_GO_FORWARD,
-		  N_("_Forward"), "<alt>Right", NULL,
+		{ "ForwardHistory", GTK_STOCK_GO_FORWARD, NULL,
+		  "<alt>Right", N_("Go forward in history"),
 		  NULL /*G_CALLBACK (window_action_history_go_forward)*/
 		},
-		{ "RefreshHistory", GTK_STOCK_REFRESH,
-		  N_("_Refresh"), "<control>R", NULL,
+		{ "RefreshHistory", GTK_STOCK_REFRESH, NULL,
+		  "<control>R", N_("Refresh current view"),
 		  G_CALLBACK (window_action_history_refresh)
+		},
+
+		{ "About", GTK_STOCK_ABOUT, NULL,
+		  NULL, N_("About this application"),
+		  G_CALLBACK (window_action_about_cb)
 		},
 	};
 
