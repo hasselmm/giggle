@@ -282,9 +282,10 @@ rev_list_view_can_copy (GiggleClipboard *clipboard)
 static void
 rev_list_view_do_copy (GiggleClipboard *clipboard)
 {
-	GList      *selection;
-	GString    *text;
-	const char *sha;
+	GtkClipboard *widget_clipboard;
+	GList        *selection;
+	GString      *text;
+	const char   *sha;
 
 	selection = giggle_rev_list_view_get_selection (GIGGLE_REV_LIST_VIEW (clipboard));
 	text = g_string_new (NULL);
@@ -307,12 +308,9 @@ rev_list_view_do_copy (GiggleClipboard *clipboard)
 	}
 
 	if (text->len) {
-		GtkClipboard *display_clipboard;
-		GdkDisplay   *display;
-
-		display = gtk_widget_get_display (GTK_WIDGET (clipboard));
-		display_clipboard = gtk_clipboard_get_for_display (display, GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_text (display_clipboard, text->str, text->len);
+		widget_clipboard = gtk_widget_get_clipboard (GTK_WIDGET (clipboard),
+							     GDK_SELECTION_CLIPBOARD);
+		gtk_clipboard_set_text (widget_clipboard, text->str, text->len);
 	}
 
 	g_string_free (text, TRUE);

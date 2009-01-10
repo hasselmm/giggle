@@ -351,22 +351,12 @@ window_can_copy (GiggleClipboard *clipboard)
 }
 
 static void
-window_set_clipboard_text (GtkWidget  *widget,
-			   const char *text,
-			   int         len)
-{
-	GdkDisplay   *display = gtk_widget_get_display (widget);
-	GtkClipboard *clipboard;
-
-	clipboard = gtk_clipboard_get_for_display (display,
-						   GDK_SELECTION_CLIPBOARD);
-	gtk_clipboard_set_text (clipboard, text, len);
-}
-
-static void
 window_do_copy (GiggleClipboard *clipboard)
 {
-	GtkWidget  *focus = gtk_window_get_focus (GTK_WINDOW (clipboard));
+	GtkWidget    *focus = gtk_window_get_focus (GTK_WINDOW (clipboard));
+	GtkClipboard *widget_clipboard;
+
+	widget_clipboard = gtk_widget_get_clipboard (focus, GDK_SELECTION_CLIPBOARD);
 
 	if (GTK_IS_LABEL (focus)) {
 		int         start_offset, end_offset;
@@ -379,9 +369,10 @@ window_do_copy (GiggleClipboard *clipboard)
 			begin = g_utf8_offset_to_pointer (text, start_offset);
 			end = g_utf8_offset_to_pointer (text, end_offset);
 
-			if (end > begin)
-				window_set_clipboard_text (GTK_WIDGET (clipboard),
-							   begin, end - begin);
+			if (end > begin) {
+				gtk_clipboard_set_text (widget_clipboard,
+							begin, end - begin);
+			}
 		}
 	} else if (GTK_IS_TEXT_VIEW (focus)) {
 		GtkTextIter    start, end;
@@ -392,7 +383,7 @@ window_do_copy (GiggleClipboard *clipboard)
 
 		if (gtk_text_buffer_get_selection_bounds (buffer, &start, &end)) {
 			text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
-			window_set_clipboard_text (GTK_WIDGET (clipboard), text, -1);
+			gtk_clipboard_set_text (widget_clipboard, text, -1);
 			g_free (text);
 		}
 	}
