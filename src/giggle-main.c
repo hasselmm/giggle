@@ -40,7 +40,8 @@ static GOptionEntry options[] = {
 };
 
 int
-main (int argc, char **argv)
+main (int    argc,
+      char **argv)
 {
 	GtkWidget      *window;
 	gchar          *dir;
@@ -81,7 +82,12 @@ main (int argc, char **argv)
 
 	if (!dir || !*dir) {
 		g_free (dir);
-		dir = g_get_current_dir ();
+
+		if (argc > 1 && *argv[1]) {
+			dir = g_strdup (argv[1]);
+		} else {
+			dir = g_get_current_dir ();
+		}
 	}
 
 	g_unsetenv ("GIT_DIR");
