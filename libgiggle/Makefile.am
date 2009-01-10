@@ -27,6 +27,8 @@ libgiggle_la_SOURCES = \
 	giggle-branch.h \
 	giggle-configuration.c \
 	giggle-configuration.h \
+	giggle-clipboard.c \
+	giggle-clipboard.h \
 	giggle-dispatcher.c \
 	giggle-dispatcher.h \
 	giggle-dummy.c \
