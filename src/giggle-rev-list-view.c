@@ -1831,3 +1831,36 @@ giggle_rev_list_view_set_compact_mode (GiggleRevListView *list,
 		g_object_notify (G_OBJECT (list), "compact-mode");
 	}
 }
+
+GList *
+giggle_rev_list_view_get_selection (GiggleRevListView *list)
+{
+	GList            *result = NULL;
+	GtkTreeSelection *selection;
+	GtkTreeModel     *model;
+	GList            *rows;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION_LIST (list), NULL);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	rows = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	while (rows) {
+		GiggleRevision *revision;
+		GtkTreeIter     iter;
+
+		if (gtk_tree_model_get_iter (model, &iter, rows->data)) {
+			gtk_tree_model_get (model, &iter,
+					    COL_OBJECT, &revision,
+					    -1);
+
+			result = g_list_prepend (result, revision);
+		}
+
+		gtk_tree_path_free (rows->data);
+		rows = g_list_delete_link (rows, rows);
+	}
+
+	return result;
+}
+

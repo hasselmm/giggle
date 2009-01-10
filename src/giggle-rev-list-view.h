@@ -57,12 +57,13 @@ void               giggle_rev_list_view_set_model         (GiggleRevListView *li
 
 gboolean           giggle_rev_list_view_get_graph_visible (GiggleRevListView *list);
 void               giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
-							   gboolean            show_graph);
+							   gboolean           show_graph);
 
 gboolean           giggle_rev_list_view_get_compact_mode  (GiggleRevListView *list);
 void               giggle_rev_list_view_set_compact_mode  (GiggleRevListView *list,
-							   gboolean            compact_mode);
+							   gboolean           compact_mode);
 
+GList *		   giggle_rev_list_view_get_selection     (GiggleRevListView *list);
 
 G_END_DECLS
 
