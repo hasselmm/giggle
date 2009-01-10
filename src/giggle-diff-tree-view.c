@@ -151,8 +151,12 @@ giggle_diff_tree_view_init (GiggleDiffTreeView *view)
 {
 	GiggleDiffTreeViewPriv *priv;
 	GtkCellRenderer        *renderer;
+	GtkTreeSelection       *selection;
 
 	priv = GET_PRIV (view);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (view));
+	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 
