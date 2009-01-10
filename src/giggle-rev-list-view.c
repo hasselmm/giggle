@@ -23,22 +23,25 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-git-log.h"
-#include "libgiggle/giggle-git-diff.h"
+#include "giggle-diff-window.h"
 #include "giggle-graph-renderer.h"
-#include "giggle-revision-tooltip.h"
+#include "giggle-input-dialog.h"
 #include "giggle-rev-list-view.h"
-#include "libgiggle/giggle-revision.h"
-#include "libgiggle/giggle-marshal.h"
-#include "libgiggle/giggle-searchable.h"
+#include "giggle-revision-tooltip.h"
+
 #include "libgiggle/giggle-branch.h"
+#include "libgiggle/giggle-clipboard.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-marshal.h"
+#include "libgiggle/giggle-revision.h"
+#include "libgiggle/giggle-searchable.h"
 #include "libgiggle/giggle-tag.h"
+
 #include "libgiggle/giggle-git-add-ref.h"
 #include "libgiggle/giggle-git-delete-ref.h"
-#include "giggle-input-dialog.h"
-#include "giggle-diff-window.h"
+#include "libgiggle/giggle-git-diff.h"
+#include "libgiggle/giggle-git-log.h"
+#include "libgiggle/giggle-git.h"
 
 typedef struct GiggleRevListViewPriv GiggleRevListViewPriv;
 
@@ -109,6 +112,7 @@ static guint signals [LAST_SIGNAL] = { 0 };
 
 static void rev_list_view_finalize                (GObject *object);
 static void giggle_rev_list_view_searchable_init  (GiggleSearchableIface *iface);
+static void giggle_rev_list_view_clipboard_init   (GiggleClipboardIface *iface);
 static void rev_list_view_get_property            (GObject        *object,
 						   guint           param_id,
 						   GValue         *value,
@@ -167,7 +171,9 @@ static void rev_list_view_create_patch            (GtkAction          *action,
 
 G_DEFINE_TYPE_WITH_CODE (GiggleRevListView, giggle_rev_list_view, GTK_TYPE_TREE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
-						giggle_rev_list_view_searchable_init))
+						giggle_rev_list_view_searchable_init)
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
+						giggle_rev_list_view_clipboard_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_LIST, GiggleRevListViewPriv))
 
@@ -246,6 +252,77 @@ giggle_rev_list_view_searchable_init (GiggleSearchableIface *iface)
 {
 	iface->search = rev_list_view_search;
 	iface->cancel = rev_list_view_cancel_search;
+}
+
+static gboolean
+rev_list_view_can_copy (GiggleClipboard *clipboard)
+{
+	gboolean result = FALSE;
+	GList   *selection, *l;
+	
+	selection = giggle_rev_list_view_get_selection (GIGGLE_REV_LIST_VIEW (clipboard));
+
+	for (l = selection; l; l = l->next) {
+		if (selection->data && giggle_revision_get_sha (selection->data)) {
+			result = TRUE;
+			break;
+		}
+	}
+
+	while (selection) {
+		if (selection->data)
+			g_object_unref (selection->data);
+
+		selection = g_list_delete_link (selection, selection);
+	}
+
+	return result;
+}
+
+static void
+rev_list_view_do_copy (GiggleClipboard *clipboard)
+{
+	GList      *selection;
+	GString    *text;
+	const char *sha;
+
+	selection = giggle_rev_list_view_get_selection (GIGGLE_REV_LIST_VIEW (clipboard));
+	text = g_string_new (NULL);
+
+	while (selection) {
+		if (selection->data) {
+			sha = giggle_revision_get_sha (selection->data);
+
+			if (sha) {
+				if (text->len)
+					g_string_append_c (text, ' ');
+
+				g_string_append (text, sha);
+			}
+
+			g_object_unref (selection->data);
+		}
+
+		selection = g_list_delete_link (selection, selection);
+	}
+
+	if (text->len) {
+		GtkClipboard *display_clipboard;
+		GdkDisplay   *display;
+
+		display = gtk_widget_get_display (GTK_WIDGET (clipboard));
+		display_clipboard = gtk_clipboard_get_for_display (display, GDK_SELECTION_CLIPBOARD);
+		gtk_clipboard_set_text (display_clipboard, text->str, text->len);
+	}
+
+	g_string_free (text, TRUE);
+}
+
+static void
+giggle_rev_list_view_clipboard_init (GiggleClipboardIface *iface)
+{
+	iface->can_copy = rev_list_view_can_copy;
+	iface->do_copy  = rev_list_view_do_copy;
 }
 
 static void
@@ -1070,6 +1147,8 @@ rev_list_view_selection_changed_cb (GtkTreeSelection  *selection,
 
 	list = GIGGLE_REV_LIST_VIEW (data);
 	priv = GET_PRIV (list);
+
+	giggle_clipboard_changed (GIGGLE_CLIPBOARD (list));
 
 	rows = gtk_tree_selection_get_selected_rows (selection, &model);
 	first_revision = last_revision = NULL;
