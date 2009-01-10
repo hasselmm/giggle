@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.52)
+AC_PREREQ([2.59])
 
 AC_INIT([giggle],[0.4],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=giggle])
@@ -7,10 +7,8 @@ AC_INIT([giggle],[0.4],
 AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
-
-AM_MAINTAINER_MODE
-AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE([-Wall -Werror])
+AM_CONFIG_HEADER([config.h])
 
 AM_DISABLE_STATIC
 CXX=no
