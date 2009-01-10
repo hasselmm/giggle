@@ -31,6 +31,8 @@
 #include "libgiggle/giggle-git-add.h"
 #include "libgiggle/giggle-git-diff.h"
 #include "libgiggle/giggle-git-diff-tree.h"
+
+#include "libgiggle/giggle-clipboard.h"
 #include "libgiggle/giggle-revision.h"
 #include "libgiggle/giggle-enums.h"
 
@@ -146,8 +148,11 @@ static void       file_list_cell_pixbuf_func          (GtkCellLayout   *cell_lay
 						       gpointer         data);
 static void       file_list_idle_data_free            (IdleLoaderData  *data);
 
+static void       giggle_file_list_clipboard_init     (GiggleClipboardIface *iface);
 
-G_DEFINE_TYPE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW)
+G_DEFINE_TYPE_WITH_CODE (GiggleFileList, giggle_file_list, GTK_TYPE_TREE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
+						giggle_file_list_clipboard_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_FILE_LIST, GiggleFileListPriv))
 
@@ -253,6 +258,49 @@ giggle_file_list_class_init (GiggleFileListClass *class)
 			      G_TYPE_NONE, 0);
 
 	g_type_class_add_private (object_class, sizeof (GiggleFileListPriv));
+}
+
+static gboolean
+file_list_can_copy (GiggleClipboard *clipboard)
+{
+	GtkTreeSelection *selection;
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (clipboard));
+	return gtk_tree_selection_count_selected_rows (selection) > 0;
+}
+
+static void
+file_list_do_copy (GiggleClipboard *clipboard)
+{
+	GiggleFileList *list = GIGGLE_FILE_LIST (clipboard);
+	GtkClipboard   *widget_clipboard;
+	GList          *selection;
+	GString        *text;
+
+	text = g_string_new (NULL);
+	selection = giggle_file_list_get_selection (list);
+
+	while (selection) {
+		if (text->len)
+			g_string_append_c (text, ' ');
+
+		g_string_append (text, selection->data);
+
+		g_free (selection->data);
+		selection = g_list_delete_link (selection, selection);
+	}
+
+	widget_clipboard = gtk_widget_get_clipboard (GTK_WIDGET (list),
+						     GDK_SELECTION_CLIPBOARD);
+	gtk_clipboard_set_text (widget_clipboard, text->str, text->len);
+
+	g_string_free (text, TRUE);
+}
+
+static void
+giggle_file_list_clipboard_init (GiggleClipboardIface *iface)
+{
+	iface->can_copy = file_list_can_copy;
+	iface->do_copy  = file_list_do_copy;
 }
 
 static void
