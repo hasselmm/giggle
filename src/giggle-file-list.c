@@ -459,16 +459,34 @@ file_list_status_changed (GiggleFileList *list)
 }
 
 static void
+file_list_row_activated (GtkTreeView       *tree_view,
+                         GtkTreePath       *path,
+                         GtkTreeViewColumn *column)
+{
+	GiggleFileListPriv *priv = GET_PRIV (tree_view);
+	GtkAction          *action;
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, "/ui/PopupMenu/Edit");
+	gtk_action_activate (action);
+
+	if (GTK_TREE_VIEW_CLASS (giggle_file_list_parent_class)->row_activated)
+		GTK_TREE_VIEW_CLASS (giggle_file_list_parent_class)->row_activated (tree_view, path, column);
+}
+
+static void
 giggle_file_list_class_init (GiggleFileListClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
-	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
+	GObjectClass     *object_class    = G_OBJECT_CLASS      (class);
+	GtkWidgetClass   *widget_class    = GTK_WIDGET_CLASS    (class);
+	GtkTreeViewClass *tree_view_class = GTK_TREE_VIEW_CLASS (class);
 
-	object_class->finalize     = file_list_finalize;
-	object_class->get_property = file_list_get_property;
-	object_class->set_property = file_list_set_property;
+	object_class->finalize           = file_list_finalize;
+	object_class->get_property       = file_list_get_property;
+	object_class->set_property       = file_list_set_property;
 
 	widget_class->button_press_event = file_list_button_press;
+
+	tree_view_class->row_activated   = file_list_row_activated;
 
 	class->project_loaded            = file_list_project_loaded;
 	class->status_changed            = file_list_status_changed;
