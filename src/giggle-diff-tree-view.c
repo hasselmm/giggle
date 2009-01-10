@@ -23,10 +23,13 @@
 #include <gtk/gtk.h>
 
 #include "giggle-diff-tree-view.h"
-#include "libgiggle/giggle-revision.h"
-#include "libgiggle/giggle-git-diff-tree.h"
-#include "libgiggle/giggle-job.h"
+
 #include "libgiggle/giggle-git.h"
+#include "libgiggle/giggle-git-diff-tree.h"
+
+#include "libgiggle/giggle-clipboard.h"
+#include "libgiggle/giggle-job.h"
+#include "libgiggle/giggle-revision.h"
 
 typedef struct GiggleDiffTreeViewPriv GiggleDiffTreeViewPriv;
 
@@ -50,12 +53,15 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
-static void      diff_tree_view_finalize           (GObject        *object);
-static gboolean  diff_tree_view_button_press       (GtkWidget      *widget,
-						    GdkEventButton *event);
+static void      giggle_diff_tree_view_clipboard_init (GiggleClipboardIface *iface);
+static void      diff_tree_view_finalize              (GObject              *object);
+static gboolean  diff_tree_view_button_press          (GtkWidget            *widget,
+						       GdkEventButton       *event);
 
 
-G_DEFINE_TYPE (GiggleDiffTreeView, giggle_diff_tree_view, GTK_TYPE_TREE_VIEW)
+G_DEFINE_TYPE_WITH_CODE (GiggleDiffTreeView, giggle_diff_tree_view, GTK_TYPE_TREE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
+						giggle_diff_tree_view_clipboard_init))
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_DIFF_TREE_VIEW, GiggleDiffTreeViewPriv))
 
@@ -80,6 +86,36 @@ giggle_diff_tree_view_class_init (GiggleDiffTreeViewClass *class)
 			      1, G_TYPE_STRING);
 
 	g_type_class_add_private (object_class, sizeof (GiggleDiffTreeViewPriv));
+}
+
+static gboolean
+diff_tree_view_can_copy (GiggleClipboard *clipboard)
+{
+	GtkTreeSelection *selection;
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (clipboard));
+	return gtk_tree_selection_count_selected_rows (selection) > 0;
+}
+
+static void
+diff_tree_view_do_copy (GiggleClipboard *clipboard)
+{
+	GiggleDiffTreeView *view = GIGGLE_DIFF_TREE_VIEW (clipboard);
+	GtkClipboard       *widget_clipboard;
+	char               *text;
+
+	widget_clipboard = gtk_widget_get_clipboard (GTK_WIDGET (view),
+						     GDK_SELECTION_CLIPBOARD);
+
+	text = giggle_diff_tree_view_get_selection (view);
+	gtk_clipboard_set_text (widget_clipboard, text, -1);
+	g_free (text);
+}
+
+static void
+giggle_diff_tree_view_clipboard_init (GiggleClipboardIface *iface)
+{
+	iface->can_copy = diff_tree_view_can_copy;
+	iface->do_copy  = diff_tree_view_do_copy;
 }
 
 static void
