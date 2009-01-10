@@ -47,6 +47,10 @@ giggle_SOURCES= \
 	giggle-remotes-view.h \
 	giggle-rev-list-view.c \
 	giggle-rev-list-view.h \
+	giggle-revision-info.c \
+	giggle-revision-info.h \
+	giggle-revision-info-action.c \
+	giggle-revision-info-action.h \
 	giggle-revision-tooltip.c \
 	giggle-revision-tooltip.h \
 	giggle-revision-view.c \

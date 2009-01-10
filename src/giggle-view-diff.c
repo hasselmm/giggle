@@ -27,7 +27,7 @@
 #include "giggle-diff-tree-view.h"
 #include "giggle-diff-view.h"
 #include "giggle-helpers.h"
-#include "giggle-label-action.h"
+#include "giggle-revision-info-action.h"
 
 typedef struct GiggleViewDiffPriv GiggleViewDiffPriv;
 
@@ -39,8 +39,7 @@ struct GiggleViewDiffPriv {
 	GtkWidget      *view_shell_separator;
 
 	GtkActionGroup *action_group;
-	GtkAction      *status_action;
-	GtkAction      *info_action;
+	GtkAction      *revision_info;
 
 	GiggleRevision *revision;
 };
@@ -62,14 +61,9 @@ view_diff_dispose (GObject *object)
 		priv->action_group = NULL;
 	}
 
-	if (priv->status_action) {
-		g_object_unref (priv->status_action);
-		priv->status_action = NULL;
-	}
-
-	if (priv->info_action) {
-		g_object_unref (priv->info_action);
-		priv->info_action = NULL;
+	if (priv->revision_info) {
+		g_object_unref (priv->revision_info);
+		priv->revision_info = NULL;
 	}
 
 	G_OBJECT_CLASS (giggle_view_diff_parent_class)->dispose (object);
@@ -85,11 +79,10 @@ static void
 view_diff_update_status (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
-	GtkAction          *action;
+	GtkAction	   *action;
 	char		   *format, *markup;
 	int		    current_hunk, n_hunks;
-	char	   	   *current_file;
-	const char         *summary;
+	char		   *current_file;
 
 	priv = GET_PRIV (view);
 
@@ -108,41 +101,21 @@ view_diff_update_status (GiggleViewDiff *view)
 		gtk_action_set_sensitive (action, current_hunk < n_hunks - 1);
 	}
 
-	if (priv->revision) {
-		summary = giggle_revision_get_short_log (priv->revision);
-	} else {
-		summary = _("Uncommitted changes");
-	}
+	format = g_markup_printf_escaped ("<b>%s</b>", _("Change %d of %d"));
+	markup = g_markup_printf_escaped (format, current_hunk + 1, n_hunks);
 
-	format = g_markup_printf_escaped ("<b>%s %s</b>\n%%s", _("Change"), _("%d of %d"));
-	markup = g_markup_printf_escaped (format, current_hunk + 1, n_hunks, summary);
-
-	giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->status_action), markup);
+	giggle_revision_info_action_set_markup
+		(GIGGLE_REVISION_INFO_ACTION (priv->revision_info),
+		 markup);
+	giggle_revision_info_action_set_revision
+		(GIGGLE_REVISION_INFO_ACTION (priv->revision_info),
+		 priv->revision);
 
 	g_free (markup);
 	g_free (format);
 
-	if (priv->revision) {
-		char             date[256];
-		const struct tm *tm;
-
-		if (NULL != (tm = giggle_revision_get_date (priv->revision))) {
-			strftime (date, sizeof (date), "%c", tm);
-		} else {
-			*date = '\0';
-		}
-
-		markup = g_strconcat (giggle_revision_get_sha (priv->revision), "\n", date, NULL);
-
-		giggle_label_action_set_markup (GIGGLE_LABEL_ACTION (priv->info_action), markup);
-		gtk_action_set_visible (priv->info_action, TRUE);
-
-		g_free (markup);
-	} else {
-		gtk_action_set_visible (priv->info_action, FALSE);
-	}
-
 	tree_view_select_row_by_string (priv->file_view, 0, current_file);
+
 	g_free (current_file);
 }
 
@@ -198,8 +171,7 @@ view_diff_add_ui (GiggleView   *view,
 		"    <placeholder name='Actions'>"
 		"      <toolitem action='ViewDiffPreviousChange' />"
 		"      <toolitem action='ViewDiffNextChange' />"
-		"      <toolitem action='ViewDiffStatus' />"
-		"      <toolitem action='ViewDiffInfo' />"
+		"      <toolitem action='ViewDiffRevisionInfo' />"
 		"     </placeholder>"
 		"  </toolbar>"
 		"</ui>";
@@ -229,8 +201,7 @@ view_diff_add_ui (GiggleView   *view,
 		gtk_action_group_set_sensitive (priv->action_group, n_hunks > 0);
 		gtk_action_group_set_translation_domain (priv->action_group, GETTEXT_PACKAGE);
 		gtk_action_group_add_actions (priv->action_group, actions, G_N_ELEMENTS (actions), view);
-		gtk_action_group_add_action (priv->action_group, priv->status_action);
-		gtk_action_group_add_action (priv->action_group, priv->info_action);
+		gtk_action_group_add_action (priv->action_group, priv->revision_info);
 
 		gtk_ui_manager_insert_action_group (manager, priv->action_group, 0);
 		gtk_ui_manager_add_ui_from_string (manager, layout, G_N_ELEMENTS (layout) - 1, NULL);
@@ -301,14 +272,7 @@ giggle_view_diff_init (GiggleViewDiff *view)
 
 	priv = GET_PRIV (view);
 
-	priv->status_action = giggle_label_action_new ("ViewDiffStatus");
-	giggle_label_action_set_selectable (GIGGLE_LABEL_ACTION (priv->status_action), TRUE);
-	giggle_label_action_set_ellipsize (GIGGLE_LABEL_ACTION (priv->status_action), PANGO_ELLIPSIZE_END);
-
-	priv->info_action = giggle_label_action_new ("ViewDiffInfo");
-	giggle_label_action_set_justify (GIGGLE_LABEL_ACTION (priv->info_action), GTK_JUSTIFY_RIGHT);
-	giggle_label_action_set_alignment (GIGGLE_LABEL_ACTION (priv->info_action), 1.0, 0.5);
-	giggle_label_action_set_selectable (GIGGLE_LABEL_ACTION (priv->info_action), TRUE);
+	priv->revision_info = giggle_revision_info_action_new ("ViewDiffRevisionInfo");
 
 	gtk_widget_push_composite_child ();
 

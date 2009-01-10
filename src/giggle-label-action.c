@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2007 Imendio AB
+ * Copyright (C) 2008 Mathias Hasselmann
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -274,11 +274,11 @@ giggle_label_action_class_init (GiggleLabelActionClass *class)
 }
 
 static void
-giggle_label_action_init (GiggleLabelAction *view)
+giggle_label_action_init (GiggleLabelAction *action)
 {
 	GiggleLabelActionPriv *priv;
 
-	priv = GET_PRIV (view);
+	priv = GET_PRIV (action);
 	priv->xalign = 0.0;
 	priv->yalign = 0.5;
 }
