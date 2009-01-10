@@ -36,6 +36,8 @@
 #include "giggle-view-history.h"
 #include "giggle-view-shell.h"
 #include "giggle-view-summary.h"
+
+#include "libgiggle/giggle-clipboard.h"
 #include "libgiggle/giggle-configuration.h"
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-history.h"
@@ -81,6 +83,8 @@ struct GiggleWindowPriv {
 #if 0
 	GtkWidget           *diff_current_window;
 #endif
+
+	GiggleClipboard	    *clipboard;
 };
 
 enum {
@@ -96,8 +100,6 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 
 #if 0
 #define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
-#endif
-#if 0
 #define FORWARD_HISTORY_PATH		"/ui/MainToolbar/ForwardHistory"
 #endif
 #define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
@@ -105,6 +107,11 @@ G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
 #define SAVE_PATCH_UI_PATH 		"/ui/MainMenubar/ProjectMenu/SavePatch"
 #endif
 #define SHOW_GRAPH_PATH			"/ui/MainMenubar/ViewMenu/ShowGraph"
+
+#define CUT_PATH			"/ui/MainMenubar/EditMenu/Cut"
+#define COPY_PATH			"/ui/MainMenubar/EditMenu/Copy"
+#define PASTE_PATH			"/ui/MainMenubar/EditMenu/Paste"
+#define DELETE_PATH			"/ui/MainMenubar/EditMenu/Delete"
 
 static void
 window_dispose (GObject *object)
@@ -211,15 +218,83 @@ window_delete_event (GtkWidget   *widget,
 }
 
 static void
+window_clipboard_changed_cb (GiggleClipboard *clipboard,
+			     GiggleWindow    *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+
+	if (!priv->ui_manager)
+		return;
+
+	gtk_action_set_sensitive (gtk_ui_manager_get_action (priv->ui_manager, CUT_PATH),
+			          clipboard && giggle_clipboard_can_cut (clipboard));
+	gtk_action_set_sensitive (gtk_ui_manager_get_action (priv->ui_manager, COPY_PATH),
+			          clipboard && giggle_clipboard_can_copy (clipboard));
+	gtk_action_set_sensitive (gtk_ui_manager_get_action (priv->ui_manager, PASTE_PATH),
+			          clipboard && giggle_clipboard_can_paste (clipboard));
+	gtk_action_set_sensitive (gtk_ui_manager_get_action (priv->ui_manager, DELETE_PATH),
+			          clipboard && giggle_clipboard_can_delete (clipboard));
+}
+
+static GiggleClipboard *
+window_find_clipboard (GiggleWindow *window)
+{
+	GtkWidget *child;
+
+	child = gtk_window_get_focus (GTK_WINDOW (window));
+
+	if (child && !GIGGLE_IS_CLIPBOARD (child))
+		child = gtk_widget_get_ancestor (child, GIGGLE_TYPE_CLIPBOARD);
+
+	if (child)
+		return GIGGLE_CLIPBOARD (child);
+
+	return NULL;
+}
+
+static void
+window_set_focus (GtkWindow *window,
+		  GtkWidget *widget)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	GiggleClipboard  *clipboard;
+
+	GTK_WINDOW_CLASS (giggle_window_parent_class)->set_focus (window, widget);
+
+	clipboard = window_find_clipboard (GIGGLE_WINDOW (window));
+
+	if (clipboard != priv->clipboard) {
+		if (priv->clipboard) {
+			g_signal_handlers_disconnect_by_func (priv->clipboard,
+							      window_clipboard_changed_cb,
+							      window);
+
+			priv->clipboard = NULL;
+		}
+
+		priv->clipboard = clipboard;
+
+		if (priv->clipboard) {
+			g_signal_connect (priv->clipboard, "clipboard-changed",
+					  G_CALLBACK (window_clipboard_changed_cb),
+					  window);
+		}
+	}
+
+	window_clipboard_changed_cb (priv->clipboard, GIGGLE_WINDOW (window));
+}
+
+static void
 giggle_window_class_init (GiggleWindowClass *class)
 {
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
+	GtkWindowClass *window_class = GTK_WINDOW_CLASS (class);
 
-	object_class->dispose = window_dispose;
-
+	object_class->dispose         = window_dispose;
 	widget_class->configure_event = window_configure_event;
 	widget_class->delete_event    = window_delete_event;
+	window_class->set_focus       = window_set_focus;
 
 	g_type_class_add_private (class, sizeof (GiggleWindowPriv));
 }
@@ -425,6 +500,46 @@ window_action_quit_cb (GtkAction    *action,
 {
 	window_save_state (window);
 	gtk_widget_hide (GTK_WIDGET (window));
+}
+
+static void
+window_action_cut_cb (GtkAction    *action,
+		      GiggleWindow *window)
+{
+	GiggleClipboard *clipboard = window_find_clipboard (window);
+
+	if (clipboard && giggle_clipboard_can_cut (clipboard))
+		giggle_clipboard_cut (clipboard);
+}
+
+static void
+window_action_copy_cb (GtkAction    *action,
+		      GiggleWindow *window)
+{
+	GiggleClipboard *clipboard = window_find_clipboard (window);
+
+	if (clipboard && giggle_clipboard_can_copy (clipboard))
+		giggle_clipboard_copy (clipboard);
+}
+
+static void
+window_action_paste_cb (GtkAction    *action,
+		      GiggleWindow *window)
+{
+	GiggleClipboard *clipboard = window_find_clipboard (window);
+
+	if (clipboard && giggle_clipboard_can_paste (clipboard))
+		giggle_clipboard_paste (clipboard);
+}
+
+static void
+window_action_delete_cb (GtkAction    *action,
+		      GiggleWindow *window)
+{
+	GiggleClipboard *clipboard = window_find_clipboard (window);
+
+	if (clipboard && giggle_clipboard_can_delete (clipboard))
+		giggle_clipboard_delete (clipboard);
 }
 
 static void
@@ -635,6 +750,19 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_quit_cb)
 		},
 
+		{ "Cut", GTK_STOCK_CUT, NULL, NULL, NULL,
+		  G_CALLBACK (window_action_cut_cb)
+		},
+		{ "Copy", GTK_STOCK_COPY, NULL, NULL, NULL,
+		  G_CALLBACK (window_action_copy_cb)
+		},
+		{ "Paste", GTK_STOCK_PASTE, NULL, NULL, NULL,
+		  G_CALLBACK (window_action_paste_cb)
+		},
+		{ "Delete", GTK_STOCK_DELETE, NULL, NULL, NULL,
+		  G_CALLBACK (window_action_delete_cb)
+		},
+
 		{ "PersonalDetails", GTK_STOCK_PREFERENCES, N_("_Personal Details"),
 		  NULL, N_("Edit Personal details"),
 		  G_CALLBACK (window_action_personal_details_cb)
@@ -684,6 +812,11 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <menuitem action='Quit'/>"
 		"    </menu>"
 		"    <menu action='EditMenu'>"
+		"      <menuitem action='Cut'/>"
+		"      <menuitem action='Copy'/>"
+		"      <menuitem action='Paste'/>"
+		"      <menuitem action='Delete'/>"
+		"      <separator/>"
 		"      <menuitem action='Find'/>"
 		"      <menuitem action='FindNext'/>"
 		"      <menuitem action='FindPrev'/>"
