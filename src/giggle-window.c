@@ -92,7 +92,12 @@ enum {
 	SEARCH_PREV
 };
 
-G_DEFINE_TYPE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW)
+static void giggle_window_clipboard_init (GiggleClipboardIface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
+						giggle_window_clipboard_init))
+
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
@@ -257,11 +262,38 @@ window_set_focus (GtkWindow *window,
 		  GtkWidget *widget)
 {
 	GiggleWindowPriv *priv = GET_PRIV (window);
+	gpointer          clipboard_proxy;
 	GiggleClipboard  *clipboard;
+	GtkTextBuffer    *buffer;
+
+	clipboard_proxy = gtk_window_get_focus (window);
+
+	if (GTK_IS_TEXT_VIEW (clipboard_proxy))
+		clipboard_proxy = gtk_text_view_get_buffer (clipboard_proxy);
+
+	if (clipboard_proxy) {
+		g_signal_handlers_disconnect_by_func (clipboard_proxy,
+						      giggle_clipboard_changed, window);
+	}
 
 	GTK_WINDOW_CLASS (giggle_window_parent_class)->set_focus (window, widget);
 
 	clipboard = window_find_clipboard (GIGGLE_WINDOW (window));
+
+	if (GTK_IS_LABEL (widget)) {
+		g_signal_connect_swapped (widget, "notify::cursor-position",
+					  G_CALLBACK (giggle_clipboard_changed),
+					  window);
+		g_signal_connect_swapped (widget, "notify::selection-bound",
+					  G_CALLBACK (giggle_clipboard_changed),
+					  window);
+	} else if (GTK_IS_TEXT_VIEW (widget)) {
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (widget));
+
+		g_signal_connect_swapped (buffer, "notify::has-selection",
+					  G_CALLBACK (giggle_clipboard_changed),
+					  window);
+	}
 
 	if (clipboard != priv->clipboard) {
 		if (priv->clipboard) {
@@ -297,6 +329,80 @@ giggle_window_class_init (GiggleWindowClass *class)
 	window_class->set_focus       = window_set_focus;
 
 	g_type_class_add_private (class, sizeof (GiggleWindowPriv));
+}
+
+static gboolean
+window_can_copy (GiggleClipboard *clipboard)
+{
+	GtkTextBuffer *buffer;
+	GtkWidget     *focus;
+
+	focus = gtk_window_get_focus (GTK_WINDOW (clipboard));
+
+	if (GTK_IS_LABEL (focus))
+		return gtk_label_get_selection_bounds (GTK_LABEL (focus), NULL, NULL);
+
+	if (GTK_IS_TEXT_VIEW (focus)) {
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (focus));
+		return gtk_text_buffer_get_selection_bounds (buffer, NULL, NULL);
+	}
+
+	return FALSE;
+}
+
+static void
+window_set_clipboard_text (GtkWidget  *widget,
+			   const char *text,
+			   int         len)
+{
+	GdkDisplay   *display = gtk_widget_get_display (widget);
+	GtkClipboard *clipboard;
+
+	clipboard = gtk_clipboard_get_for_display (display,
+						   GDK_SELECTION_CLIPBOARD);
+	gtk_clipboard_set_text (clipboard, text, len);
+}
+
+static void
+window_do_copy (GiggleClipboard *clipboard)
+{
+	GtkWidget  *focus = gtk_window_get_focus (GTK_WINDOW (clipboard));
+
+	if (GTK_IS_LABEL (focus)) {
+		int         start_offset, end_offset;
+		char       *begin, *end;
+		const char *text;
+
+		if (gtk_label_get_selection_bounds (GTK_LABEL (focus),
+						    &start_offset, &end_offset)) {
+			text = gtk_label_get_text (GTK_LABEL (focus));
+			begin = g_utf8_offset_to_pointer (text, start_offset);
+			end = g_utf8_offset_to_pointer (text, end_offset);
+
+			if (end > begin)
+				window_set_clipboard_text (GTK_WIDGET (clipboard),
+							   begin, end - begin);
+		}
+	} else if (GTK_IS_TEXT_VIEW (focus)) {
+		GtkTextIter    start, end;
+		GtkTextBuffer *buffer;
+		char          *text;
+
+		buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (focus));
+
+		if (gtk_text_buffer_get_selection_bounds (buffer, &start, &end)) {
+			text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+			window_set_clipboard_text (GTK_WIDGET (clipboard), text, -1);
+			g_free (text);
+		}
+	}
+}
+
+static void
+giggle_window_clipboard_init (GiggleClipboardIface *iface)
+{
+	iface->can_copy = window_can_copy;
+	iface->do_copy  = window_do_copy;
 }
 
 #if 0
