@@ -115,6 +115,7 @@ AC_SUBST(ACLOCAL_AMFLAGS)
 AC_OUTPUT([
 	Makefile 
 	libgiggle/Makefile
+	plugins/Makefile
 	src/Makefile
 	data/Makefile
 	pixmaps/Makefile

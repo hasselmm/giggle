@@ -1,0 +1,33 @@
+<interface>
+  <object class="GigglePlugin" id="plugin">
+    <property name="description" translatable="yes">Demonstration of Giggle's Plugin System</property>
+
+    <child>
+      <object class="GtkActionGroup" id="ActionGroup">
+        <child>
+          <object class="GtkAction" id="HelloWorld">
+            <property name="label"   translatable="yes">_Hello World</property>
+            <property name="tooltip" translatable="yes">Check if the plugin system works</property>
+            <property name="stock-id">gtk-about</property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <ui>
+      <menubar name="MainMenubar">
+        <menu action="EditMenu">
+          <menuitem action="HelloWorld" />
+        </menu>
+      </menubar>
+
+      <toolbar name="MainToolbar">
+        <placeholder name="Actions">
+          <toolitem action="HelloWorld" />
+        </placeholder>
+      </toolbar>
+    </ui>
+  </object>
+</interface>
+
+

@@ -240,10 +240,6 @@ binding_notify_callback (GObject    *object,
 	GValue                      value = { 0, };
 
 	if (binding->configuration) {
-		g_print ("commiting for \"%s\" on `%s' to `%s'\n",
-			 binding->pspec->name, G_OBJECT_TYPE_NAME (binding->object),
-			 fields[binding->field].name);
-
 		g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
 		g_object_get_property (object, pspec->name, &value);
 		binding->commit (binding, &value);
@@ -260,10 +256,6 @@ giggle_configuration_binding_update (GiggleConfigurationBinding *binding)
 	    !binding->configuration ||
 	    !GET_PRIV (binding->configuration)->config)
 	       return;
-
-	g_print ("updating `%s' binding for \"%s\" on `%s'\n",
-		 fields[binding->field].name, binding->pspec->name,
-		 G_OBJECT_TYPE_NAME (binding->object));
 
 	binding->update (binding);
 

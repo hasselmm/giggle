@@ -1,8 +1,8 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
-	-DGLADEDIR=\""$(datadir)/giggle/glade"\" \
-	$(GIGGLE_CFLAGS) \
-	$(PLATFORM_CFLAGS) \
+	-DGLADEDIR='"$(pkgdatadir)/glade"' \
+	-DPLUGINDIR='"$(pkglibdir)/plugins"' \
+	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
 
 lib_LTLIBRARIES = libgiggle.la \
@@ -39,6 +39,10 @@ libgiggle_la_SOURCES = \
 	giggle-history.h \
 	giggle-job.c \
 	giggle-job.h \
+	giggle-plugin.c \
+	giggle-plugin.h \
+	giggle-plugin-manager.c \
+	giggle-plugin-manager.h \
 	giggle-ref.c \
 	giggle-ref.h \
 	giggle-remote.c \

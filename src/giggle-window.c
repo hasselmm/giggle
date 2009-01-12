@@ -41,6 +41,7 @@
 #include "libgiggle/giggle-configuration.h"
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-history.h"
+#include "libgiggle/giggle-plugin-manager.h"
 #include "libgiggle/giggle-searchable.h"
 
 #ifdef GDK_WINDOWING_QUARTZ
@@ -72,7 +73,7 @@ struct GiggleWindowPriv {
 	GtkWidget           *history_view;
 
 	/* Dialogs */
-	GtkWidget	    *summary_dialog;
+	GtkWidget           *summary_dialog;
 	GtkWidget           *personal_details_window;
 
 	/* Recent File Manager */
@@ -84,7 +85,8 @@ struct GiggleWindowPriv {
 	GtkWidget           *diff_current_window;
 #endif
 
-	GiggleClipboard	    *clipboard;
+	GiggleClipboard     *clipboard;
+	GigglePluginManager *plugin_manager;
 };
 
 enum {
@@ -158,6 +160,11 @@ window_dispose (GObject *object)
 	if (priv->configuration) {
 		g_object_unref (priv->configuration);
 		priv->configuration = NULL;
+	}
+
+	if (priv->plugin_manager) {
+		g_object_unref (priv->plugin_manager);
+		priv->plugin_manager = NULL;
 	}
 
 	G_OBJECT_CLASS (giggle_window_parent_class)->dispose (object);
@@ -1269,11 +1276,29 @@ window_recent_repositories_add (GiggleWindow *window)
 }
 
 static void
+window_plugin_added_cb (GigglePluginManager *manager,
+			GigglePlugin        *plugin,
+			GiggleWindow        *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	GError           *error = NULL;
+
+	g_print ("%s: %s - %s\n", G_STRFUNC,
+		 giggle_plugin_get_filename (plugin),
+		 giggle_plugin_get_description (plugin));
+
+	if (!giggle_plugin_merge_ui (plugin, priv->ui_manager, &error)) {
+		g_warning ("%s: %s", G_STRFUNC, error->message);
+		g_clear_error (&error);
+	}
+
+	gtk_ui_manager_ensure_update (priv->ui_manager);
+}
+
+static void
 giggle_window_init (GiggleWindow *window)
 {
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
+	GiggleWindowPriv *priv = GET_PRIV (window);
 
 	priv->configuration = giggle_configuration_new ();
 	priv->git = giggle_git_get ();
@@ -1325,6 +1350,11 @@ giggle_window_init (GiggleWindow *window)
 				  G_CALLBACK (window_update_toolbar_buttons), window);
 
 #endif
+
+	priv->plugin_manager = giggle_plugin_manager_new ();
+
+	g_signal_connect (priv->plugin_manager, "plugin-added",
+			  G_CALLBACK (window_plugin_added_cb), window);
 }
 
 #if 0

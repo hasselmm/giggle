@@ -1,20 +1,16 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
-	-DGLADEDIR=\""$(datadir)/giggle/glade"\" \
-	$(GIGGLE_CFLAGS) \
-	$(PLATFORM_CFLAGS) \
+	-DGLADEDIR='"$(pkgdatadir)/glade"' \
+	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
+
+AM_LDFLAGS = \
+	$(PLATFORM_LDFLAGS) \
+	-Wl,--export-dynamic
 
 bin_PROGRAMS = giggle
 
-if IGE_PLATFORM_OSX
-GTK_OSX_SOURCES = \
-	ige-mac-menu.c \
-	ige-mac-menu.h
-endif
-
 giggle_SOURCES= \
-	$(GTK_OSX_SOURCES) \
 	eggfindbar.c \
 	eggfindbar.h \
 	giggle-authors-view.c \
@@ -73,13 +69,18 @@ giggle_SOURCES= \
 	giggle-window.h \
 	giggle-main.c
 
-LDADD= \
+if IGE_PLATFORM_OSX
+
+giggle_SOURCES += \
+	ige-mac-menu.c \
+	ige-mac-menu.h
+
+endif
+
+LDADD = \
 	../libgiggle/libgiggle.la \
 	../libgiggle/libgiggle-git.la \
 	$(libgiggle_la_LIBADD)
-
-AM_LDFLAGS= \
-	$(PLATFORM_LDFLAGS)
 
 #test_graph_renderer_SOURCES = \
 #	giggle-revision.c giggle-revision.h \
