@@ -32,9 +32,9 @@ dnl  ------------------
 PKG_CHECK_MODULES(GIGGLE, [
         gio-2.0 >= 2.16
         glib-2.0 >= 2.16
-	gtk+-2.0 >= 2.10
-	gtksourceview-2.0 > 2.0
-	libglade-2.0 > 2.4
+        gtk+-2.0 >= 2.10
+        gtksourceview-2.0 > 2.0
+        libglade-2.0 > 2.4
 ])
 
 dnl  ----------------------
@@ -45,14 +45,27 @@ AC_DEFINE(_GNU_SOURCE, 1, [Enable GNU Extensions])
 
 dnl Make sure that strptime can be used (read: has gnu extensions)
 AC_MSG_CHECKING([for GNU extensions of strptime()])
-AC_RUN_IFELSE(AC_LANG_PROGRAM([[#include <time.h>
-const char* date = "1168635922 +0100";]],[[struct tm tm;
-char const* returned = strptime(date, "%s %z", &tm);
-if(!returned || *returned) return 1;
-return 0;]]),
-	      [AC_MSG_RESULT(available)
-	      AC_DEFINE(STRPTIME_HAS_GNU, 1, [strptime() has GNU extensions %s and %z])],
-	      AC_MSG_RESULT(not available))
+AC_RUN_IFELSE(
+  AC_LANG_PROGRAM(
+    [[#include <time.h>]],
+    [[const char* date = "1168635922 +0100"; struct tm tm;
+      char const* returned = strptime(date, "%s %z", &tm);
+      return (!returned || *returned ? 1 : 0);]]),
+    [AC_MSG_RESULT(available)
+     AC_DEFINE([STRPTIME_HAS_GNU], [1],
+               [strptime() has GNU extensions %s and %z])],
+    [AC_MSG_RESULT(not available)])
+
+dnl Figure out which format string to use for time_t
+AC_MSG_CHECKING([size of time_t type])
+AC_RUN_IFELSE(
+  AC_LANG_PROGRAM(
+    [[#include <time.h>]],
+    [[return (sizeof (time_t) == sizeof (long) ? 0 : 1);]]),
+  [AC_MSG_RESULT(long)
+   AC_DEFINE([GIGGLE_FORMAT_TIME_T], ["ld"], [format string for time_t])],
+  [AC_MSG_RESULT(int)
+   AC_DEFINE([GIGGLE_FORMAT_TIME_T], ["d"], [format string for time_t])])
 
 dnl  ------------------
 dnl | Language Support |---------------------------------------
@@ -87,7 +100,7 @@ dnl  -----------------------
 dnl | GIT command detection |----------------------------------
 dnl  -----------------------
 AC_ARG_WITH([git-command],
-	    [AS_HELP_STRING([--with-git-command=PATH], [path to git command])])
+            [AS_HELP_STRING([--with-git-command=PATH], [path to git command])])
 GIT_COMMAND=$with_git_command
 
 if test x"$GIT_COMMAND" = x; then
@@ -113,14 +126,14 @@ ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
 AC_SUBST(ACLOCAL_AMFLAGS)
 
 AC_OUTPUT([
-	Makefile 
-	libgiggle/Makefile
-	plugins/Makefile
-	src/Makefile
-	data/Makefile
-	pixmaps/Makefile
-	po/Makefile.in
-	test/Makefile
+        Makefile 
+        libgiggle/Makefile
+        plugins/Makefile
+        src/Makefile
+        data/Makefile
+        pixmaps/Makefile
+        po/Makefile.in
+        test/Makefile
 ])
 
 echo

@@ -207,30 +207,28 @@ git_revisions_handle_output (GiggleJob   *job,
 static struct tm *
 git_revisions_get_time (const gchar *date)
 {
-	const gchar *returned;
-	struct tm   *tm = NULL;
-	time_t       time;
-
-	/* shut up gcc */
-	returned = NULL;
-	time = 0;
-
 #if STRPTIME_HAS_GNU
+	const gchar *returned;
+	struct tm   *tm;
+
 	tm = g_new0 (struct tm, 1);
 	returned = strptime (date, "%s %z", tm);
 
 	if (!returned) {
 		g_free (tm);
-		return NULL;
+		tm = NULL;
 	}
-#else
-	tm = g_new0 (struct tm, 1);
 
-	/* FIXME: looks awful */
-	sscanf (date, "%ld", &time);
-	localtime_r (&time, tm);
-#endif
 	return tm;
+#else
+	struct tm *tm = g_new0 (struct tm, 1);
+	time_t     time;
+
+	sscanf (date, "%" GIGGLE_FORMAT_TIME_T, &time);
+	localtime_r (&time, tm);
+
+	return tm;
+#endif
 }
 
 static void
