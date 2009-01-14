@@ -21,10 +21,10 @@ AC_DEFUN([IMENDIO_COMPILE_WARNINGS],[
         warning_flags=
         ;;
     yes)
-        warning_flags="-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+        warning_flags="-Wall -Wno-format-y2k -Wunused -Wmissing-prototypes -Wmissing-declarations"
         ;;
     maximum|error)
-        warning_flags="-Wall -Wunused -Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wcast-align -std=c99"
+        warning_flags="-Wall -Wno-format-y2k -Wunused -Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wcast-align -std=c99"
         CFLAGS="$warning_flags $CFLAGS"
         for option in -Wno-sign-compare -Wno-pointer-sign; do
                 SAVE_CFLAGS="$CFLAGS"
