@@ -492,3 +492,17 @@ giggle_revision_get_descendent_branches (GiggleRevision *revision)
 
 	return priv->descendent_branches;
 }
+
+int
+giggle_revision_compare (gconstpointer a,
+                         gconstpointer b)
+{
+	if (!GIGGLE_IS_REVISION (a))
+		return GIGGLE_IS_REVISION (b) ? -1 : 0;
+	if (!GIGGLE_IS_REVISION (b))
+		return 1;
+
+	return g_strcmp0 (giggle_revision_get_sha (GIGGLE_REVISION (a)),
+			  giggle_revision_get_sha (GIGGLE_REVISION (b)));
+}
+

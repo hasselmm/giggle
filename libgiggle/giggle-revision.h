@@ -54,32 +54,35 @@ struct _GiggleRevisionClass {
 GType              giggle_revision_get_type          (void);
 GiggleRevision *   giggle_revision_new               (const gchar *sha);
 
-const gchar      * giggle_revision_get_sha           (GiggleRevision   *revision);
-const gchar      * giggle_revision_get_author        (GiggleRevision   *revision);
-const struct tm  * giggle_revision_get_date          (GiggleRevision   *revision);
-const gchar      * giggle_revision_get_short_log     (GiggleRevision   *revision);
+const gchar *      giggle_revision_get_sha           (GiggleRevision   *revision);
+const gchar *      giggle_revision_get_author        (GiggleRevision   *revision);
+const struct tm *  giggle_revision_get_date          (GiggleRevision   *revision);
+const gchar *      giggle_revision_get_short_log     (GiggleRevision   *revision);
 
-GList            * giggle_revision_get_children      (GiggleRevision   *revision);
-GList            * giggle_revision_get_parents       (GiggleRevision   *revision);
+GList *            giggle_revision_get_children      (GiggleRevision   *revision);
+GList *            giggle_revision_get_parents       (GiggleRevision   *revision);
 void               giggle_revision_add_parent        (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
 void               giggle_revision_remove_parent     (GiggleRevision   *revision,
 						      GiggleRevision   *parent);
 
-GList            * giggle_revision_get_branch_heads  (GiggleRevision   *revision);
+GList *            giggle_revision_get_branch_heads  (GiggleRevision   *revision);
 void               giggle_revision_add_branch_head   (GiggleRevision   *revision,
 						      GiggleRef        *branch);
 
-GList            * giggle_revision_get_tags          (GiggleRevision   *revision);
+GList *            giggle_revision_get_tags          (GiggleRevision   *revision);
 void               giggle_revision_add_tag           (GiggleRevision   *revision,
 						      GiggleRef        *tag);
 
-GList            * giggle_revision_get_remotes       (GiggleRevision   *revision);
+GList *            giggle_revision_get_remotes       (GiggleRevision   *revision);
 void               giggle_revision_add_remote        (GiggleRevision   *revision,
 						      GiggleRef        *tag);
 
-GList            * giggle_revision_get_descendent_branches (GiggleRevision *revision);
+GList *            giggle_revision_get_descendent_branches
+						     (GiggleRevision   *revision);
 
+int                giggle_revision_compare           (gconstpointer     a,
+                                                      gconstpointer     b);
 
 G_END_DECLS
 
