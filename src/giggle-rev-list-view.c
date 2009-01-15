@@ -66,8 +66,6 @@ struct GiggleRevListViewPriv {
 	GtkCellRenderer   *author_renderer;
 	GtkCellRenderer   *date_renderer;
 
-	GtkIconTheme      *icon_theme;
-
 	GtkWidget         *revision_tooltip;
 
 	GiggleGit         *git;
@@ -1295,8 +1293,10 @@ rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 {
 	GiggleRevListViewPriv *priv;
 	GiggleRevListView     *list;
-	GiggleRevision         *revision;
-	GdkPixbuf              *pixbuf = NULL;
+	GiggleRevision        *revision;
+	GdkPixbuf             *pixbuf = NULL;
+	GtkIconTheme          *icon_theme;
+	GdkScreen             *screen;
 
 	list = GIGGLE_REV_LIST_VIEW (data);
 	priv = GET_PRIV (list);
@@ -1309,8 +1309,12 @@ rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 	    (giggle_revision_get_tags (revision) ||
 	     giggle_revision_get_remotes (revision) ||
 	     giggle_revision_get_branch_heads (revision))) {
-		pixbuf = gtk_icon_theme_load_icon (priv->icon_theme,
-						   "gtk-info", EMBLEM_SIZE, 0, NULL);
+		screen = gtk_widget_get_screen (data);
+		icon_theme = gtk_icon_theme_get_for_screen (screen);
+
+		pixbuf = gtk_icon_theme_load_icon (icon_theme,
+						   GTK_STOCK_INFO, EMBLEM_SIZE,
+						   0, NULL);
 	}
 
 	g_object_set (cell,
@@ -1588,7 +1592,6 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	priv->first_revision = (GiggleRevision *) 0x1;
 	priv->last_revision = (GiggleRevision *) 0x1;
 
-	priv->icon_theme = gtk_icon_theme_get_default ();
 	priv->git = giggle_git_get ();
 	priv->main_loop = g_main_loop_new (NULL, FALSE);
 
