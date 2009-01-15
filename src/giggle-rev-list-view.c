@@ -1851,3 +1851,40 @@ giggle_rev_list_view_get_selection (GiggleRevListView *list)
 	return result;
 }
 
+int
+giggle_rev_list_view_set_selection (GiggleRevListView *list,
+				    GList             *revisions)
+{
+	int               count = 0;
+	GtkTreeSelection *selection;
+	GiggleRevision   *revision;
+	GtkTreeModel     *model;
+	GtkTreeIter       iter;
+	GList            *l;
+
+	g_return_val_if_fail (GIGGLE_IS_REV_LIST_VIEW (list), 0);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (list));
+	model = gtk_tree_view_get_model (GTK_TREE_VIEW (list));
+	revisions = g_list_copy (revisions);
+
+	gtk_tree_selection_unselect_all (selection);
+
+	if (revisions && gtk_tree_model_get_iter_first (model, &iter)) {
+		do {
+			gtk_tree_model_get (model, &iter, COL_OBJECT, &revision, -1);
+			l = g_list_find_custom (revisions, revision, giggle_revision_compare);
+
+			if (l) {
+				gtk_tree_selection_select_iter (selection, &iter);
+				revisions = g_list_delete_link (revisions, l);
+				count += 1;
+
+				if (!revisions)
+					break;
+			}
+		} while (gtk_tree_model_iter_next (model, &iter));
+	}
+
+	return count;
+}

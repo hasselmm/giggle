@@ -61,7 +61,9 @@ gboolean           giggle_rev_list_view_get_graph_visible (GiggleRevListView *li
 void               giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
 							   gboolean           show_graph);
 
-GList *		   giggle_rev_list_view_get_selection     (GiggleRevListView *list);
+GList *            giggle_rev_list_view_get_selection     (GiggleRevListView *list);
+int                giggle_rev_list_view_set_selection     (GiggleRevListView *list,
+							   GList             *revisions);
 
 G_END_DECLS
 
