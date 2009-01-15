@@ -84,7 +84,6 @@ struct GiggleRevListViewPriv {
 	GiggleRevision    *last_revision;
 
 	guint              show_graph : 1;
-	guint              compact_mode : 1;
 	guint              cancelled : 1;
 };
 
@@ -105,7 +104,6 @@ enum {
 enum {
 	PROP_0,
 	PROP_GRAPH_VISIBLE,
-	PROP_COMPACT_MODE,
 };
 
 enum {
@@ -167,9 +165,6 @@ rev_list_view_get_property (GObject    *object,
 	case PROP_GRAPH_VISIBLE:
 		g_value_set_boolean (value, priv->show_graph);
 		break;
-	case PROP_COMPACT_MODE:
-		g_value_set_boolean (value, priv->compact_mode);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -190,10 +185,6 @@ rev_list_view_set_property (GObject      *object,
 	case PROP_GRAPH_VISIBLE:
 		giggle_rev_list_view_set_graph_visible (GIGGLE_REV_LIST_VIEW (object),
 							g_value_get_boolean (value));
-		break;
-	case PROP_COMPACT_MODE:
-		giggle_rev_list_view_set_compact_mode (GIGGLE_REV_LIST_VIEW (object),
-						       g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -541,31 +532,11 @@ rev_list_view_leave_notify (GtkWidget        *widget,
 }
 
 static void
-rev_list_view_update_compact_mode (GiggleRevListView *list)
-{
-#if 0
-	PangoFontDescription   *font_desc;
-	GiggleRevListViewPriv *priv;
-	gint                    size;
-
-	priv = GET_PRIV (list);
-
-	if (priv->compact_mode) {
-		font_desc = GTK_WIDGET (list)->style->font_desc;
-		size = pango_font_description_get_size (font_desc);
-		pango_font_description_set_size (font_desc, size * PANGO_SCALE_SMALL);
-	}
-#endif
-}
-
-static void
 rev_list_view_style_set (GtkWidget *widget,
 			 GtkStyle  *prev_style)
 {
 	GiggleRevListViewPriv *priv = GET_PRIV (widget);
 	int                    w, h;
-
-	rev_list_view_update_compact_mode (GIGGLE_REV_LIST_VIEW (widget));
 
 	gtk_widget_style_get (widget, "emblem-size", &priv->emblem_size, NULL);
 
@@ -603,13 +574,6 @@ giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 		 g_param_spec_boolean ("graph-visible",
 				       "Graph visible",
 				       "Whether to show the revisions graph",
-				       FALSE,
-				       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property
-		(object_class, PROP_COMPACT_MODE,
-		 g_param_spec_boolean ("compact-mode",
-				       "Compact mode",
-				       "Whether to show the list in compact mode or not",
 				       FALSE,
 				       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -1743,12 +1707,6 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 
 	priv->revision_tooltip = giggle_revision_tooltip_new ();
 
-	gtk_rc_parse_string ("style \"revision-list-compact-style\""
-			     "{"
-			     "  GtkTreeView::vertical-separator = 0"
-			     "}"
-			     "widget \"*.revision-list\" style \"revision-list-compact-style\"");
-
 	/* create the popup menu */
 	action_group = gtk_action_group_new ("PopupActions");
 	priv->refs_action_group = gtk_action_group_new ("Refs");
@@ -1821,61 +1779,6 @@ giggle_rev_list_view_set_graph_visible (GiggleRevListView *list,
 	priv->show_graph = (show_graph == TRUE);
 	gtk_tree_view_column_set_visible (priv->graph_column, priv->show_graph);
 	g_object_notify (G_OBJECT (list), "graph-visible");
-}
-
-gboolean
-giggle_rev_list_view_get_compact_mode (GiggleRevListView *list)
-{
-	GiggleRevListViewPriv *priv;
-
-	g_return_val_if_fail (GIGGLE_IS_REV_LIST_VIEW (list), FALSE);
-
-	priv = GET_PRIV (list);
-	return priv->compact_mode;
-}
-
-void
-giggle_rev_list_view_set_compact_mode (GiggleRevListView *list,
-				       gboolean            compact_mode)
-{
-	GiggleRevListViewPriv *priv;
-	GtkRcStyle             *rc_style;
-	gint                    size;
-
-	g_return_if_fail (GIGGLE_IS_REV_LIST_VIEW (list));
-
-	priv = GET_PRIV (list);
-
-	if (compact_mode != priv->compact_mode) {
-		priv->compact_mode = (compact_mode == TRUE);
-		rc_style = gtk_widget_get_modifier_style (GTK_WIDGET (list));
-
-		if (rc_style->font_desc) {
-			/* free old font desc */
-			pango_font_description_free (rc_style->font_desc);
-			rc_style->font_desc = NULL;
-		}
-
-		if (priv->compact_mode) {
-			rc_style->font_desc = pango_font_description_copy (GTK_WIDGET (list)->style->font_desc);
-			size = pango_font_description_get_size (rc_style->font_desc);
-			pango_font_description_set_size (rc_style->font_desc,
-							 size * PANGO_SCALE_SMALL);
-		}
-
-		gtk_widget_modify_style (GTK_WIDGET (list), rc_style);
-		gtk_widget_set_name (GTK_WIDGET (list),
-				     (priv->compact_mode) ? "revision-list" : NULL);
-
-		gtk_cell_renderer_text_set_fixed_height_from_font (
-			GTK_CELL_RENDERER_TEXT (priv->log_renderer), 1);
-		gtk_cell_renderer_text_set_fixed_height_from_font (
-			GTK_CELL_RENDERER_TEXT (priv->author_renderer), 1);
-		gtk_cell_renderer_text_set_fixed_height_from_font (
-			GTK_CELL_RENDERER_TEXT (priv->date_renderer), 1);
-
-		g_object_notify (G_OBJECT (list), "compact-mode");
-	}
 }
 
 GList *
