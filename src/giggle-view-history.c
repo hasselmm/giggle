@@ -905,10 +905,29 @@ view_history_go_forward (GiggleHistory *history)
 static gboolean
 view_history_can_go_forward (GiggleHistory *history)
 {
-	GiggleViewHistoryPriv *priv;
-
-	priv = GET_PRIV (history);
+	GiggleViewHistoryPriv *priv = GET_PRIV (history);
 
 	return (priv->current_history_elem != priv->history ||
 		g_list_length (priv->history) > 2);
 }
+
+gboolean
+giggle_view_history_select (GiggleViewHistory *view,
+			    GiggleRevision    *revision)
+{
+	GiggleViewHistoryPriv *priv;
+	GList                 *selection;
+	int                    count = 0;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_HISTORY (view), FALSE);
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision) || !revision, FALSE);
+
+	priv = GET_PRIV (view);
+
+	selection = g_list_prepend (NULL, revision);
+	count = giggle_rev_list_view_set_selection (GIGGLE_REV_LIST_VIEW (priv->revision_list), selection);
+	g_list_free (selection);
+
+	return count > 0;
+}
+

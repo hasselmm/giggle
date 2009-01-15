@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 
 #include "giggle-view.h"
+#include "libgiggle/giggle-revision.h"
 
 G_BEGIN_DECLS
 
@@ -51,6 +52,9 @@ GtkWidget *        giggle_view_history_new               (GtkUIManager      *man
 
 void               giggle_view_history_set_graph_visible (GiggleViewHistory *view,
 							  gboolean           visible);
+
+gboolean           giggle_view_history_select            (GiggleViewHistory *view,
+							  GiggleRevision    *revision);
 
 G_END_DECLS
 
