@@ -19,12 +19,7 @@
  */
 
 #include <config.h>
-#include <gio/gio.h>
-#include <gtk/gtk.h>
-#include <glib/gi18n.h>
-#include <fnmatch.h>
-#include <string.h>
-#include <gtksourceview/gtksourceiter.h>
+#include "giggle-diff-view.h"
 
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-blame.h"
@@ -33,11 +28,17 @@
 #include "libgiggle/giggle-git-revisions.h"
 #include "libgiggle/giggle-searchable.h"
 
-#include "giggle-view-file.h"
 #include "giggle-file-list.h"
 #include "giggle-rev-list-view.h"
 #include "giggle-revision-view.h"
-#include "giggle-diff-view.h"
+#include "giggle-view-file.h"
+#include "giggle-view-history.h"
+#include "giggle-view-shell.h"
+
+#include <glib/gi18n.h>
+#include <gtksourceview/gtksourceiter.h>
+#include <fnmatch.h>
+#include <string.h>
 
 typedef struct GiggleViewFilePriv GiggleViewFilePriv;
 
@@ -561,9 +562,9 @@ view_file_selection_changed_cb (GtkTreeSelection *selection,
 
 static void
 view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
-					      GiggleRevision     *revision1,
-					      GiggleRevision     *revision2,
-					      GiggleViewFile     *view)
+					      GiggleRevision    *revision1,
+					      GiggleRevision    *revision2,
+					      GiggleViewFile    *view)
 {
 	GiggleViewFilePriv *priv;
 
@@ -580,6 +581,26 @@ view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 					      revision1, revision2);
 
 	view_file_read_source_code (view);
+}
+
+static void
+view_file_revision_list_revision_activated_cb (GiggleRevListView *list,
+					       GiggleRevision    *revision,
+					       GiggleViewFile    *view)
+{
+	GiggleView *history_view = NULL;
+	GtkWidget  *shell;
+
+	shell = gtk_widget_get_ancestor (GTK_WIDGET (view), GIGGLE_TYPE_VIEW_SHELL);
+
+	if (shell)
+		history_view = giggle_view_shell_find_view (GIGGLE_VIEW_SHELL (shell),
+							    GIGGLE_TYPE_VIEW_HISTORY);
+
+	if (history_view) {
+		giggle_view_history_select (GIGGLE_VIEW_HISTORY (history_view), revision);
+		giggle_view_shell_select (GIGGLE_VIEW_SHELL (shell), history_view);
+	}
 }
 
 static gboolean
@@ -1106,8 +1127,11 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	/* revisions list */
 	priv->revision_list = giggle_rev_list_view_new ();
+
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_file_revision_list_selection_changed_cb), view);
+	g_signal_connect (priv->revision_list, "revision-activated",
+			  G_CALLBACK (view_file_revision_list_revision_activated_cb), view);
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
