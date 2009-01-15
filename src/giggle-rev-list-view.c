@@ -50,9 +50,6 @@
 #define CREATE_TAG_UI_PATH    "/ui/PopupMenu/CreateTag"
 #define CREATE_PATCH_UI_PATH  "/ui/PopupMenu/CreatePatch"
 
-/* FIXME: Should be a style property */
-#define EMBLEM_SIZE 16
-
 typedef struct GiggleRevListViewPriv GiggleRevListViewPriv;
 
 struct GiggleRevListViewPriv {
@@ -65,6 +62,8 @@ struct GiggleRevListViewPriv {
 	GtkCellRenderer   *log_renderer;
 	GtkCellRenderer   *author_renderer;
 	GtkCellRenderer   *date_renderer;
+
+	int                emblem_size;
 
 	GtkWidget         *revision_tooltip;
 
@@ -563,7 +562,23 @@ static void
 rev_list_view_style_set (GtkWidget *widget,
 			 GtkStyle  *prev_style)
 {
+	GiggleRevListViewPriv *priv = GET_PRIV (widget);
+	int                    w, h;
+
 	rev_list_view_update_compact_mode (GIGGLE_REV_LIST_VIEW (widget));
+
+	gtk_widget_style_get (widget, "emblem-size", &priv->emblem_size, NULL);
+
+	if (-1 == priv->emblem_size) {
+		if (gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &w, &h)) {
+			priv->emblem_size = MIN (w, h);
+		} else {
+			priv->emblem_size = 16;
+		}
+	}
+
+	gtk_tree_view_column_set_min_width (priv->emblem_column,
+					    priv->emblem_size + (2 * widget->style->xthickness));
 
 	(GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->style_set) (widget, prev_style);
 }
@@ -583,22 +598,27 @@ giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 	widget_class->leave_notify_event  = rev_list_view_leave_notify;
 	widget_class->style_set           = rev_list_view_style_set;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_GRAPH_VISIBLE,
-		g_param_spec_boolean ("graph-visible",
-				      "Graph visible",
-				      "Whether to show the revisions graph",
-				      FALSE,
-				      G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class,
-		PROP_COMPACT_MODE,
-		g_param_spec_boolean ("compact-mode",
-				      "Compact mode",
-				      "Whether to show the list in compact mode or not",
-				      FALSE,
-				      G_PARAM_READWRITE));
+	g_object_class_install_property
+		(object_class, PROP_GRAPH_VISIBLE,
+		 g_param_spec_boolean ("graph-visible",
+				       "Graph visible",
+				       "Whether to show the revisions graph",
+				       FALSE,
+				       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+	g_object_class_install_property
+		(object_class, PROP_COMPACT_MODE,
+		 g_param_spec_boolean ("compact-mode",
+				       "Compact mode",
+				       "Whether to show the list in compact mode or not",
+				       FALSE,
+				       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+	gtk_widget_class_install_style_property
+		(widget_class, g_param_spec_int ("emblem-size",
+						 "Emblem Size",
+						 "Pixel sizes of emblems in the revision list",
+						 -1, G_MAXINT, -1,
+						 G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 	signals[SELECTION_CHANGED] =
 		g_signal_new ("selection-changed",
@@ -1313,7 +1333,8 @@ rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 		icon_theme = gtk_icon_theme_get_for_screen (screen);
 
 		pixbuf = gtk_icon_theme_load_icon (icon_theme,
-						   GTK_STOCK_INFO, EMBLEM_SIZE,
+						   GTK_STOCK_INFO,
+						   priv->emblem_size,
 						   0, NULL);
 	}
 
@@ -1603,7 +1624,7 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	gtk_tree_view_column_set_sizing (priv->emblem_column,
 					 GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_min_width (priv->emblem_column,
-					    EMBLEM_SIZE + (2 * GTK_WIDGET (rev_list_view)->style->xthickness));
+					    priv->emblem_size + (2 * GTK_WIDGET (rev_list_view)->style->xthickness));
 	g_object_ref_sink (priv->emblem_column);
 
 	priv->emblem_renderer = gtk_cell_renderer_pixbuf_new ();
