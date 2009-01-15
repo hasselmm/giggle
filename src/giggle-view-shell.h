@@ -48,19 +48,19 @@ GType          giggle_view_shell_get_type        (void);
 GtkWidget *    giggle_view_shell_new             (void);
 GtkWidget *    giggle_view_shell_new_with_ui     (GtkUIManager    *manager);
 
-void           giggle_view_shell_add_placeholder (GiggleViewShell *view_shell,
+void           giggle_view_shell_add_placeholder (GiggleViewShell *shell,
 						  const char      *path);
 
-void           giggle_view_shell_append_view     (GiggleViewShell *view_shell,
+void           giggle_view_shell_append_view     (GiggleViewShell *shell,
 						  GiggleView      *view);
 
-void           giggle_view_shell_set_view_name   (GiggleViewShell *view_shell,
-						  const char      *view_name);
-const char *   giggle_view_shell_get_view_name   (GiggleViewShell *view_shell);
+void           giggle_view_shell_set_view_name   (GiggleViewShell *shell,
+						  const char      *name);
+const char *   giggle_view_shell_get_view_name   (GiggleViewShell *shell);
 
-void           giggle_view_shell_set_ui_manager  (GiggleViewShell *view_shell,
+void           giggle_view_shell_set_ui_manager  (GiggleViewShell *shell,
 						  GtkUIManager    *ui_manager);
-GtkUIManager * giggle_view_shell_get_ui_manager  (GiggleViewShell *view_shell);
+GtkUIManager * giggle_view_shell_get_ui_manager  (GiggleViewShell *shell);
 
 G_END_DECLS
 
