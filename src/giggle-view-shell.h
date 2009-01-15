@@ -62,6 +62,11 @@ void           giggle_view_shell_set_ui_manager  (GiggleViewShell *shell,
 						  GtkUIManager    *ui_manager);
 GtkUIManager * giggle_view_shell_get_ui_manager  (GiggleViewShell *shell);
 
+GiggleView *   giggle_view_shell_find_view       (GiggleViewShell *shell,
+						  GType            type);
+gboolean       giggle_view_shell_select          (GiggleViewShell *shell,
+						  GiggleView      *view);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_VIEW_SHELL_H__ */

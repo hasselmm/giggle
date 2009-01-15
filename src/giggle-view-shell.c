@@ -405,3 +405,50 @@ giggle_view_shell_get_ui_manager (GiggleViewShell *shell)
 	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (shell), NULL);
 	return GET_PRIV (shell)->ui_manager;
 }
+
+GiggleView *
+giggle_view_shell_find_view (GiggleViewShell *shell,
+			     GType            type)
+{
+	int        n_pages, i;
+	GtkWidget *page;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (shell), NULL);
+	g_return_val_if_fail (g_type_is_a  (type, GIGGLE_TYPE_VIEW), NULL);
+
+	n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (shell));
+
+	for (i = 0; i < n_pages; ++i) {
+		page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (shell), i);
+
+		if (G_OBJECT_TYPE (page) == type)
+			return GIGGLE_VIEW (page);
+	}
+
+	return NULL;
+}
+
+gboolean
+giggle_view_shell_select (GiggleViewShell *shell,
+			  GiggleView      *view)
+{
+	int        n_pages, i;
+	GtkWidget *page;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (shell), FALSE);
+	g_return_val_if_fail (GIGGLE_IS_VIEW (view), FALSE);
+
+	n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (shell));
+
+	for (i = 0; i < n_pages; ++i) {
+		page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (shell), i);
+
+		if (GIGGLE_IS_VIEW (page) && GIGGLE_VIEW (page) == view) {
+			gtk_notebook_set_current_page (GTK_NOTEBOOK (shell), i);
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
