@@ -108,6 +108,7 @@ enum {
 
 enum {
 	SELECTION_CHANGED,
+	REVISION_ACTIVATED,
 	LAST_SIGNAL
 };
 
@@ -551,14 +552,39 @@ rev_list_view_style_set (GtkWidget *widget,
 	gtk_tree_view_column_set_min_width (priv->emblem_column,
 					    priv->emblem_size + (2 * widget->style->xthickness));
 
-	(GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->style_set) (widget, prev_style);
+	GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->style_set (widget, prev_style);
+}
+
+static void
+rev_list_view_row_activated (GtkTreeView       *view,
+			     GtkTreePath       *path,
+			     GtkTreeViewColumn *column)
+{
+	GtkTreeModel   *model;
+	GtkTreeIter     iter;
+	GiggleRevision *revision;
+
+	model = gtk_tree_view_get_model (view);
+
+	if (gtk_tree_model_get_iter (model, &iter, path)) {
+		gtk_tree_model_get (model, &iter, COL_OBJECT, &revision, -1);
+
+		g_signal_emit (view, signals[REVISION_ACTIVATED], 0, revision);
+
+		if (revision)
+			g_object_unref (revision);
+	}
+
+	if (GTK_TREE_VIEW_CLASS (giggle_rev_list_view_parent_class)->row_activated)
+		GTK_TREE_VIEW_CLASS (giggle_rev_list_view_parent_class)->row_activated (view, path, column);
 }
 
 static void
 giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 {
-	GObjectClass   *object_class = G_OBJECT_CLASS (class);
-	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
+	GObjectClass     *object_class    = G_OBJECT_CLASS (class);
+	GtkWidgetClass   *widget_class    = GTK_WIDGET_CLASS (class);
+	GtkTreeViewClass *tree_view_class = GTK_TREE_VIEW_CLASS (class);
 
 	object_class->finalize            = rev_list_view_finalize;
 	object_class->set_property        = rev_list_view_set_property;
@@ -568,6 +594,8 @@ giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 	widget_class->motion_notify_event = rev_list_view_motion_notify;
 	widget_class->leave_notify_event  = rev_list_view_leave_notify;
 	widget_class->style_set           = rev_list_view_style_set;
+
+	tree_view_class->row_activated    = rev_list_view_row_activated;
 
 	g_object_class_install_property
 		(object_class, PROP_GRAPH_VISIBLE,
@@ -593,6 +621,16 @@ giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 			      giggle_marshal_VOID__OBJECT_OBJECT,
 			      G_TYPE_NONE,
 			      2, GIGGLE_TYPE_REVISION, GIGGLE_TYPE_REVISION);
+
+	signals[REVISION_ACTIVATED] =
+		g_signal_new ("revision-activated",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (GiggleRevListViewClass, revision_activated),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__OBJECT,
+			      G_TYPE_NONE,
+			      1, GIGGLE_TYPE_REVISION);
 
 	g_type_class_add_private (object_class, sizeof (GiggleRevListViewPriv));
 }

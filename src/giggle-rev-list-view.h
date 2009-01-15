@@ -44,9 +44,11 @@ struct _GiggleRevListView {
 struct _GiggleRevListViewClass {
 	GtkTreeViewClass parent_class;
 
-	void (*selection_changed) (GiggleRevListView *list,
-				   GiggleRevision     *revision1,
-				   GiggleRevision     *revision2);
+	void (* selection_changed)  (GiggleRevListView *list,
+				     GiggleRevision    *revision1,
+				     GiggleRevision    *revision2);
+	void (* revision_activated) (GiggleRevListView *list,
+				     GiggleRevision    *revision);
 };
 
 GType              giggle_rev_list_view_get_type          (void);
