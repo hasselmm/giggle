@@ -113,14 +113,31 @@ G_DEFINE_TYPE (GiggleConfiguration, giggle_configuration, G_TYPE_OBJECT);
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_CONFIGURATION, GiggleConfigurationPriv))
 
 
+static gboolean
+giggle_configuration_real_get_int_field (GiggleConfiguration      *configuration,
+					 GiggleConfigurationField  field,
+					 int                      *value)
+{
+	const gchar *str;
+
+	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
+
+	str = giggle_configuration_get_field (configuration, field);
+
+	if (!str || 1 != sscanf (str, "%d", value))
+		return FALSE;
+
+	return TRUE;
+}
+
 static void
 giggle_configuration_int_binding_update (GiggleConfigurationBinding *binding)
 {
 	int value;
 
-	value = giggle_configuration_get_int_field (binding->configuration,
-						    binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
+	if (giggle_configuration_real_get_int_field (binding->configuration,
+						     binding->field, &value))
+		g_object_set (binding->object, binding->pspec->name, value, NULL);
 }
 
 static void
@@ -138,8 +155,10 @@ giggle_configuration_string_binding_update (GiggleConfigurationBinding *binding)
 	const char *value;
 
 	value = giggle_configuration_get_field (binding->configuration,
-						binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
+					        binding->field);
+
+	if (value)
+		g_object_set (binding->object, binding->pspec->name, value, NULL);
 }
 
 static void
@@ -151,14 +170,31 @@ giggle_configuration_string_binding_commit (GiggleConfigurationBinding *binding,
 					g_value_get_string (value));
 }
 
+static gboolean
+giggle_configuration_real_get_boolean_field (GiggleConfiguration      *configuration,
+					     GiggleConfigurationField  field,
+					     gboolean                 *value)
+{
+	const gchar *str;
+
+	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
+
+	if (!(str = giggle_configuration_get_field (configuration, field)))
+		return FALSE;
+
+	*value = !strcmp (str, "true");
+
+	return TRUE;
+}
+
 static void
 giggle_configuration_boolean_binding_update (GiggleConfigurationBinding *binding)
 {
 	gboolean value;
 
-	value = giggle_configuration_get_boolean_field (binding->configuration,
-							binding->field);
-	g_object_set (binding->object, binding->pspec->name, value, NULL);
+	if (giggle_configuration_real_get_boolean_field (binding->configuration,
+							 binding->field, &value))
+		g_object_set (binding->object, binding->pspec->name, value, NULL);
 }
 
 static void
@@ -528,15 +564,9 @@ int
 giggle_configuration_get_int_field (GiggleConfiguration      *configuration,
 				    GiggleConfigurationField  field)
 {
-	int          value;
-	const gchar *str;
+	int value = 0;
 
-	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
-
-	str = giggle_configuration_get_field (configuration, field);
-
-	if (!str || 1 != sscanf (str, "%d", &value))
-		value = 0;
+	giggle_configuration_real_get_int_field (configuration, field, &value);
 
 	return value;
 }
@@ -545,13 +575,11 @@ gboolean
 giggle_configuration_get_boolean_field (GiggleConfiguration      *configuration,
 					GiggleConfigurationField  field)
 {
-	const gchar *str;
+	gboolean value = 0;
 
-	g_return_val_if_fail (GIGGLE_IS_CONFIGURATION (configuration), FALSE);
+	giggle_configuration_real_get_boolean_field (configuration, field, &value);
 
-	str = giggle_configuration_get_field (configuration, field);
-
-	return !g_strcmp0 (str, "true");
+	return value;
 }
 
 void
