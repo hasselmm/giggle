@@ -51,9 +51,13 @@ static const struct {
 
 	[CONFIG_FIELD_FILE_VIEW_PATH] =
 	{ "giggle.file-view-path", FALSE },
+	[CONFIG_FIELD_FILE_VIEW_HPANE_POSITION] =
+	{ "giggle.file-view-hpane-position", TRUE },
+	[CONFIG_FIELD_FILE_VIEW_VPANE_POSITION] =
+	{ "giggle.file-view-vpane-position", TRUE },
 
 	[CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION] =
-	{ "giggle.history-view-vpane-position", TRUE }
+	{ "giggle.history-view-vpane-position", TRUE },
 };
 
 

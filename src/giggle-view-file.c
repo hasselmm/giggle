@@ -18,44 +18,49 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include "giggle-diff-view.h"
+#include "config.h"
+#include "giggle-view-file.h"
+
+#include "giggle-file-list.h"
+#include "giggle-rev-list-view.h"
+#include "giggle-view-history.h"
+#include "giggle-view-shell.h"
+
+#include "libgiggle/giggle-configuration.h"
+#include "libgiggle/giggle-searchable.h"
 
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-blame.h"
 #include "libgiggle/giggle-git-cat-file.h"
-#include "libgiggle/giggle-git-list-tree.h"
 #include "libgiggle/giggle-git-revisions.h"
-#include "libgiggle/giggle-searchable.h"
+#include "libgiggle/giggle-git-list-tree.h"
 
-#include "giggle-file-list.h"
-#include "giggle-rev-list-view.h"
-#include "giggle-revision-view.h"
-#include "giggle-view-file.h"
-#include "giggle-view-history.h"
-#include "giggle-view-shell.h"
-
-#include <glib/gi18n.h>
-#include <gtksourceview/gtksourceiter.h>
 #include <fnmatch.h>
-#include <string.h>
+#include <glib/gi18n.h>
+
+#include <gtksourceview/gtksourceiter.h>
+#include <gtksourceview/gtksourcelanguagemanager.h>
+#include <gtksourceview/gtksourceview.h>
 
 typedef struct GiggleViewFilePriv GiggleViewFilePriv;
 
 struct GiggleViewFilePriv {
-	GtkWidget      *file_list;
-	GtkWidget      *revision_list;
-	GtkWidget      *source_view;
-	GtkWidget      *goto_toolbar;
-	GtkWidget      *goto_entry;
+	GtkWidget           *file_list;
+	GtkWidget           *revision_list;
+	GtkWidget           *source_view;
+	GtkWidget           *goto_toolbar;
+	GtkWidget           *goto_entry;
+	GtkWidget           *hpaned;
+	GtkWidget           *vpaned;
 
-	GtkActionGroup *action_group;
+	GtkActionGroup      *action_group;
 
-	GiggleGit      *git;
-	GiggleJob      *job;
+	GiggleGit           *git;
+	GiggleJob           *job;
 
-	char           *current_file;
-	GiggleRevision *current_revision;
+	char                *current_file;
+	GiggleRevision      *current_revision;
+	GiggleConfiguration *configuration;
 };
 
 enum {
@@ -124,6 +129,11 @@ view_file_dispose (GObject *object)
 	GiggleViewFilePriv *priv;
 
 	priv = GET_PRIV (object);
+
+	if (priv->configuration) {
+		g_object_unref (priv->configuration);
+		priv->configuration = NULL;
+	}
 
 	if (priv->current_revision) {
 		g_object_unref (priv->current_revision);
@@ -1046,11 +1056,29 @@ giggle_view_file_searchable_init (GiggleSearchableIface *iface)
 	iface->search = view_file_search;
 }
 
+static gboolean
+view_file_idle_cb (gpointer data)
+{
+	GiggleViewFilePriv *priv;
+
+	priv = GET_PRIV (data);
+
+	giggle_configuration_bind (priv->configuration,
+				   CONFIG_FIELD_FILE_VIEW_HPANE_POSITION,
+				   G_OBJECT (priv->hpaned), "position");
+
+	giggle_configuration_bind (priv->configuration,
+				   CONFIG_FIELD_FILE_VIEW_VPANE_POSITION,
+				   G_OBJECT (priv->vpaned), "position");
+
+	return FALSE;
+}
+
 static void
 giggle_view_file_init (GiggleViewFile *view)
 {
 	GiggleViewFilePriv   *priv;
-	GtkWidget            *vbox, *hpaned, *vpaned;
+	GtkWidget            *vbox;
 	GtkWidget            *scrolled_window;
 	GtkTreeSelection     *selection;
 	PangoFontDescription *monospaced;
@@ -1059,20 +1087,19 @@ giggle_view_file_init (GiggleViewFile *view)
 	priv = GET_PRIV (view);
 
 	priv->git = giggle_git_get ();
+	priv->configuration = giggle_configuration_new ();
 
 	gtk_widget_push_composite_child ();
 
 	goto_toolbar_init (view);
 
-	hpaned = gtk_hpaned_new ();
-	gtk_widget_show (hpaned);
+	priv->hpaned = gtk_hpaned_new ();
+	gtk_paned_set_position (GTK_PANED (priv->hpaned), 200);
+	gtk_widget_show (priv->hpaned);
 
-	vpaned = gtk_vpaned_new ();
-	gtk_widget_show (vpaned);
-	gtk_paned_pack2 (GTK_PANED (hpaned), vpaned, TRUE, FALSE);
-
-	/* FIXME: hardcoded sizes are evil */
-	gtk_paned_set_position (GTK_PANED (hpaned), 150);
+	priv->vpaned = gtk_vpaned_new ();
+	gtk_widget_show (priv->vpaned);
+	gtk_paned_pack2 (GTK_PANED (priv->hpaned), priv->vpaned, TRUE, FALSE);
 
 	/* file view */
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -1090,7 +1117,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->file_list);
 	gtk_widget_show_all (scrolled_window);
 
-	gtk_paned_pack1 (GTK_PANED (hpaned), scrolled_window, FALSE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->hpaned), scrolled_window, FALSE, FALSE);
 
 	/* diff view */
 
@@ -1123,7 +1150,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_source_buffer_set_highlight_syntax (GTK_SOURCE_BUFFER (buffer), TRUE);
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->source_view);
-	gtk_paned_pack1 (GTK_PANED (vpaned), scrolled_window, TRUE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->vpaned), scrolled_window, TRUE, FALSE);
 
 	/* revisions list */
 	priv->revision_list = giggle_rev_list_view_new ();
@@ -1141,16 +1168,19 @@ giggle_view_file_init (GiggleViewFile *view)
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
-	gtk_paned_pack2 (GTK_PANED (vpaned), scrolled_window, FALSE, TRUE);
+	gtk_paned_pack2 (GTK_PANED (priv->vpaned), scrolled_window, FALSE, TRUE);
 
 	vbox = gtk_vbox_new (FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), hpaned, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), priv->hpaned, TRUE, TRUE, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), priv->goto_toolbar, FALSE, TRUE, 0);
 	gtk_container_add (GTK_CONTAINER (view), vbox);
 
 	gtk_widget_show (vbox);
 
 	gtk_widget_pop_composite_child ();
+
+	/* bindings */
+	g_idle_add (view_file_idle_cb, view);
 }
 
 GtkWidget *
