@@ -207,15 +207,37 @@ view_shell_switch_page (GtkNotebook     *notebook,
 }
 
 static void
+view_shell_show (GtkWidget *widget)
+{
+	GiggleViewShellPriv *priv = GET_PRIV (widget);
+
+	GTK_WIDGET_CLASS (giggle_view_shell_parent_class)->show (widget);
+	gtk_action_group_set_visible (priv->action_group, TRUE);
+}
+
+static void
+view_shell_hide (GtkWidget *widget)
+{
+	GiggleViewShellPriv *priv = GET_PRIV (widget);
+
+	gtk_action_group_set_visible (priv->action_group, FALSE);
+	GTK_WIDGET_CLASS (giggle_view_shell_parent_class)->hide (widget);
+}
+
+static void
 giggle_view_shell_class_init (GiggleViewShellClass *class)
 {
-	GObjectClass     *object_class =   G_OBJECT_CLASS (class);
+	GObjectClass     *object_class   = G_OBJECT_CLASS (class);
+	GtkWidgetClass   *widget_class   = GTK_WIDGET_CLASS (class);
 	GtkNotebookClass *notebook_class = GTK_NOTEBOOK_CLASS (class);
 
 	object_class->get_property  = view_shell_get_property;
 	object_class->set_property  = view_shell_set_property;
 	object_class->finalize      = view_shell_finalize;
 	object_class->dispose       = view_shell_dispose;
+
+	widget_class->show          = view_shell_show;
+	widget_class->hide          = view_shell_hide;
 
 	notebook_class->switch_page = view_shell_switch_page;
 
@@ -245,6 +267,8 @@ giggle_view_shell_init (GiggleViewShell *shell)
 
 	priv->placeholders = g_ptr_array_new ();
 	priv->action_group = gtk_action_group_new ("ViewShell");
+
+	gtk_action_group_set_visible (priv->action_group, FALSE);
 
 	gtk_action_group_set_translation_domain (priv->action_group, GETTEXT_PACKAGE);
 }

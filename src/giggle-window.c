@@ -443,7 +443,7 @@ window_create_menu (GiggleWindow *window)
 
 void
 giggle_window_set_directory (GiggleWindow *window,
-		      	     const gchar  *directory)
+			     const gchar  *directory)
 {
 	GiggleWindowPriv *priv;
 	GError           *error = NULL;
@@ -452,6 +452,8 @@ giggle_window_set_directory (GiggleWindow *window,
 
 	if (!giggle_git_set_directory (priv->git, directory, &error)) {
 		GtkWidget *dialog;
+
+		gtk_widget_hide (priv->view_shell);
 
 		dialog = gtk_message_dialog_new (GTK_WINDOW (window),
 						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -462,6 +464,8 @@ giggle_window_set_directory (GiggleWindow *window,
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
+	} else {
+		gtk_widget_show (priv->view_shell);
 	}
 }
 
@@ -1332,6 +1336,7 @@ giggle_window_init (GiggleWindow *window)
 
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 	gtk_widget_show_all (priv->content_vbox);
+	gtk_widget_hide (priv->view_shell);
 
 	g_signal_connect_after (priv->git,
 			  "notify::directory",

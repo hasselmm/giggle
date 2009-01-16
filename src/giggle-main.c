@@ -94,6 +94,8 @@ main (int    argc,
 
 	if (giggle_git_test_dir (dir)) {
 		giggle_window_set_directory (GIGGLE_WINDOW (window), dir);
+	} else {
+		gtk_widget_show (window);
 	}
 
 	g_free (dir);
