@@ -24,8 +24,9 @@
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-configuration.h"
 
-#include <glib/gi18n.h>
 #include <glade/glade.h>
+#include <glib/gi18n.h>
+#include <libebook/e-book.h>
 #include <string.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PERSONAL_DETAILS_WINDOW, GigglePersonalDetailsWindowPriv))
@@ -124,12 +125,12 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 					   gboolean             success,
 					   gpointer             user_data)
 {
-	GigglePersonalDetailsWindow     *window;
-	GigglePersonalDetailsWindowPriv *priv;
-	const gchar* value;
-
-	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
-	priv = GET_PRIV (window);
+	GigglePersonalDetailsWindow     *window = user_data;
+	GigglePersonalDetailsWindowPriv *priv = GET_PRIV (window);
+	EContact 			*contact = NULL;
+	EBook				*book = NULL;
+	GError   			*error = NULL;
+	const char			*value;
 
 	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
 
@@ -153,15 +154,29 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 		return;
 	}
 
-	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME);
-	if (value) {
-		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), value);
+	if (!e_book_get_self (&contact, &book, &error)) {
+		g_warning ("%s: Cannot open retreive self-contact: %s",
+			   G_STRFUNC, error->message);
 	}
 
+	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME);
+
+	if ((!value || !*value) && contact)
+		value = e_contact_get_const (contact, E_CONTACT_FULL_NAME);
+	if (value)
+		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), value);
+
 	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_EMAIL);
-	if (value) {
+
+	if ((!value || !*value) && contact)
+		value = e_contact_get_const (contact, E_CONTACT_EMAIL_1);
+	if (value)
 		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
-	}
+
+	if (contact)
+		g_object_unref (contact);
+	if (book)
+		g_object_unref (book);
 }
 
 static void

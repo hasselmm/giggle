@@ -37,6 +37,10 @@ PKG_CHECK_MODULES(GIGGLE, [
         libglade-2.0 > 2.4
 ])
 
+PKG_CHECK_MODULES(EBOOK, [
+        libebook-1.2
+])
+
 dnl  ----------------------
 dnl | library requirements |-----------------------------------
 dnl  ----------------------

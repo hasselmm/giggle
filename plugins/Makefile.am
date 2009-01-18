@@ -26,4 +26,7 @@ libpersonal_details_la_SOURCES = \
 	giggle-personal-details-window.c \
 	giggle-personal-details-window.h
 
+libpersonal_details_la_CFLAGS = $(EBOOK_CFLAGS)
+libpersonal_details_la_LIBADD = $(EBOOK_LIBS)
+
 
