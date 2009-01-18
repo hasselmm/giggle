@@ -17,7 +17,9 @@
     <ui>
       <menubar name="MainMenubar">
         <menu action="EditMenu">
-          <menuitem action="HelloWorld" />
+          <placeholder name="EditMenuActions">
+            <menuitem action="HelloWorld" />
+          </placeholder>
         </menu>
       </menubar>
 
