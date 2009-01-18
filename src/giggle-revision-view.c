@@ -43,8 +43,6 @@ struct GiggleRevisionViewPriv {
 	GiggleJob      *job;
 
 	GtkTextMark    *search_mark;
-
-	guint           compact_mode : 1;
 };
 
 static void       giggle_revision_view_searchable_init (GiggleSearchableIface *iface);

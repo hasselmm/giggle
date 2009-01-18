@@ -61,7 +61,6 @@ struct GiggleFileListPriv {
 	GiggleRevision *revision_to;
 
 	guint           show_all : 1;
-	guint           compact_mode : 1;
 
 	char           *selected_path;
 };
