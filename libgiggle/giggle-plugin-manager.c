@@ -47,10 +47,11 @@ plugin_manager_next_files_ready (GObject      *object,
 {
 	GigglePluginManager     *manager = user_data;
 	GigglePluginManagerPriv *priv = GET_PRIV (manager);
+	GFileEnumerator         *children = G_FILE_ENUMERATOR (object);
 	GError                  *error = NULL;
 	GList                   *files;
 
-	files = g_file_enumerator_next_files_finish (G_FILE_ENUMERATOR (object),
+	files = g_file_enumerator_next_files_finish (children,
 						     result, &error);
 
 	if (error) {
@@ -86,6 +87,10 @@ plugin_manager_next_files_ready (GObject      *object,
 		g_object_unref (files->data);
 		files = g_list_delete_link (files, files);
 	}
+
+	g_file_enumerator_next_files_async (children, 16,
+					    G_PRIORITY_DEFAULT, priv->cancellable,
+					    plugin_manager_next_files_ready, user_data);
 }
 
 static void
