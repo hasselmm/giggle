@@ -744,6 +744,38 @@ window_action_history_refresh (GtkAction    *action,
 }
 
 static void
+window_visit_uri (GiggleWindow *window,
+		  const char   *uri)
+{
+	GdkAppLaunchContext *context;
+	GError              *error = NULL;
+	GdkScreen           *screen;
+
+	context = gdk_app_launch_context_new ();
+	screen = gtk_widget_get_screen (GTK_WIDGET (window));
+	gdk_app_launch_context_set_screen (context, screen);
+
+	if (!g_app_info_launch_default_for_uri (uri, G_APP_LAUNCH_CONTEXT (context), &error)) {
+		g_warning ("%s: %s", G_STRFUNC, error->message);
+		g_clear_error (&error);
+	}
+}
+
+static void
+window_action_homepage_cb (GtkAction    *action,
+			   GiggleWindow *window)
+{
+	window_visit_uri (window, PACKAGE_WEBSITE);
+}
+
+static void
+window_action_bug_report_cb (GtkAction    *action,
+			     GiggleWindow *window)
+{
+	window_visit_uri (window, PACKAGE_BUGREPORT);
+}
+
+static void
 window_action_about_cb (GtkAction    *action,
 			GiggleWindow *window)
 {
@@ -761,6 +793,8 @@ window_action_about_cb (GtkAction    *action,
 			       "Copyright \xc2\xa9 2007-2008 Imendio AB\n"
 			       "Copyright \xc2\xa9 2008 Mathias Hasselmann",
 			       "translator-credits", _("translator-credits"),
+			       "comments", _("A graphical frontend to the git directory tracker."),
+			       "website", PACKAGE_WEBSITE,
 			       "logo-icon-name", PACKAGE,
 			       "version", VERSION,
 			       "authors", authors,
@@ -862,6 +896,14 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_history_refresh)
 		},
 
+		{ "Homepage", GTK_STOCK_HOME, N_("Visit _Homepage"),
+		  NULL, N_("Visit the homepage of giggle"),
+		  G_CALLBACK (window_action_homepage_cb)
+		},
+		{ "BugReport", NULL, N_("Report _Issue"),
+		  NULL, N_("Report an issue you've found in Giggle"),
+		  G_CALLBACK (window_action_bug_report_cb)
+		},
 		{ "About", GTK_STOCK_ABOUT, NULL,
 		  NULL, N_("About this application"),
 		  G_CALLBACK (window_action_about_cb)
@@ -919,6 +961,9 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <menuitem action='ForwardHistory'/>"
 		"    </menu>"
 		"    <menu action='HelpMenu'>"
+		"      <menuitem action='Homepage'/>"
+		"      <menuitem action='BugReport'/>"
+		"      <separator/>"
 		"      <menuitem action='About'/>"
 		"    </menu>"
 		"  </menubar>"
@@ -1276,6 +1321,14 @@ window_plugin_added_cb (GigglePluginManager *manager,
 }
 
 static void
+about_activate_link (GtkAboutDialog *about,
+                     const char     *uri,
+                     gpointer        data)
+{
+	window_visit_uri (data, uri);
+}
+
+static void
 giggle_window_init (GiggleWindow *window)
 {
 	GiggleWindowPriv *priv = GET_PRIV (window);
@@ -1336,6 +1389,8 @@ giggle_window_init (GiggleWindow *window)
 
 	g_signal_connect (priv->plugin_manager, "plugin-added",
 			  G_CALLBACK (window_plugin_added_cb), window);
+
+	gtk_about_dialog_set_url_hook (about_activate_link, window, NULL);
 }
 
 #if 0
