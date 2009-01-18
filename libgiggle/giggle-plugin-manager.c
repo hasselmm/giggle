@@ -132,6 +132,9 @@ giggle_plugin_manager_init (GigglePluginManager *manager)
 		priv->plugin_dir = g_file_new_for_path (PLUGINDIR);
 	}
 
+	if (!g_file_query_exists (priv->plugin_dir, priv->cancellable))
+		return;
+
 	g_file_enumerate_children_async (priv->plugin_dir,
 					 G_FILE_ATTRIBUTE_STANDARD_NAME,
 					 G_FILE_QUERY_INFO_NONE,
