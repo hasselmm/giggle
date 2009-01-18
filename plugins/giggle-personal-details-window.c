@@ -120,6 +120,34 @@ giggle_personal_details_window_class_init (GigglePersonalDetailsWindowClass *cla
 				  sizeof (GigglePersonalDetailsWindowPriv));
 }
 
+static GtkEntryCompletion *
+create_email_completion (EContact *contact)
+{
+	GList              *email_list;
+	GtkListStore       *email_store;
+	GtkEntryCompletion *completion;
+	GtkTreeIter         iter;
+
+	email_list = e_contact_get (contact, E_CONTACT_EMAIL);
+	email_store = gtk_list_store_new (1, G_TYPE_STRING);
+
+	while (email_list) {
+		gtk_list_store_append (email_store, &iter);
+		gtk_list_store_set (email_store, &iter, 0, email_list->data, -1);
+		email_list = email_list->next;
+	}
+
+	completion = gtk_entry_completion_new ();
+
+	gtk_entry_completion_set_popup_set_width (completion, FALSE);
+	gtk_entry_completion_set_model (completion, GTK_TREE_MODEL (email_store));
+	gtk_entry_completion_set_text_column (completion, 0);
+
+	g_object_unref (email_store);
+
+	return completion;
+}
+
 static void
 personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 					   gboolean             success,
@@ -172,6 +200,12 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 		value = e_contact_get_const (contact, E_CONTACT_EMAIL_1);
 	if (value)
 		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
+
+	if (contact) {
+		GtkEntryCompletion *completion = create_email_completion (contact);
+		gtk_entry_set_completion (GTK_ENTRY (priv->email_entry), completion);
+		g_object_unref (completion);
+	}
 
 	if (contact)
 		g_object_unref (contact);
