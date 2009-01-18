@@ -20,8 +20,9 @@
 
 #include "config.h"
 #include "giggle-plugin-manager.h"
-
 #include "giggle-plugin.h"
+
+#include <gio/gio.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PLUGIN_MANAGER, GigglePluginManagerPriv))
 

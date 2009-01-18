@@ -36,6 +36,7 @@
 #include "libgiggle/giggle-git-list-tree.h"
 
 #include <fnmatch.h>
+#include <gio/gio.h>
 #include <glib/gi18n.h>
 
 #include <gtksourceview/gtksourceiter.h>
