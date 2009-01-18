@@ -129,14 +129,10 @@ git_delete_ref_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_REF:
-		if (priv->ref) {
+		if (priv->ref)
 			g_object_unref (priv->ref);
-		}
-#if GLIB_MAJOR_VERSION > 2 || GLIB_MINOR_VERSION > 12
+
 		priv->ref = g_value_dup_object (value);
-#else
-		priv->ref = GIGGLE_REF (g_value_dup_object (value));
-#endif
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);

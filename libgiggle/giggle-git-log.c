@@ -129,11 +129,7 @@ git_log_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_REVISION:
-#if GLIB_MAJOR_VERSION > 2 || GLIB_MINOR_VERSION > 12
 		priv->revision = g_value_dup_object (value);
-#else
-		priv->revision = GIGGLE_REVISION (g_value_dup_object (value));
-#endif
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);

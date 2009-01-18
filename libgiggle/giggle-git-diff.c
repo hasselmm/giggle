@@ -179,24 +179,16 @@ git_diff_set_property (GObject      *object,
 
 	switch (param_id) {
 	case PROP_REV1:
-		if (priv->rev1) {
+		if (priv->rev1)
 			g_object_unref (priv->rev1);
-		}
-#if GLIB_MAJOR_VERSION > 2 || GLIB_MINOR_VERSION > 12
-		priv->rev1 = g_value_dup_object (value);
-#else
+
 		priv->rev1 = GIGGLE_REVISION (g_value_dup_object (value));
-#endif
 		break;
 	case PROP_REV2:
-		if (priv->rev2) {
+		if (priv->rev2)
 			g_object_unref (priv->rev2);
-		}
-#if GLIB_MAJOR_VERSION > 2 || GLIB_MINOR_VERSION > 12
+
 		priv->rev2 = g_value_dup_object (value);
-#else
-		priv->rev2 = GIGGLE_REVISION (g_value_dup_object (value));
-#endif
 		break;
 	case PROP_FILES:
 		priv->files = g_value_get_pointer (value);
