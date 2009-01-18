@@ -864,10 +864,6 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_diff_cb)
 		},
 #endif
-		{ "Properties", GTK_STOCK_PROPERTIES, NULL,
-		  "<alt>Return", N_("Show and edit project properties"),
-		  G_CALLBACK (window_action_properties_cb)
-		},
 		{ "Quit", GTK_STOCK_QUIT, NULL,
 		  "<control>Q", N_("Quit the application"),
 		  G_CALLBACK (window_action_quit_cb)
@@ -895,10 +891,6 @@ window_create_ui_manager (GiggleWindow *window)
 		  "<alt>Right", N_("Go forward in history"),
 		  NULL /*G_CALLBACK (window_action_history_go_forward)*/
 		},
-		{ "RefreshHistory", GTK_STOCK_REFRESH, NULL,
-		  "<control>R", N_("Refresh current view"),
-		  G_CALLBACK (window_action_history_refresh)
-		},
 
 		{ "Homepage", GTK_STOCK_HOME, N_("Visit _Homepage"),
 		  NULL, N_("Visit the homepage of giggle"),
@@ -918,6 +910,17 @@ window_create_ui_manager (GiggleWindow *window)
 		{ "ShowGraph", NULL,
 		  N_("Show revision tree"), "F12", NULL,
 		  G_CALLBACK (window_action_view_graph_cb), TRUE
+		},
+	};
+
+	static const GtkActionEntry project_action_entries[] = {
+		{ "Properties", GTK_STOCK_PROPERTIES, NULL,
+		  "<alt>Return", N_("Show and edit project properties"),
+		  G_CALLBACK (window_action_properties_cb)
+		},
+		{ "RefreshHistory", GTK_STOCK_REFRESH, NULL,
+		  "<control>R", N_("Refresh current view"),
+		  G_CALLBACK (window_action_history_refresh)
 		},
 	};
 
@@ -1015,6 +1018,17 @@ window_create_ui_manager (GiggleWindow *window)
 	gtk_action_group_add_toggle_actions (action_group, toggle_action_entries,
 					     G_N_ELEMENTS (toggle_action_entries),
 					     window);
+
+	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
+	g_object_unref (action_group);
+
+	action_group = gtk_action_group_new ("ProjectActions");
+	gtk_action_group_set_translation_domain (action_group, GETTEXT_PACKAGE);
+	gtk_action_group_set_sensitive (action_group, FALSE);
+
+	gtk_action_group_add_actions (action_group, project_action_entries,
+				      G_N_ELEMENTS (project_action_entries),
+				      window);
 
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 	g_object_unref (action_group);
@@ -1299,16 +1313,18 @@ window_directory_changed_cb (GiggleGit    *git,
 			     GParamSpec   *arg,
 			     GiggleWindow *window)
 {
-	GiggleWindowPriv *priv;
+	GiggleWindowPriv *priv = GET_PRIV (window);
 	gchar            *title;
 	const gchar      *directory;
-
-	priv = GET_PRIV (window);
+	GtkActionGroup   *action_group;
 
 	directory = giggle_git_get_directory (git);
 	title = g_strdup_printf ("%s - %s", directory, g_get_application_name ());
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
+
+	action_group = ui_manager_get_action_group (priv->ui_manager, "ProjectActions");
+	gtk_action_group_set_sensitive (action_group, TRUE);
 
 	giggle_configuration_update (priv->configuration,
 				     configuration_updated_cb, window);
