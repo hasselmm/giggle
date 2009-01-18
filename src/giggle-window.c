@@ -1234,20 +1234,19 @@ window_create_find_bar (GiggleWindow *window)
 }
 
 static void
-window_notebook_switch_page_cb (GtkNotebook     *notebook,
-				GtkNotebookPage *page,
-				guint            page_num,
-				GiggleWindow    *window)
+window_update_search_ui (GiggleWindow *window)
 {
-	GiggleWindowPriv *priv;
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	gboolean          searchable = FALSE;
 	GtkActionGroup   *action_group;
 	GtkWidget        *page_widget;
-	gboolean	  searchable;
+	int               page_num;
 
-	priv = GET_PRIV (window);
-
-	page_widget = gtk_notebook_get_nth_page (notebook, page_num);
-	searchable = GIGGLE_IS_SEARCHABLE (page_widget);
+	if (GTK_WIDGET_VISIBLE (priv->view_shell)) {
+		page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->view_shell));
+		page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->view_shell), page_num);
+		searchable = GIGGLE_IS_SEARCHABLE (page_widget);
+	}
 
 	/* Update find */
 	action_group = ui_manager_get_action_group (priv->ui_manager, "FindActions");
@@ -1255,12 +1254,44 @@ window_notebook_switch_page_cb (GtkNotebook     *notebook,
 
 	if (!searchable)
 		gtk_widget_hide (priv->find_bar);
+}
 
+static void
+window_update_history_ui (GiggleWindow *window)
+{
 #if 0
-	/* Update history search */
-	window_update_toolbar_buttons (window);
-#endif
+	GiggleWindowPriv *priv;
+	GtkAction        *action;
+	GtkWidget        *page_widget;
+	gboolean          back, forward;
+	gint              page_num;
 
+	priv = GET_PRIV (window);
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
+	page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
+	back = forward = FALSE;
+
+	if (GIGGLE_IS_HISTORY (page_widget)) {
+		back = giggle_history_can_go_back (GIGGLE_HISTORY (page_widget));
+		forward = giggle_history_can_go_forward (GIGGLE_HISTORY (page_widget));
+	}
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, BACK_HISTORY_PATH);
+	gtk_action_set_sensitive (action, back);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, FORWARD_HISTORY_PATH);
+	gtk_action_set_sensitive (action, forward);
+#endif
+}
+
+static void
+window_notebook_switch_page_cb (GtkNotebook     *notebook,
+				GtkNotebookPage *page,
+				guint            page_num,
+				GiggleWindow    *window)
+{
+	window_update_search_ui (window);
+	window_update_history_ui (window);
 }
 
 static void
@@ -1406,6 +1437,9 @@ giggle_window_init (GiggleWindow *window)
 			  G_CALLBACK (window_plugin_added_cb), window);
 
 	gtk_about_dialog_set_url_hook (about_activate_link, window, NULL);
+
+	window_update_search_ui (window);
+	window_update_history_ui (window);
 }
 
 #if 0
@@ -1464,32 +1498,6 @@ window_action_diff_cb (GtkAction    *action,
 		       GiggleWindow *window)
 {
 	giggle_window_show_diff_window (window);
-}
-
-static void
-window_update_toolbar_buttons (GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GtkAction        *action;
-	GtkWidget        *page_widget;
-	gboolean          back, forward;
-	gint              page_num;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-	back = forward = FALSE;
-
-	if (GIGGLE_IS_HISTORY (page_widget)) {
-		back = giggle_history_can_go_back (GIGGLE_HISTORY (page_widget));
-		forward = giggle_history_can_go_forward (GIGGLE_HISTORY (page_widget));
-	}
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, BACK_HISTORY_PATH);
-	gtk_action_set_sensitive (action, back);
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, FORWARD_HISTORY_PATH);
-	gtk_action_set_sensitive (action, forward);
 }
 
 static void
