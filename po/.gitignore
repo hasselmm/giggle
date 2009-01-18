@@ -5,3 +5,5 @@ stamp-it
 giggle.pot
 Makefile
 .intltool-merge-cache
+notexist
+missing
