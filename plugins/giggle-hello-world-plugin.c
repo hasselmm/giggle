@@ -18,7 +18,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "hello-world.h"
+#include "config.h"
+#include "giggle-hello-world-plugin.h"
 
 void
 hello_world_activate (GtkAction   *action,

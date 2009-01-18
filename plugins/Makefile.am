@@ -11,5 +11,6 @@ plugindir = $(pkglibdir)/plugins
 plugin_LTLIBRARIES = libhello-world.la
 
 libhello_world_la_SOURCES = \
-	hello-world.c
+	giggle-hello-world-plugin.c \
+	giggle-hello-world-plugin.h
 
