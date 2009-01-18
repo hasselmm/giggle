@@ -1056,7 +1056,7 @@ window_recent_repository_activate (GtkAction    *action,
 	giggle_window_set_directory (window, directory);
 }
 
- static void
+static void
 window_recent_connect_proxy_cb (GtkActionGroup *action_group,
                                 GtkAction *action,
                                 GtkWidget *proxy,
@@ -1071,7 +1071,6 @@ window_recent_connect_proxy_cb (GtkActionGroup *action_group,
 
 	gtk_label_set_ellipsize (label, PANGO_ELLIPSIZE_MIDDLE);
 	gtk_label_set_max_width_chars (label, RECENT_ITEM_MAX_N_CHARS);
-	gtk_label_set_use_underline (label, FALSE);
 }
 
 /* this should not be necessary when there's
@@ -1084,7 +1083,9 @@ window_recent_repositories_update (GiggleWindow *window)
 	GList            *recent_items, *l;
 	GtkRecentInfo    *info;
 	GtkAction        *action;
-	gchar            *action_name, *label;
+	gchar            *action_name;
+	gchar            *recent_label, *s;
+	GString          *action_label;
 	gint              count = 0;
 
 	if (priv->recent_merge_id != 0) {
@@ -1117,14 +1118,21 @@ window_recent_repositories_update (GiggleWindow *window)
 
 		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
 			action_name = g_strdup_printf ("recent-repository-%d", count);
-			label = gtk_recent_info_get_uri_display (info);
+			recent_label = gtk_recent_info_get_uri_display (info);
 
 			/* FIXME: add accel? */
+			action_label = g_string_new (NULL);
+			g_string_printf (action_label, "_%d. ", ++count);
 
-			action = gtk_action_new (action_name,
-						 label,
-						 NULL,
-						 NULL);
+			for (s = recent_label; *s; ++s) {
+				if ('_' == *s)
+					g_string_append_c (action_label, '_');
+
+				g_string_append_c (action_label, *s);
+			}
+
+			action = gtk_action_new (action_name, action_label->str, NULL, NULL);
+			gtk_action_group_add_action (priv->recent_action_group, action);
 
 			g_object_set_data_full (G_OBJECT (action), "recent-action-path",
 						gtk_recent_info_get_uri_display (info),
@@ -1135,8 +1143,6 @@ window_recent_repositories_update (GiggleWindow *window)
 					  G_CALLBACK (window_recent_repository_activate),
 					  window);
 
-			gtk_action_group_add_action (priv->recent_action_group, action);
-
 			gtk_ui_manager_add_ui (priv->ui_manager,
 					       priv->recent_merge_id,
 					       RECENT_REPOS_PLACEHOLDER_PATH,
@@ -1145,10 +1151,11 @@ window_recent_repositories_update (GiggleWindow *window)
 					       GTK_UI_MANAGER_MENUITEM,
 					       FALSE);
 
+			g_string_free (action_label, TRUE);
 			g_object_unref (action);
+
+			g_free (recent_label);
 			g_free (action_name);
-			g_free (label);
-			count++;
 		}
 
 		l = l->next;
