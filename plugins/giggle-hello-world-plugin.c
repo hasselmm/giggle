@@ -19,7 +19,11 @@
  */
 
 #include "config.h"
-#include "giggle-hello-world-plugin.h"
+#include "libgiggle/giggle-plugin.h"
+
+void
+hello_world_activate (GtkAction    *action,
+                      GigglePlugin *plugin);
 
 void
 hello_world_activate (GtkAction   *action,
