@@ -47,6 +47,8 @@
 #include "ige-mac-menu.h"
 #endif
 
+#define MAX_N_RECENT 10
+
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
 struct GiggleWindowPriv {
@@ -136,11 +138,6 @@ window_dispose (GObject *object)
 		priv->personal_details_window = NULL;
 	}
 
-	if (priv->ui_manager) {
-		g_object_unref (priv->ui_manager);
-		priv->ui_manager = NULL;
-	}
-
 	if (priv->git) {
 		g_object_unref (priv->git);
 		priv->git = NULL;
@@ -152,8 +149,14 @@ window_dispose (GObject *object)
 	}
 
 	if (priv->recent_action_group) {
-		g_object_unref (priv->recent_action_group);
+		gtk_ui_manager_remove_action_group (priv->ui_manager,
+						    priv->recent_action_group);
 		priv->recent_action_group = NULL;
+	}
+
+	if (priv->ui_manager) {
+		g_object_unref (priv->ui_manager);
+		priv->ui_manager = NULL;
 	}
 
 	if (priv->configuration) {
@@ -1052,51 +1055,40 @@ window_recent_repository_activate (GtkAction    *action,
 	giggle_window_set_directory (window, directory);
 }
 
-static void
-window_recent_repositories_clear (GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GList            *actions, *l;
-
-	priv = GET_PRIV (window);
-	actions = l = gtk_action_group_list_actions (priv->recent_action_group);
-
-	if (priv->recent_merge_id) {
-		gtk_ui_manager_remove_ui (priv->ui_manager, priv->recent_merge_id);
-	}
-
-	for (l = actions; l != NULL; l = l->next) {
-		g_signal_handlers_disconnect_by_func (GTK_ACTION (l->data),
-                                                      G_CALLBACK (window_recent_repository_activate),
-                                                      window);
-
-		gtk_action_group_remove_action (priv->recent_action_group, l->data);
-	}
-
-	g_list_free (actions);
-}
-
 /* this should not be necessary when there's
  * GtkRecentManager/GtkUIManager integration
  */
 static void
-window_recent_repositories_reload (GiggleWindow *window)
+window_recent_repositories_update (GiggleWindow *window)
 {
-	GiggleWindowPriv *priv;
+	GiggleWindowPriv *priv = GET_PRIV (window);
 	GList            *recent_items, *l;
 	GtkRecentInfo    *info;
 	GtkAction        *action;
 	gchar            *action_name, *label;
 	gint              count = 0;
 
-	priv = GET_PRIV (window);
+	if (priv->recent_merge_id != 0) {
+		gtk_ui_manager_remove_ui (priv->ui_manager, priv->recent_merge_id);
+		priv->recent_merge_id = 0;
+	}
+
+	if (priv->recent_action_group != NULL) {
+		gtk_ui_manager_remove_action_group (priv->ui_manager,
+						    priv->recent_action_group);
+		priv->recent_action_group = NULL;
+	}
+
+	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
+	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, -1);
+	g_object_unref (priv->recent_action_group);
+
+	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 
 	recent_items = gtk_recent_manager_get_items (priv->recent_manager);
-	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 	l = recent_items = g_list_reverse (recent_items);
 
-	/* FIXME: the max count is hardcoded */
-	while (l && count < 10) {
+	while (l && count < MAX_N_RECENT) {
 		info = l->data;
 
 		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
@@ -1140,13 +1132,6 @@ window_recent_repositories_reload (GiggleWindow *window)
 
 	g_list_foreach (recent_items, (GFunc) gtk_recent_info_unref, NULL);
 	g_list_free (recent_items);
-}
-
-static void
-window_recent_repositories_update (GiggleWindow *window)
-{
-	window_recent_repositories_clear (window);
-	window_recent_repositories_reload (window);
 }
 
 static void
