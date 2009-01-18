@@ -1120,7 +1120,6 @@ window_recent_repositories_update (GiggleWindow *window)
 			action_name = g_strdup_printf ("recent-repository-%d", count);
 			recent_label = gtk_recent_info_get_uri_display (info);
 
-			/* FIXME: add accel? */
 			action_label = g_string_new (NULL);
 			g_string_printf (action_label, "_%d. ", ++count);
 
