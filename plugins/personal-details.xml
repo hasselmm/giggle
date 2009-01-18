@@ -1,0 +1,27 @@
+<interface>
+  <object class="GigglePlugin" id="plugin">
+    <property name="description" translatable="yes">Edit personal details</property>
+
+    <child>
+      <object class="GtkActionGroup" id="ActionGroup">
+        <child>
+          <object class="GtkAction" id="PersonalDetails">
+            <property name="label"   translatable="yes">_Personal Details</property>
+            <property name="tooltip" translatable="yes">Edit personal details</property>
+            <property name="stock-id">gtk-preferences</property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <ui>
+      <menubar name="MainMenubar">
+        <menu action="EditMenu">
+          <placeholder name='EditMenuPreferences'>
+            <menuitem action="PersonalDetails" />
+          </placeholder>
+        </menu>
+      </menubar>
+    </ui>
+  </object>
+</interface>

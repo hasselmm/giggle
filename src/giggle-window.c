@@ -31,7 +31,6 @@
 #include "eggfindbar.h"
 #include "giggle-diff-window.h"
 #include "giggle-helpers.h"
-#include "giggle-personal-details-window.h"
 #include "giggle-view-file.h"
 #include "giggle-view-history.h"
 #include "giggle-view-shell.h"
@@ -651,28 +650,6 @@ window_action_delete_cb (GtkAction    *action,
 }
 
 static void
-window_action_personal_details_cb (GtkAction    *action,
-				   GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-
-	priv = GET_PRIV (window);
-
-	if (!priv->personal_details_window) {
-		priv->personal_details_window = giggle_personal_details_window_new ();
-
-		gtk_window_set_transient_for (GTK_WINDOW (priv->personal_details_window),
-					      GTK_WINDOW (window));
-		g_signal_connect (priv->personal_details_window, "delete-event",
-				  G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-		g_signal_connect_after (priv->personal_details_window, "response",
-					G_CALLBACK (gtk_widget_hide), NULL);
-	}
-
-	gtk_widget_show (priv->personal_details_window);
-}
-
-static void
 window_find (EggFindBar            *find_bar,
 	     GiggleWindow          *window,
 	     GiggleSearchDirection  direction)
@@ -871,11 +848,6 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_delete_cb)
 		},
 
-		{ "PersonalDetails", GTK_STOCK_PREFERENCES, N_("_Personal Details"),
-		  NULL, N_("Edit Personal details"),
-		  G_CALLBACK (window_action_personal_details_cb)
-		},
-
 		/* Toolbar items */
 		{ "BackHistory", GTK_STOCK_GO_BACK, NULL,
 		  "<alt>Left", N_("Go backward in history"),
@@ -931,7 +903,6 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <separator/>"
 		"      <placeholder name='EditMenuActions'/>"
 		"      <separator/>"
-		"      <menuitem action='PersonalDetails'/>"
 		"      <placeholder name='EditMenuPreferences'/>"
 		"    </menu>"
 		"    <menu action='ViewMenu'>"

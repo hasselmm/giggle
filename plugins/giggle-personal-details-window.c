@@ -28,6 +28,8 @@
 #include <glade/glade.h>
 #include <string.h>
 
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PERSONAL_DETAILS_WINDOW, GigglePersonalDetailsWindowPriv))
+
 typedef struct GigglePersonalDetailsWindowPriv GigglePersonalDetailsWindowPriv;
 
 struct GigglePersonalDetailsWindowPriv {
@@ -37,72 +39,21 @@ struct GigglePersonalDetailsWindowPriv {
 	GiggleConfiguration *configuration;
 };
 
-static void personal_details_window_finalize          (GObject             *object);
-static void personal_details_window_response          (GtkDialog           *dialog,
-						       gint                 response);
-static void personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
-						       gboolean             success,
-						       gpointer             user_data);
-					      
-
 G_DEFINE_TYPE (GigglePersonalDetailsWindow, giggle_personal_details_window, GTK_TYPE_DIALOG)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PERSONAL_DETAILS_WINDOW, GigglePersonalDetailsWindowPriv))
-
-
 static void
-giggle_personal_details_window_class_init (GigglePersonalDetailsWindowClass *class)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
-	GtkDialogClass *dialog_class = GTK_DIALOG_CLASS (class);
-
-	object_class->finalize = personal_details_window_finalize;
-	dialog_class->response = personal_details_window_response;
-
-	g_type_class_add_private (object_class,
-				  sizeof (GigglePersonalDetailsWindowPriv));
-}
-
-static void
-giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
-{
-	GigglePersonalDetailsWindowPriv *priv;
-	GladeXML                        *xml;
-	GtkWidget                       *table;
-
-	priv = GET_PRIV (window);
-
-	xml = glade_xml_new (GLADEDIR "/main-window.glade",
-			     "personal_details_table", NULL);
-
-	table = glade_xml_get_widget (xml, "personal_details_table");
-	priv->name_entry = glade_xml_get_widget (xml, "name_entry");
-	priv->email_entry = glade_xml_get_widget (xml, "email_entry");
-
-	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (window)->vbox), table);
-
-	gtk_window_set_title (GTK_WINDOW (window), _("Personal Details"));
-	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
-
-	gtk_dialog_add_button (GTK_DIALOG (window), GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
-	gtk_widget_set_sensitive (GTK_WIDGET (window), FALSE);
-
-	priv->configuration = giggle_configuration_new ();
-	giggle_configuration_update (priv->configuration,
-				     personal_details_configuration_updated_cb,
-				     window);
-}
-
-static void
-personal_details_window_finalize (GObject *object)
+personal_details_window_dispose (GObject *object)
 {
 	GigglePersonalDetailsWindowPriv *priv;
 
 	priv = GET_PRIV (object);
 
-	g_object_unref (priv->configuration);
+	if (priv->configuration) {
+		g_object_unref (priv->configuration);
+		priv->configuration = NULL;
+	}
 
-	G_OBJECT_CLASS (giggle_personal_details_window_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_personal_details_window_parent_class)->dispose (object);
 }
 
 static void
@@ -111,16 +62,18 @@ personal_details_configuration_changed_cb (GiggleConfiguration *configuration,
 					   gpointer             user_data)
 {
 	GigglePersonalDetailsWindow *window;
-	GtkWidget                   *dialog, *parent;
+	GtkWidget                   *dialog;
+	GtkWindow                   *parent;
 
 	window = GIGGLE_PERSONAL_DETAILS_WINDOW (user_data);
+	parent = gtk_window_get_transient_for (GTK_WINDOW (window));
 
-	if (success) {
+	gtk_widget_destroy (GTK_WIDGET (window));
+
+	if (success)
 		return;
-	}
 
-	g_object_get (window, "transient-for", &parent, NULL);
-	dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
+	dialog = gtk_message_dialog_new (parent,
 					 GTK_DIALOG_MODAL,
 					 GTK_MESSAGE_ERROR,
 					 GTK_BUTTONS_CLOSE,
@@ -150,7 +103,20 @@ personal_details_window_response (GtkDialog *dialog,
 
 	giggle_configuration_commit (priv->configuration,
 				     personal_details_configuration_changed_cb,
-				     dialog);
+				     g_object_ref (dialog));
+}
+
+static void
+giggle_personal_details_window_class_init (GigglePersonalDetailsWindowClass *class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GtkDialogClass *dialog_class = GTK_DIALOG_CLASS (class);
+
+	object_class->dispose = personal_details_window_dispose;
+	dialog_class->response = personal_details_window_response;
+
+	g_type_class_add_private (object_class,
+				  sizeof (GigglePersonalDetailsWindowPriv));
 }
 
 static void
@@ -168,9 +134,10 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
 
 	if (!success) {
-		GtkWidget *dialog, *parent;
+		GtkWindow *parent;
+		GtkWidget *dialog;
 
-		g_object_get (window, "transient-for", &parent, NULL);
+		parent = gtk_window_get_transient_for (GTK_WINDOW (window));
 		gtk_widget_hide (GTK_WIDGET (window));
 
 		dialog = gtk_message_dialog_new (GTK_WINDOW (parent),
@@ -195,6 +162,37 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 	if (value) {
 		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
 	}
+}
+
+static void
+giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
+{
+	GigglePersonalDetailsWindowPriv *priv;
+	GladeXML                        *xml;
+	GtkWidget                       *table;
+
+	priv = GET_PRIV (window);
+
+	xml = glade_xml_new (GLADEDIR "/main-window.glade",
+			     "personal_details_table", NULL);
+
+	table = glade_xml_get_widget (xml, "personal_details_table");
+	priv->name_entry = glade_xml_get_widget (xml, "name_entry");
+	priv->email_entry = glade_xml_get_widget (xml, "email_entry");
+
+	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (window)->vbox), table);
+
+	gtk_window_set_title (GTK_WINDOW (window), _("Personal Details"));
+	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+
+	gtk_dialog_add_button (GTK_DIALOG (window), GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
+	gtk_widget_set_sensitive (GTK_WIDGET (window), FALSE);
+
+	priv->configuration = giggle_configuration_new ();
+
+	giggle_configuration_update (priv->configuration,
+				     personal_details_configuration_updated_cb,
+				     window);
 }
 
 GtkWidget*
