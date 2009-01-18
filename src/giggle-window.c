@@ -47,7 +47,8 @@
 #include "ige-mac-menu.h"
 #endif
 
-#define MAX_N_RECENT 10
+#define MAX_N_RECENT            10
+#define RECENT_ITEM_MAX_N_CHARS 40
 
 typedef struct GiggleWindowPriv GiggleWindowPriv;
 
@@ -1055,6 +1056,24 @@ window_recent_repository_activate (GtkAction    *action,
 	giggle_window_set_directory (window, directory);
 }
 
+ static void
+window_recent_connect_proxy_cb (GtkActionGroup *action_group,
+                                GtkAction *action,
+                                GtkWidget *proxy,
+                                gpointer data)
+{
+	GtkLabel *label;
+
+	if (!GTK_IS_MENU_ITEM (proxy))
+		return;
+
+	label = GTK_LABEL (GTK_BIN (proxy)->child);
+
+	gtk_label_set_ellipsize (label, PANGO_ELLIPSIZE_MIDDLE);
+	gtk_label_set_max_width_chars (label, RECENT_ITEM_MAX_N_CHARS);
+	gtk_label_set_use_underline (label, FALSE);
+}
+
 /* this should not be necessary when there's
  * GtkRecentManager/GtkUIManager integration
  */
@@ -1080,6 +1099,11 @@ window_recent_repositories_update (GiggleWindow *window)
 	}
 
 	priv->recent_action_group = gtk_action_group_new ("RecentRepositories");
+
+	g_signal_connect
+		(priv->recent_action_group, "connect-proxy",
+		G_CALLBACK (window_recent_connect_proxy_cb), window);
+
 	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->recent_action_group, -1);
 	g_object_unref (priv->recent_action_group);
 
