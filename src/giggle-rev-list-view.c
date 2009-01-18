@@ -1551,10 +1551,6 @@ rev_list_view_selection_changed_cb (GtkTreeSelection  *selection,
 		gtk_tree_model_get (model, &last_iter,
 				    COL_OBJECT, &last_revision,
 				    -1);
-	} else if (first_revision) {
-		/* maybe select a better parent? */
-		GList* parents = giggle_revision_get_parents (first_revision);
-		last_revision = parents ? g_object_ref(parents->data) : NULL;
 	}
 
 	if (first_revision != priv->first_revision ||
@@ -1566,13 +1562,10 @@ rev_list_view_selection_changed_cb (GtkTreeSelection  *selection,
 			       first_revision, last_revision);
 	}
 
-	if (first_revision) {
+	if (first_revision)
 		g_object_unref (first_revision);
-	}
-
-	if (last_revision) {
+	if (last_revision)
 		g_object_unref (last_revision);
-	}
 
 	g_list_foreach (rows, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free (rows);

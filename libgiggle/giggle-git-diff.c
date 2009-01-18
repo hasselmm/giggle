@@ -234,6 +234,9 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 		}
 		
 		if (priv->rev2) {
+			if (!priv->rev1)
+				g_string_append_printf (str, " %s^", giggle_revision_get_sha (priv->rev2));
+
 			g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev2));
 		}
 

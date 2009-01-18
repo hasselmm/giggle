@@ -196,11 +196,11 @@ git_diff_tree_get_command_line (GiggleJob *job, gchar **command_line)
 		sha2 = giggle_revision_get_sha (priv->rev2);
 
 	if (sha1 && sha2) {
-		*command_line = g_strconcat (GIT_COMMAND " diff-tree -r ", sha2, " ", sha1, NULL);
+		*command_line = g_strdup_printf (GIT_COMMAND " diff-tree -r %s %s", sha2, sha1);
 	} else if (sha1) {
-		*command_line = g_strconcat (GIT_COMMAND " diff-files -r ", sha1, NULL);
+		*command_line = g_strdup_printf (GIT_COMMAND " diff-tree -r %s^ %s", sha1, sha1);
 	} else if (sha2) {
-		*command_line = g_strconcat (GIT_COMMAND " diff-files -r -R ", sha2, NULL);
+		*command_line = g_strdup_printf (GIT_COMMAND " diff-files -r -R %s", sha2);
 	} else {
 		*command_line = g_strdup (GIT_COMMAND " diff-files -r");
 	}
