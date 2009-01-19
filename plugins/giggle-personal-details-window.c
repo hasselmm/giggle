@@ -24,7 +24,6 @@
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-configuration.h"
 
-#include <glade/glade.h>
 #include <glib/gi18n.h>
 #include <libebook/e-book.h>
 #include <string.h>
@@ -216,19 +215,31 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 static void
 giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
 {
-	GigglePersonalDetailsWindowPriv *priv;
-	GladeXML                        *xml;
-	GtkWidget                       *table;
+	GigglePersonalDetailsWindowPriv *priv = GET_PRIV (window);
+	GtkWidget                       *label, *table;
 
-	priv = GET_PRIV (window);
+	table = gtk_table_new (2, 2, FALSE);
+	gtk_table_set_col_spacings (GTK_TABLE (table), 6);
+	gtk_table_set_row_spacings (GTK_TABLE (table), 6);
+	gtk_container_set_border_width (GTK_CONTAINER (table), 6);
 
-	xml = glade_xml_new (GLADEDIR "/main-window.glade",
-			     "personal_details_table", NULL);
+	label = gtk_label_new_with_mnemonic ("_Name:");
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 
-	table = glade_xml_get_widget (xml, "personal_details_table");
-	priv->name_entry = glade_xml_get_widget (xml, "name_entry");
-	priv->email_entry = glade_xml_get_widget (xml, "email_entry");
+	priv->name_entry = gtk_entry_new ();
+	gtk_label_set_mnemonic_widget (GTK_LABEL (label), priv->name_entry);
+	gtk_table_attach (GTK_TABLE (table), priv->name_entry, 1, 2, 0, 1, GTK_FILL|GTK_EXPAND, GTK_FILL, 0, 0);
 
+	label = gtk_label_new_with_mnemonic ("_Email:");
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+
+	priv->email_entry = gtk_entry_new ();
+	gtk_label_set_mnemonic_widget (GTK_LABEL (label), priv->email_entry);
+	gtk_table_attach (GTK_TABLE (table), priv->email_entry, 1, 2, 1, 2, GTK_FILL|GTK_EXPAND, GTK_FILL, 0, 0);
+
+	gtk_widget_show_all (table);
 	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (window)->vbox), table);
 
 	gtk_window_set_title (GTK_WINDOW (window), _("Personal Details"));

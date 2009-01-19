@@ -36,6 +36,7 @@
 #include "libgiggle/giggle-git-list-tree.h"
 
 #include <fnmatch.h>
+#include <gio/gio.h>
 #include <glib/gi18n.h>
 
 #include <gtksourceview/gtksourceiter.h>
@@ -931,6 +932,8 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 	GtkTextIter      iter;
 	GSList          *l;
 
+	gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW (widget),
+					       GTK_TEXT_WINDOW_WIDGET, x, y, &x, &y);
 	gtk_text_view_get_iter_at_location (GTK_TEXT_VIEW (widget), &iter, x, y);
 	gtk_text_iter_backward_chars (&iter, gtk_text_iter_get_line_offset (&iter));
 

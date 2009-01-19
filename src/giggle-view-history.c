@@ -48,6 +48,7 @@ struct GiggleViewHistoryPriv {
 	GtkWidget               *view_diff;
 	GtkWidget               *revision_view;
 	GtkWidget               *revision_list;
+	GtkWidget               *revision_list_sw;
 	GtkUIManager            *ui_manager;
 
 	GiggleGit               *git;
@@ -263,31 +264,71 @@ view_history_git_dir_notify (GiggleViewHistory *view)
 	giggle_revision_view_set_revision (GIGGLE_REVISION_VIEW (priv->revision_view), NULL);
 }
 
+static gboolean
+view_history_revision_list_key_press_cb (GiggleRevListView *list,
+					 GdkEventKey        *event,
+					 GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv *priv = GET_PRIV (view);
+	GtkTreePath           *path, *start, *end;
+	GtkTreeSelection      *selection;
+	GtkAdjustment         *adj;
+	gdouble                value;
+
+	if (event->keyval != GDK_space && event->keyval != GDK_BackSpace)
+		return FALSE;
+
+	giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->revision_shell), "DiffView");
+	adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->revision_list_sw));
+
+	value = event->keyval == GDK_space ?
+		adj->value + (adj->page_size * 0.8) :
+		adj->value - (adj->page_size * 0.8);
+
+	value = CLAMP (value, adj->lower, adj->upper - adj->page_size);
+	g_object_set (adj, "value", value, NULL);
+
+	if (gtk_tree_view_get_visible_range (GTK_TREE_VIEW (priv->revision_list), &start, &end)) {
+		selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
+		path = event->keyval == GDK_space ? end : start;
+
+		gtk_tree_selection_unselect_all (selection);
+		gtk_tree_selection_select_path (selection, path);
+
+		gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (priv->revision_list),
+					      path, NULL, FALSE, 0, 0);
+
+		gtk_tree_path_free (start);
+		gtk_tree_path_free (end);
+	}
+
+	return TRUE;
+}
+
 static void
 view_history_setup_revision_list (GObject *object)
 {
 	GiggleViewHistoryPriv *priv;
-	GtkWidget             *scrolled_window;
 
 	priv = GET_PRIV (object);
 
-	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+	priv->revision_list_sw = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (priv->revision_list_sw),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (priv->revision_list_sw),
+					     GTK_SHADOW_IN);
 
 	priv->revision_list = giggle_rev_list_view_new ();
+
 	g_signal_connect (priv->revision_list, "selection-changed",
 			  G_CALLBACK (view_history_revision_list_selection_changed_cb), object);
-#if 0
 	g_signal_connect (priv->revision_list, "key-press-event",
-			  G_CALLBACK (view_history_revision_list_key_press_cb), view);
-#endif
+			  G_CALLBACK (view_history_revision_list_key_press_cb), object);
 
-	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->revision_list);
-	gtk_widget_show_all (scrolled_window);
+	gtk_container_add (GTK_CONTAINER (priv->revision_list_sw), priv->revision_list);
+	gtk_widget_show_all (priv->revision_list_sw);
 
-	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), scrolled_window, TRUE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (priv->main_vpaned), priv->revision_list_sw, TRUE, FALSE);
 }
 
 #if 0
@@ -477,38 +518,6 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 				 (GSourceFunc) view_history_selection_changed_idle,
 				 data, g_free);
 }
-
-#if 0
-static gboolean
-view_history_revision_list_key_press_cb (GiggleRevListView *list,
-					 GdkEventKey        *event,
-					 GiggleViewHistory  *view)
-{
-	GiggleViewHistoryPriv *priv;
-	GtkAdjustment         *adj;
-	gdouble                value;
-
-	priv = GET_PRIV (view);
-
-	if (event->keyval == GDK_space ||
-	    event->keyval == GDK_BackSpace) {
-		giggle_view_shell_set_view_name (GIGGLE_VIEW_SHELL (priv->revision_shell), "DiffView");
-		adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->diff_view_sw));
-
-		value = (event->keyval == GDK_space) ?
-			adj->value + (adj->page_size * 0.8) :
-			adj->value - (adj->page_size * 0.8);
-
-		value = CLAMP (value, adj->lower, adj->upper - adj->page_size);
-
-		g_object_set (adj, "value", value, NULL);
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-#endif
 
 static gboolean
 view_history_search (GiggleSearchable      *searchable,
