@@ -282,7 +282,7 @@ static gboolean
 remotes_view_key_press_event (GtkWidget   *widget,
 			      GdkEventKey *event)
 {
-	gboolean retval = tree_view_delete_selection_on_list_store (widget, event);
+	gboolean retval = giggle_tree_view_delete_selection_on_list_store (widget, event);
 
 	if (retval) {
 		// FIXME: delete the files

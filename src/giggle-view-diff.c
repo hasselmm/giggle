@@ -114,7 +114,7 @@ view_diff_update_status (GiggleViewDiff *view)
 	g_free (markup);
 	g_free (format);
 
-	tree_view_select_row_by_string (priv->file_view, 0, current_file);
+	giggle_tree_view_select_row_by_string (priv->file_view, 0, current_file);
 
 	g_free (current_file);
 }

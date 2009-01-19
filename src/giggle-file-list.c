@@ -453,8 +453,8 @@ file_list_status_changed (GiggleFileList *list)
 	gtk_tree_path_free (path);
 
 	if (priv->selected_path)
-		tree_view_select_row_by_string (GTK_WIDGET (list),
-					        COL_REL_PATH, priv->selected_path);
+		giggle_tree_view_select_row_by_string (GTK_WIDGET (list),
+						       COL_REL_PATH, priv->selected_path);
 }
 
 static void
@@ -1621,7 +1621,8 @@ giggle_file_list_select (GiggleFileList *list,
 	priv->selected_path = g_strdup (path);
 
 	if (gtk_tree_view_get_model (GTK_TREE_VIEW (list)))
-		tree_view_select_row_by_string (GTK_WIDGET (list), COL_REL_PATH, path);
+		giggle_tree_view_select_row_by_string (GTK_WIDGET (list),
+						       COL_REL_PATH, path);
 }
 
 static gint

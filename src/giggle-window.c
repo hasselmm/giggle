@@ -1263,7 +1263,7 @@ window_update_search_ui (GiggleWindow *window)
 	}
 
 	/* Update find */
-	action_group = ui_manager_get_action_group (priv->ui_manager, "FindActions");
+	action_group = giggle_ui_manager_get_action_group (priv->ui_manager, "FindActions");
 	gtk_action_group_set_sensitive (action_group, searchable);
 
 	if (!searchable)
@@ -1323,7 +1323,7 @@ window_directory_changed_cb (GiggleGit    *git,
 	gtk_window_set_title (GTK_WINDOW (window), title);
 	g_free (title);
 
-	action_group = ui_manager_get_action_group (priv->ui_manager, "ProjectActions");
+	action_group = giggle_ui_manager_get_action_group (priv->ui_manager, "ProjectActions");
 	gtk_action_group_set_sensitive (action_group, TRUE);
 
 	giggle_configuration_update (priv->configuration,

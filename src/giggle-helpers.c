@@ -48,9 +48,11 @@ remote_editor_remove_branch (GtkTreeRowReference *ref)
 	gtk_tree_row_reference_free (ref);
 }
 
+/* returns TRUE if the key press was delete and at least one row has been
+ * deleted */
 gboolean
-tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
-					  GdkEventKey *event)
+giggle_tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
+						 GdkEventKey *event)
 {
 	if (event->keyval == GDK_Delete) {
 		GtkTreeSelection* sel;
@@ -102,9 +104,9 @@ tree_model_find_string (GtkTreeModel *model,
 }
 
 gboolean
-tree_view_select_row_by_string (GtkWidget  *treeview,
-				int	    column,
-				const char *pattern)
+giggle_tree_view_select_row_by_string (GtkWidget  *treeview,
+				       int         column,
+				       const char *pattern)
 {
 	GtkTreeSelection   *selection;
 	GtkTreeModel	   *model;
@@ -140,8 +142,8 @@ tree_view_select_row_by_string (GtkWidget  *treeview,
 }
 
 GtkActionGroup *
-ui_manager_get_action_group (GtkUIManager *manager,
-			     const char   *group_name)
+giggle_ui_manager_get_action_group (GtkUIManager *manager,
+				    const char   *group_name)
 {
 	GList *groups;
 
