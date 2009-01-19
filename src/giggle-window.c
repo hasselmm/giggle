@@ -751,18 +751,17 @@ static void
 window_visit_uri (GiggleWindow *window,
 		  const char   *uri)
 {
-	GdkAppLaunchContext *context;
-	GError              *error = NULL;
-	GdkScreen           *screen;
+	GAppLaunchContext *context;
+	GError            *error = NULL;
 
-	context = gdk_app_launch_context_new ();
-	screen = gtk_widget_get_screen (GTK_WIDGET (window));
-	gdk_app_launch_context_set_screen (context, screen);
+	context = giggle_create_app_launch_context (GTK_WIDGET (window));
 
-	if (!g_app_info_launch_default_for_uri (uri, G_APP_LAUNCH_CONTEXT (context), &error)) {
+	if (!g_app_info_launch_default_for_uri (uri, context, &error)) {
 		g_warning ("%s: %s", G_STRFUNC, error->message);
 		g_clear_error (&error);
 	}
+
+	g_object_unref (context);
 }
 
 static void

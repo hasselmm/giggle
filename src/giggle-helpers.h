@@ -35,6 +35,8 @@ gboolean            giggle_tree_view_select_row_by_string (GtkWidget    *treevie
 GtkActionGroup *    giggle_ui_manager_get_action_group	  (GtkUIManager *manager,
 							   const char   *group_name);
 
+GAppLaunchContext * giggle_create_app_launch_context	  (GtkWidget    *widget);
+
 G_END_DECLS
 
 #endif /* __GIGGLE_DUMMY_H__ */

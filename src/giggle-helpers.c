@@ -160,3 +160,22 @@ giggle_ui_manager_get_action_group (GtkUIManager *manager,
 	return NULL;
 }
 
+GAppLaunchContext *
+giggle_create_app_launch_context (GtkWidget *widget)
+{
+#if GTK_CHECK_VERSION(2,14,0)
+	GdkAppLaunchContext *context;
+	GdkScreen           *screen = NULL;
+
+	context = gdk_app_launch_context_new ();
+
+	if (widget) {
+		screen = gtk_widget_get_screen (widget);
+		gdk_app_launch_context_set_screen (context, screen);
+	}
+
+	return G_APP_LAUNCH_CONTEXT (context);
+#else
+	return g_app_launch_context_new ();
+#endif
+}

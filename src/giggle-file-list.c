@@ -710,17 +710,14 @@ static void
 file_list_edit_file (GtkAction      *action,
 		     GiggleFileList *list)
 {
-	GiggleFileListPriv  *priv = GET_PRIV (list);
-	GdkAppLaunchContext *context;
-	GdkScreen           *screen;
-	GList               *selection, *l;
-	char                *filename, *uri;
-	GError              *error = NULL;
-	const char          *dir;
+	GiggleFileListPriv*priv = GET_PRIV (list);
+	GAppLaunchContext *context;
+	GList             *selection, *l;
+	char              *filename, *uri;
+	GError            *error = NULL;
+	const char        *dir;
 
-	context = gdk_app_launch_context_new ();
-	screen = gtk_widget_get_screen (GTK_WIDGET (list));
-	gdk_app_launch_context_set_screen (context, screen);
+	context = giggle_create_app_launch_context (GTK_WIDGET (list));
 	selection = giggle_file_list_get_selection (list);
 	dir = giggle_git_get_directory (priv->git);
 
@@ -735,9 +732,7 @@ file_list_edit_file (GtkAction      *action,
 			continue;
 		}
 
-		if (!g_app_info_launch_default_for_uri (uri,
-							G_APP_LAUNCH_CONTEXT (context),
-							&error)) {
+		if (!g_app_info_launch_default_for_uri (uri, context, &error)) {
 			g_warning ("%s: %s", G_STRFUNC, error->message);
 			g_clear_error (&error);
 		}
