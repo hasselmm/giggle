@@ -25,17 +25,15 @@
 
 G_BEGIN_DECLS
 
-/* returns TRUE if the key press was delete and at least one row has been
- * deleted */
-gboolean         giggle_tree_view_delete_selection_on_list_store (GtkWidget    *treeview,
-								  GdkEventKey  *event);
+gboolean            giggle_list_view_delete_selection	  (GtkWidget    *treeview,
+							   GdkEventKey  *event);
 
-gboolean         giggle_tree_view_select_row_by_string		 (GtkWidget    *treeview,
-								  int           column,
-								  const char   *pattern);
+gboolean            giggle_tree_view_select_row_by_string (GtkWidget    *treeview,
+							   int           column,
+							   const char   *pattern);
 
-GtkActionGroup * giggle_ui_manager_get_action_group		 (GtkUIManager *manager,
-								  const char   *group_name);
+GtkActionGroup *    giggle_ui_manager_get_action_group	  (GtkUIManager *manager,
+							   const char   *group_name);
 
 G_END_DECLS
 

@@ -51,8 +51,8 @@ remote_editor_remove_branch (GtkTreeRowReference *ref)
 /* returns TRUE if the key press was delete and at least one row has been
  * deleted */
 gboolean
-giggle_tree_view_delete_selection_on_list_store (GtkWidget   *treeview,
-						 GdkEventKey *event)
+giggle_list_view_delete_selection (GtkWidget   *treeview,
+				   GdkEventKey *event)
 {
 	if (event->keyval == GDK_Delete) {
 		GtkTreeSelection* sel;

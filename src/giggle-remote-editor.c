@@ -174,7 +174,7 @@ remote_editor_setup_treeview (GiggleRemoteEditor *self)
 	priv = GET_PRIV (self);
 
 	g_signal_connect (priv->treeview_branches, "key-press-event",
-			  G_CALLBACK (giggle_tree_view_delete_selection_on_list_store), NULL);
+			  G_CALLBACK (giggle_list_view_delete_selection), NULL);
 
 	store = gtk_list_store_new (N_COLUMNS, G_TYPE_OBJECT);
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->treeview_branches), GTK_TREE_MODEL (store));
