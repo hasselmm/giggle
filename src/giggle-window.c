@@ -659,16 +659,15 @@ window_find (EggFindBar            *find_bar,
 	     GiggleSearchDirection  direction)
 {
 	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	guint             page_num;
+	GiggleView       *view;
 	const gchar      *search_string;
 	gboolean          full_search;
 
 	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->view_shell));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->view_shell), page_num);
 
-	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+	view = giggle_view_shell_get_selected (GIGGLE_VIEW_SHELL (priv->view_shell));
+
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (view));
 
 	search_string = egg_find_bar_get_search_string (find_bar);
 
@@ -676,7 +675,7 @@ window_find (EggFindBar            *find_bar,
 		full_search = gtk_toggle_tool_button_get_active (
 			GTK_TOGGLE_TOOL_BUTTON (priv->full_search));
 
-		giggle_searchable_search (GIGGLE_SEARCHABLE (page),
+		giggle_searchable_search (GIGGLE_SEARCHABLE (view),
 					  search_string, direction, full_search);
 	}
 }
@@ -1201,16 +1200,15 @@ window_cancel_find (GtkWidget    *widget,
 		    GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	guint             page_num;
+	GiggleView       *view;
 
 	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->view_shell));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->view_shell), page_num);
 
-	g_return_if_fail (GIGGLE_IS_SEARCHABLE (page));
+	view = giggle_view_shell_get_selected (GIGGLE_VIEW_SHELL (priv->view_shell));
+	g_return_if_fail (GIGGLE_IS_SEARCHABLE (view));
 
-	giggle_searchable_cancel (GIGGLE_SEARCHABLE (page));
+	giggle_searchable_cancel (GIGGLE_SEARCHABLE (view));
+
 	gtk_widget_hide (widget);
 }
 
@@ -1252,13 +1250,11 @@ window_update_search_ui (GiggleWindow *window)
 	GiggleWindowPriv *priv = GET_PRIV (window);
 	gboolean          searchable = FALSE;
 	GtkActionGroup   *action_group;
-	GtkWidget        *page_widget;
-	int               page_num;
+	GiggleView       *view;
 
 	if (GTK_WIDGET_VISIBLE (priv->view_shell)) {
-		page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->view_shell));
-		page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->view_shell), page_num);
-		searchable = GIGGLE_IS_SEARCHABLE (page_widget);
+		view = giggle_view_shell_get_selected (GIGGLE_VIEW_SHELL (priv->view_shell));
+		searchable = GIGGLE_IS_SEARCHABLE (view);
 	}
 
 	/* Update find */
