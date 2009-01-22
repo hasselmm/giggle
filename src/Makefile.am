@@ -46,8 +46,6 @@ giggle_SOURCES= \
 	giggle-revision-info.h \
 	giggle-revision-info-action.c \
 	giggle-revision-info-action.h \
-	giggle-revision-tooltip.c \
-	giggle-revision-tooltip.h \
 	giggle-revision-view.c \
 	giggle-revision-view.h \
 	giggle-short-list.c \
