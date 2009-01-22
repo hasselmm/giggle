@@ -1,5 +1,12 @@
 icon16dir = $(datadir)/icons/hicolor/16x16/apps
-icon16_DATA = 16x16/giggle.png 16x16/giggle-scm-git.png 16x16/giggle-scm-svn.png
+
+icon16_DATA = \
+	16x16/giggle.png \
+	16x16/giggle-scm-git.png \
+	16x16/giggle-scm-svn.png \
+	16x16/giggle-branch.png \
+	16x16/giggle-remote.png \
+	16x16/giggle-tag.png
 
 icon22dir = $(datadir)/icons/hicolor/22x22/apps
 icon22_DATA = 22x22/giggle.png

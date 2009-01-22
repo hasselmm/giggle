@@ -58,6 +58,10 @@ struct GiggleRevListViewPriv {
 	GtkTreeViewColumn *emblem_column;
 	int                emblem_size;
 
+	GdkPixbuf         *emblem_branch;
+	GdkPixbuf         *emblem_remote;
+	GdkPixbuf         *emblem_tag;
+
 	GtkTreeViewColumn *graph_column;
 	GtkCellRenderer   *graph_renderer;
 
@@ -115,11 +119,32 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevListView, giggle_rev_list_view, GTK_TYPE_TREE_
 						giggle_rev_list_view_clipboard_init))
 
 static void
+rev_list_view_reset_emblems (GiggleRevListViewPriv *priv)
+{
+	if (priv->emblem_branch) {
+		g_object_unref (priv->emblem_branch);
+		priv->emblem_branch = NULL;
+	}
+
+	if (priv->emblem_remote) {
+		g_object_unref (priv->emblem_remote);
+		priv->emblem_remote = NULL;
+	}
+
+	if (priv->emblem_tag) {
+		g_object_unref (priv->emblem_tag);
+		priv->emblem_tag = NULL;
+	}
+}
+
+static void
 rev_list_view_dispose (GObject *object)
 {
 	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	rev_list_view_reset_emblems (priv);
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
@@ -536,7 +561,11 @@ rev_list_view_style_set (GtkWidget *widget,
 			 GtkStyle  *prev_style)
 {
 	GiggleRevListViewPriv *priv = GET_PRIV (widget);
+	GtkIconTheme          *icon_theme;
+	GdkScreen             *screen;
 	int                    w, h;
+
+	rev_list_view_reset_emblems (priv);
 
 	gtk_widget_style_get (widget, "emblem-size", &priv->emblem_size, NULL);
 
@@ -548,8 +577,19 @@ rev_list_view_style_set (GtkWidget *widget,
 		}
 	}
 
+	screen = gtk_widget_get_screen (widget);
+	icon_theme = gtk_icon_theme_get_for_screen (screen);
+
+	priv->emblem_branch = gtk_icon_theme_load_icon (icon_theme, "giggle-branch",
+							priv->emblem_size, 0, NULL);
+	priv->emblem_remote = gtk_icon_theme_load_icon (icon_theme, "giggle-remote",
+							priv->emblem_size, 0, NULL);
+	priv->emblem_tag    = gtk_icon_theme_load_icon (icon_theme, "giggle-tag",
+							priv->emblem_size, 0, NULL);
+
 	gtk_tree_view_column_set_min_width (priv->emblem_column,
-					    priv->emblem_size + (2 * widget->style->xthickness));
+					    priv->emblem_size * 3 +
+					    2 * widget->style->xthickness);
 
 	GTK_WIDGET_CLASS (giggle_rev_list_view_parent_class)->style_set (widget, prev_style);
 }
@@ -1315,8 +1355,10 @@ rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 	GiggleRevListView     *list;
 	GiggleRevision        *revision;
 	GdkPixbuf             *pixbuf = NULL;
-	GtkIconTheme          *icon_theme;
-	GdkScreen             *screen;
+	int                    columns = 0, x = 0;
+	GList                 *branch_list = NULL;
+	GList                 *remote_list = NULL;
+	GList                 *tag_list = NULL;
 
 	list = GIGGLE_REV_LIST_VIEW (data);
 	priv = GET_PRIV (list);
@@ -1325,16 +1367,45 @@ rev_list_view_cell_data_emblem_func (GtkCellLayout     *layout,
 			    COL_OBJECT, &revision,
 			    -1);
 
-	if (revision &&
-	    (giggle_revision_get_tags (revision) ||
-	     giggle_revision_get_remotes (revision) ||
-	     giggle_revision_get_branch_heads (revision))) {
-		screen = gtk_widget_get_screen (data);
-		icon_theme = gtk_icon_theme_get_for_screen (screen);
-		pixbuf = gtk_icon_theme_load_icon (icon_theme,
-						   GTK_STOCK_INFO,
-						   priv->emblem_size,
-						   0, NULL);
+	if (revision) {
+		branch_list = giggle_revision_get_branch_heads (revision);
+		remote_list = giggle_revision_get_remotes (revision);
+		tag_list    = giggle_revision_get_tags (revision);
+	}
+
+	if (branch_list)
+		++columns;
+	if (remote_list)
+		++columns;
+	if (tag_list)
+		++columns;
+
+	if (columns > 0) {
+		pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8,
+					 priv->emblem_size * columns,
+					 priv->emblem_size);
+		gdk_pixbuf_fill (pixbuf, 0x00000000);
+
+		if (branch_list) {
+			gdk_pixbuf_copy_area (priv->emblem_branch, 0, 0,
+					      priv->emblem_size, priv->emblem_size,
+					      pixbuf, x, 0);
+			x += priv->emblem_size;
+		}
+
+		if (remote_list) {
+			gdk_pixbuf_copy_area (priv->emblem_remote, 0, 0,
+					      priv->emblem_size, priv->emblem_size,
+					      pixbuf, x, 0);
+			x += priv->emblem_size;
+		}
+
+		if (tag_list) {
+			gdk_pixbuf_copy_area (priv->emblem_tag, 0, 0,
+					      priv->emblem_size, priv->emblem_size,
+					      pixbuf, x, 0);
+			x += priv->emblem_size;
+		}
 	}
 
 	g_object_set (cell, "pixbuf", pixbuf, NULL);
@@ -1611,8 +1682,6 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	/* emblems renderer */
 	priv->emblem_column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_sizing (priv->emblem_column, GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_min_width (priv->emblem_column, priv->emblem_size +
-					    GTK_WIDGET (rev_list_view)->style->xthickness * 2);
 
 	cell = gtk_cell_renderer_pixbuf_new ();
 

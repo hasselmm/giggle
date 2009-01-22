@@ -18,13 +18,12 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <stdlib.h>
-#include <glib/gi18n.h>
-#include <glib/gprintf.h>
-#include <gtk/gtkmain.h>
-
+#include "config.h"
 #include "giggle-window.h"
+
+#include <glib/gi18n.h>
+#include <gtk/gtk.h>
+#include <stdlib.h>
 
 static gboolean diff_window = FALSE;
 static gboolean version = FALSE;
@@ -63,12 +62,15 @@ main (int    argc,
 		g_printerr ("%s\n", error->message);
 		return 1;
 	}
-   
+
+	if (g_file_test ("pixmaps", G_FILE_TEST_IS_DIR))
+		gtk_icon_theme_prepend_search_path (gtk_icon_theme_get_default (), "pixmaps");
+
 	if (version) {
-		g_printf ("%s %s, "
-			  "Copyright (C) 2007-2008 Imendio AB, "
-			  "Copyright (C) 2008 Mathias Hasselmann\n",
-			  PACKAGE_NAME, PACKAGE_VERSION);
+		g_print ("%s %s, "
+			 "Copyright (C) 2007-2008 Imendio AB, "
+			 "Copyright (C) 2008 Mathias Hasselmann\n",
+			 PACKAGE_NAME, PACKAGE_VERSION);
 
 		return EXIT_SUCCESS;
 	}
