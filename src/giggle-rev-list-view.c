@@ -53,22 +53,16 @@
 typedef struct GiggleRevListViewPriv GiggleRevListViewPriv;
 
 struct GiggleRevListViewPriv {
+	GiggleGit         *git;
+	GiggleJob         *job;
+
+	GtkTreeViewColumn *emblem_column;
+	int                emblem_size;
+
 	GtkTreeViewColumn *graph_column;
 	GtkCellRenderer   *graph_renderer;
 
-	GtkTreeViewColumn *emblem_column;
-	GtkCellRenderer   *emblem_renderer;
-
-	GtkCellRenderer   *log_renderer;
-	GtkCellRenderer   *author_renderer;
-	GtkCellRenderer   *date_renderer;
-
-	int                emblem_size;
-
 	GtkWidget         *revision_tooltip;
-
-	GiggleGit         *git;
-	GiggleJob         *job;
 
 	GtkUIManager      *ui_manager;
 	GtkWidget         *popup;
@@ -124,32 +118,37 @@ G_DEFINE_TYPE_WITH_CODE (GiggleRevListView, giggle_rev_list_view, GTK_TYPE_TREE_
 						giggle_rev_list_view_clipboard_init))
 
 static void
-rev_list_view_finalize (GObject *object)
+rev_list_view_dispose (GObject *object)
 {
 	GiggleRevListViewPriv *priv;
 
 	priv = GET_PRIV (object);
 
-	g_object_unref (priv->graph_column);
-	g_object_unref (priv->emblem_renderer);
-	g_object_unref (priv->graph_renderer);
-	gtk_widget_destroy (priv->revision_tooltip);
+	if (priv->revision_tooltip) {
+		gtk_widget_destroy (priv->revision_tooltip);
+		priv->revision_tooltip = NULL;
+	}
 
 	if (priv->job) {
 		giggle_git_cancel_job (priv->git, priv->job);
 		g_object_unref (priv->job);
+		priv->job = NULL;
 	}
 
-	g_object_unref (priv->git);
-	g_object_unref (priv->refs_action_group);
-
-	if (g_main_loop_is_running (priv->main_loop)) {
-		g_main_loop_quit (priv->main_loop);
+	if (priv->git) {
+		g_object_unref (priv->git);
+		priv->git = NULL;
 	}
 
-	g_main_loop_unref (priv->main_loop);
+	if (priv->main_loop) {
+		if (g_main_loop_is_running (priv->main_loop))
+			g_main_loop_quit (priv->main_loop);
 
-	G_OBJECT_CLASS (giggle_rev_list_view_parent_class)->finalize (object);
+		g_main_loop_unref (priv->main_loop);
+		priv->main_loop = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_rev_list_view_parent_class)->dispose (object);
 }
 
 static void
@@ -451,7 +450,7 @@ rev_list_view_motion_notify (GtkWidget      *widget,
 	GtkTreePath            *path = NULL;
 	GtkTreeViewColumn      *column;
 	GtkTreeIter             iter;
-	gint                    cell_x, start, width;
+	gint                    cell_x;
 	GiggleRevision         *revision = NULL;
 
 	priv = GET_PRIV (widget);
@@ -466,15 +465,6 @@ rev_list_view_motion_notify (GtkWidget      *widget,
 					    event->x, event->y,
 					    &path, &column, &cell_x, NULL) ||
 	    column != priv->emblem_column) {
-		goto failed;
-	}
-
-	gtk_tree_view_column_cell_get_position (column, priv->emblem_renderer,
-						&start, &width);
-
-	/* are we in the correct renderer? */
-	if (cell_x < start ||
-	    cell_x > start + width) {
 		goto failed;
 	}
 
@@ -586,7 +576,7 @@ giggle_rev_list_view_class_init (GiggleRevListViewClass *class)
 	GtkWidgetClass   *widget_class    = GTK_WIDGET_CLASS (class);
 	GtkTreeViewClass *tree_view_class = GTK_TREE_VIEW_CLASS (class);
 
-	object_class->finalize            = rev_list_view_finalize;
+	object_class->dispose             = rev_list_view_dispose;
 	object_class->set_property        = rev_list_view_set_property;
 	object_class->get_property        = rev_list_view_get_property;
 
@@ -1599,6 +1589,7 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	GtkActionGroup        *action_group;
 	GtkTreeViewColumn     *column;
 	gint                   font_size;
+	GtkCellRenderer       *cell;
 
 	priv = GET_PRIV (rev_list_view);
 	font_size = pango_font_description_get_size (GTK_WIDGET (rev_list_view)->style->font_desc);
@@ -1616,23 +1607,17 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 
 	/* emblems renderer */
 	priv->emblem_column = gtk_tree_view_column_new ();
-	gtk_tree_view_column_set_sizing (priv->emblem_column,
-					 GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_min_width (priv->emblem_column,
-					    priv->emblem_size + (2 * GTK_WIDGET (rev_list_view)->style->xthickness));
-	g_object_ref_sink (priv->emblem_column);
+	gtk_tree_view_column_set_sizing (priv->emblem_column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_min_width (priv->emblem_column, priv->emblem_size +
+					    GTK_WIDGET (rev_list_view)->style->xthickness * 2);
 
-	priv->emblem_renderer = gtk_cell_renderer_pixbuf_new ();
-	g_object_ref_sink (priv->emblem_renderer);
+	cell = gtk_cell_renderer_pixbuf_new ();
 
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->emblem_column),
-				    priv->emblem_renderer, TRUE);
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->emblem_column), cell, TRUE);
 
-	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->emblem_column),
-					    priv->emblem_renderer,
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (priv->emblem_column), cell,
 					    rev_list_view_cell_data_emblem_func,
-					    rev_list_view,
-					    NULL);
+					    rev_list_view, NULL);
 
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view),
 				     priv->emblem_column, -1);
@@ -1642,10 +1627,8 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	gtk_tree_view_column_set_resizable (priv->graph_column, TRUE);
 	gtk_tree_view_column_set_sizing (priv->graph_column, GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_min_width (priv->graph_column, font_size * 10);
-	g_object_ref_sink (priv->graph_column);
 
 	priv->graph_renderer = giggle_graph_renderer_new ();
-	g_object_ref_sink (priv->graph_renderer);
 
 	gtk_tree_view_column_set_title (priv->graph_column, _("Graph"));
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (priv->graph_column),
@@ -1660,12 +1643,9 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 				     priv->graph_column, -1);
 
 	/* log cell renderer */
-	priv->log_renderer = gtk_cell_renderer_text_new ();
-	gtk_cell_renderer_text_set_fixed_height_from_font (
-		GTK_CELL_RENDERER_TEXT (priv->log_renderer), 1);
-	g_object_set(priv->log_renderer,
-		     "ellipsize", PANGO_ELLIPSIZE_END,
-		     NULL);
+	cell = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (cell), 1);
+	g_object_set (cell, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 
 	column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_title (column, _("Short Log"));
@@ -1674,21 +1654,17 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	gtk_tree_view_column_set_expand (column, TRUE);
 	gtk_tree_view_column_set_resizable (column, TRUE);
 
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
-				    priv->log_renderer, TRUE);
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), cell, TRUE);
 
-	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
-					    priv->log_renderer,
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), cell,
 					    rev_list_view_cell_data_log_func,
-					    rev_list_view,
-					    NULL);
+					    rev_list_view, NULL);
 
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
 	/* Author cell renderer */
-	priv->author_renderer = gtk_cell_renderer_text_new ();
-	gtk_cell_renderer_text_set_fixed_height_from_font (
-		GTK_CELL_RENDERER_TEXT (priv->author_renderer), 1);
+	cell = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (cell), 1);
 
 	column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_title (column, _("Author"));
@@ -1696,20 +1672,16 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	gtk_tree_view_column_set_fixed_width (column, font_size * 14);
 	gtk_tree_view_column_set_resizable (column, TRUE);
 
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
-				    priv->author_renderer, TRUE);
-	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
-					    priv->author_renderer,
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), cell, TRUE);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), cell,
 					    rev_list_view_cell_data_author_func,
-					    rev_list_view,
-					    NULL);
+					    rev_list_view, NULL);
 
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
 	/* Date cell renderer */
-	priv->date_renderer = gtk_cell_renderer_text_new ();
-	gtk_cell_renderer_text_set_fixed_height_from_font (
-		GTK_CELL_RENDERER_TEXT (priv->date_renderer), 1);
+	cell = gtk_cell_renderer_text_new ();
+	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (cell), 1);
 
 	column = gtk_tree_view_column_new ();
 	gtk_tree_view_column_set_title (column, _("Date"));
@@ -1717,13 +1689,10 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	gtk_tree_view_column_set_min_width (column, font_size * 14);
 	gtk_tree_view_column_set_resizable (column, TRUE);
 
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column),
-				    priv->date_renderer, TRUE);
-	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column),
-					    priv->date_renderer,
+	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (column), cell, TRUE);
+	gtk_cell_layout_set_cell_data_func (GTK_CELL_LAYOUT (column), cell,
 					    rev_list_view_cell_data_date_func,
-					    rev_list_view,
-					    NULL);
+					    rev_list_view, NULL);
 
 	gtk_tree_view_insert_column (GTK_TREE_VIEW (rev_list_view), column, -1);
 
@@ -1749,6 +1718,8 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	priv->ui_manager = gtk_ui_manager_new ();
 	gtk_ui_manager_insert_action_group (priv->ui_manager, action_group, 0);
 	gtk_ui_manager_insert_action_group (priv->ui_manager, priv->refs_action_group, 1);
+
+	g_object_unref (priv->refs_action_group);
 
 	if (gtk_ui_manager_add_ui_from_string (priv->ui_manager, ui_description, -1, NULL)) {
 		priv->popup = gtk_ui_manager_get_widget (priv->ui_manager, "/ui/PopupMenu");
@@ -1780,7 +1751,9 @@ giggle_rev_list_view_set_model (GiggleRevListView *list,
 	priv = GET_PRIV (list);
 
 	if (model) {
-		giggle_graph_renderer_validate_model (GIGGLE_GRAPH_RENDERER (priv->graph_renderer), model, COL_OBJECT);
+		giggle_graph_renderer_validate_model
+			(GIGGLE_GRAPH_RENDERER (priv->graph_renderer),
+			 model, COL_OBJECT);
 	}
 
 	gtk_tree_view_set_model (GTK_TREE_VIEW (list), model);
