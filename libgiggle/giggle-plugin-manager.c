@@ -50,7 +50,7 @@ plugin_manager_next_files_ready (GObject      *object,
 	GigglePluginManagerPriv *priv = GET_PRIV (manager);
 	GFileEnumerator         *children = G_FILE_ENUMERATOR (object);
 	GError                  *error = NULL;
-	GList                   *files;
+	GList                   *files, *l;
 
 	files = g_file_enumerator_next_files_finish (children,
 						     result, &error);
@@ -60,8 +60,8 @@ plugin_manager_next_files_ready (GObject      *object,
 		g_clear_error (&error);
 	}
 
-	while (files) {
-		const char   *name = g_file_info_get_name (files->data);
+	for (l = files; l; l = g_list_delete_link (l, l)) {
+		const char   *name = g_file_info_get_name (l->data);
 		char         *filename;
 		GigglePlugin *plugin;
 		GFile        *file;
@@ -85,13 +85,14 @@ plugin_manager_next_files_ready (GObject      *object,
 
 		}
 
-		g_object_unref (files->data);
-		files = g_list_delete_link (files, files);
+		g_object_unref (l->data);
 	}
 
-	g_file_enumerator_next_files_async (children, 16,
-					    G_PRIORITY_DEFAULT, priv->cancellable,
-					    plugin_manager_next_files_ready, user_data);
+	if (files) {
+		g_file_enumerator_next_files_async (children, 16,
+						    G_PRIORITY_DEFAULT, priv->cancellable,
+						    plugin_manager_next_files_ready, user_data);
+	}
 }
 
 static void
