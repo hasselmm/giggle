@@ -72,7 +72,11 @@ view_diff_dispose (GObject *object)
 static void
 view_diff_patch_loaded (GiggleDiffView *view)
 {
-	giggle_diff_view_set_current_hunk (view, 0);
+	if (giggle_diff_view_get_n_hunks (view) > 0) {
+		giggle_diff_view_set_current_hunk (view, 0);
+	} else {
+		giggle_diff_view_set_current_hunk (view, -1);
+	}
 }
 
 static void

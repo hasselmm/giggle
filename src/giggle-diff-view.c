@@ -162,30 +162,32 @@ static void
 diff_view_set_current_hunk (GiggleDiffView *view,
 			    int             hunk_index)
 {
-	GiggleDiffViewPriv *priv;
-	GiggleDiffViewHunk *hunk;
-	GiggleDiffViewFile *file;
+	GiggleDiffViewPriv *priv = GET_PRIV (view);
+	GiggleDiffViewHunk *hunk = NULL;
+	GiggleDiffViewFile *file = NULL;
 	GtkTextBuffer      *buffer;
-	GtkTextIter	    iter;
-
-	priv = GET_PRIV (view);
+	GtkTextIter         iter;
 
 	g_return_if_fail (hunk_index >= -1);
-	g_return_if_fail (hunk_index < priv->hunks->len);
+	g_return_if_fail (hunk_index < (int) priv->hunks->len);
 
 	priv->current_hunk = hunk_index;
 
 	hunk = diff_view_get_hunk (priv, hunk_index);
-	file = diff_view_get_file (priv, hunk->file);
+
+	if (hunk && hunk_index >= 0)
+		file = diff_view_get_file (priv, hunk->file);
 
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
 	gtk_text_buffer_set_text (buffer, "", 0);
 
-	gtk_text_buffer_get_end_iter (buffer, &iter);
-	gtk_text_buffer_insert (buffer, &iter, file->header, -1);
+	if (file) {
+		gtk_text_buffer_get_end_iter (buffer, &iter);
+		gtk_text_buffer_insert (buffer, &iter, file->header, -1);
 
-	gtk_text_buffer_get_end_iter (buffer, &iter);
-	gtk_text_buffer_insert (buffer, &iter, hunk->text, -1);
+		gtk_text_buffer_get_end_iter (buffer, &iter);
+		gtk_text_buffer_insert (buffer, &iter, hunk->text, -1);
+	}
 }
 
 static void
@@ -447,9 +449,7 @@ diff_view_parse_patch (GiggleDiffView *view)
 
 	/* we need at least 1 file */
 	if (priv->files->len > 0)
-	{
 		diff_view_append_hunk (priv, buffer, file, &hunk_start, &hunk_end);
-	}
 
 	g_object_notify (G_OBJECT (view), "current-hunk");
 	g_object_notify (G_OBJECT (view), "n-hunks");
