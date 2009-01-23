@@ -56,9 +56,6 @@ struct GiggleViewHistoryPriv {
 	GiggleJob               *diff_current_job;
 	GiggleConfiguration     *configuration;
 
-	GList                   *history; /* reversed list of history elems */
-	GList                   *current_history_elem;
-
 	guint                    selection_changed_idle;
 };
 
@@ -83,12 +80,6 @@ static gboolean view_history_search                             (GiggleSearchabl
 static void     view_history_cancel_search                      (GiggleSearchable      *searchable);
 
 static void     view_history_update_revisions                   (GiggleViewHistory  *view);
-
-static void     view_history_go_back                            (GiggleHistory      *history);
-static gboolean view_history_can_go_back                        (GiggleHistory      *history);
-static void     view_history_go_forward                         (GiggleHistory      *history);
-static gboolean view_history_can_go_forward                     (GiggleHistory      *history);
-
 
 G_DEFINE_TYPE_WITH_CODE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
@@ -165,9 +156,6 @@ view_history_finalize (GObject *object)
 		priv->diff_current_job = NULL;
 	}
 
-	g_list_foreach (priv->history, (GFunc) g_free, NULL);
-	g_list_free (priv->history);
-
 	g_object_unref (priv->configuration);
 	g_object_unref (priv->git);
 
@@ -209,25 +197,11 @@ giggle_view_history_searchable_init (GiggleSearchableIface *iface)
 static void
 giggle_view_history_history_init (GiggleHistoryIface *iface)
 {
-	iface->go_back = view_history_go_back;
-	iface->can_go_back = view_history_can_go_back;
-	iface->go_forward = view_history_go_forward;
-	iface->can_go_forward = view_history_can_go_forward;
 }
 
 static void
 view_history_git_changed (GiggleViewHistory *view)
 {
-	GiggleViewHistoryPriv *priv;
-
-	priv = GET_PRIV (view);
-
-	/* clear history */
-	g_list_foreach (priv->history, (GFunc) g_free, NULL);
-	g_list_free (priv->history);
-	priv->history = NULL;
-	priv->current_history_elem = NULL;
-
 	view_history_update_revisions (view);
 }
 
@@ -477,10 +451,6 @@ view_history_selection_changed_idle (ViewHistorySelectionIdleData *data)
 
 	priv = GET_PRIV (data->view);
 	files = NULL;
-
-	if (priv->current_history_elem) {
-		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
-	}
 
 	giggle_view_diff_set_revisions (GIGGLE_VIEW_DIFF (priv->view_diff),
 					data->revision1, data->revision2, files);
@@ -767,7 +737,6 @@ static void
 view_history_update_revisions (GiggleViewHistory  *view)
 {
 	GiggleViewHistoryPriv *priv;
-	GList                 *files;
 
 	priv = GET_PRIV (view);
 
@@ -781,54 +750,13 @@ view_history_update_revisions (GiggleViewHistory  *view)
 		priv->job = NULL;
 	}
 
-	if (priv->current_history_elem &&
-	    priv->current_history_elem->data) {
-		/* we just want one file */
-		files = g_list_prepend (NULL, g_strdup ((gchar *) priv->current_history_elem->data));
-		priv->job = giggle_git_revisions_new_for_files (files);
-	} else {
-		priv->job = giggle_git_revisions_new ();
-	}
+	priv->job = giggle_git_revisions_new ();
 
 	giggle_git_run_job (priv->git,
 			    priv->job,
 			    view_history_get_revisions_cb,
 			    view);
 }
-
-#if 0
-static void
-view_history_path_selected (GiggleDiffTreeView *diff_tree_view,
-			    const gchar        *path,
-			    GiggleViewHistory  *view)
-{
-	GiggleViewHistoryPriv *priv;
-	GList                 *list = NULL;
-
-	priv = GET_PRIV (view);
-
-	if (priv->current_history_elem) {
-		list = priv->current_history_elem;
-
-		if (list->prev) {
-			/* unlink from the first elements */
-			list->prev->next = NULL;
-			list->prev = NULL;
-
-			g_list_foreach (priv->history, (GFunc) g_free, NULL);
-			g_list_free (priv->history);
-		}
-	} else {
-		g_list_foreach (priv->history, (GFunc) g_free, NULL);
-		g_list_free (priv->history);
-	}
-
-	list = g_list_prepend (list, g_strdup (path));
-	priv->history = priv->current_history_elem = list;
-
-	view_history_update_revisions (view);
-}
-#endif
 
 GtkWidget *
 giggle_view_history_new (GtkUIManager *manager)
@@ -861,63 +789,6 @@ giggle_view_history_set_graph_visible (GiggleViewHistory *view,
 
 	giggle_rev_list_view_set_graph_visible (
 		GIGGLE_REV_LIST_VIEW (priv->revision_list), visible);
-}
-
-static void
-view_history_go_back (GiggleHistory *history)
-{
-	GiggleViewHistoryPriv *priv;
-
-	priv = GET_PRIV (history);
-
-	if (priv->current_history_elem) {
-		priv->current_history_elem = priv->current_history_elem->next;
-		giggle_history_changed (history);
-		view_history_update_revisions (GIGGLE_VIEW_HISTORY (history));
-	}
-}
-
-static gboolean
-view_history_can_go_back (GiggleHistory *history)
-{
-	GiggleViewHistoryPriv *priv;
-
-	priv = GET_PRIV (history);
-
-	return (priv->current_history_elem != NULL ||
-		g_list_length (priv->history) > 2);
-}
-
-static void
-view_history_go_forward (GiggleHistory *history)
-{
-	GiggleViewHistoryPriv *priv;
-	gboolean               changed = FALSE;
-
-	priv = GET_PRIV (history);
-
-	if (!priv->current_history_elem) {
-		/* go to the last one in list (first in history) */
-		priv->current_history_elem = g_list_last (priv->history);
-		changed = TRUE;
-	} else if (priv->current_history_elem != priv->history) {
-		priv->current_history_elem = priv->current_history_elem->prev;
-		changed = TRUE;
-	}
-
-	if (changed) {
-		view_history_update_revisions (GIGGLE_VIEW_HISTORY (history));
-		giggle_history_changed (history);
-	}
-}
-
-static gboolean
-view_history_can_go_forward (GiggleHistory *history)
-{
-	GiggleViewHistoryPriv *priv = GET_PRIV (history);
-
-	return (priv->current_history_elem != priv->history ||
-		g_list_length (priv->history) > 2);
 }
 
 gboolean
