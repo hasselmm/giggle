@@ -445,7 +445,11 @@ diff_view_parse_patch (GiggleDiffView *view)
 
 	hunk_end = line_end;
 
-	diff_view_append_hunk (priv, buffer, file, &hunk_start, &hunk_end);
+	/* we need at least 1 file */
+	if (priv->files->len > 0)
+	{
+		diff_view_append_hunk (priv, buffer, file, &hunk_start, &hunk_end);
+	}
 
 	g_object_notify (G_OBJECT (view), "current-hunk");
 	g_object_notify (G_OBJECT (view), "n-hunks");
