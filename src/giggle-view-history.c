@@ -37,6 +37,13 @@
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
 
+#define GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT            (giggle_view_history_snapshot_get_type ())
+#define GIGGLE_VIEW_HISTORY_SNAPSHOT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT, GiggleViewHistorySnapshot))
+#define GIGGLE_VIEW_HISTORY_SNAPSHOT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT, GiggleViewHistorySnapshotClass))
+#define GIGGLE_IS_VIEW_HISTORY_SNAPSHOT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT))
+#define GIGGLE_IS_VIEW_HISTORY_SNAPSHOT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT))
+#define GIGGLE_VIEW_HISTORY_SNAPSHOT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT, GiggleViewHistorySnapshotClass))
+
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_HISTORY, GiggleViewHistoryPriv))
 
 enum {
@@ -67,21 +74,39 @@ typedef struct {
 } GiggleViewHistoryPriv;
 
 typedef struct {
+	GObject              parent;
+	GList               *rows;
+	GtkTreeRowReference *cursor_row;
+	GtkTreeViewColumn   *cursor_column;
+} GiggleViewHistorySnapshot;
+
+typedef struct {
+	GObjectClass parent_class;
+} GiggleViewHistorySnapshotClass;
+
+typedef struct {
 	GiggleViewHistory *view;
 	GiggleRevision    *revision1;
 	GiggleRevision    *revision2;
 } ViewHistorySelectionIdleData;
 
-typedef void (AddRefFunc) (GiggleRevision*, GiggleRef*);
+typedef void (AddRefFunc) (GiggleRevision *revision,
+			   GiggleRef      *ref);
 
-static void     giggle_view_history_searchable_init             (GiggleSearchableIface *iface);
-static void     giggle_view_history_history_init                (GiggleHistoryIface    *iface);
+static void	giggle_view_history_searchable_init	(GiggleSearchableIface *iface);
+static void	giggle_view_history_history_init	(GiggleHistoryIface    *iface);
+
+static GType	giggle_view_history_snapshot_get_type	(void) G_GNUC_CONST;
+
 
 G_DEFINE_TYPE_WITH_CODE (GiggleViewHistory, giggle_view_history, GIGGLE_TYPE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
 						giggle_view_history_searchable_init)
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_HISTORY,
 						giggle_view_history_history_init))
+
+G_DEFINE_TYPE (GiggleViewHistorySnapshot,
+	       giggle_view_history_snapshot, G_TYPE_OBJECT)
 
 static void
 view_history_get_property (GObject      *object,
@@ -362,7 +387,7 @@ view_history_get_revisions_cb (GiggleGit    *git,
 				    view_history_diff_current_cb,
 				    view);
 
-		giggle_history_changed (GIGGLE_HISTORY (view));
+		giggle_history_reset (GIGGLE_HISTORY (view));
 	}
 }
 
@@ -458,9 +483,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 	giggle_revision_view_set_revision (
 		GIGGLE_REVISION_VIEW (priv->revision_view), revision1);
 
-	if (priv->selection_changed_idle) {
+	if (priv->selection_changed_idle)
 		g_source_remove (priv->selection_changed_idle);
-	}
 
 	data = g_new0 (ViewHistorySelectionIdleData, 1);
 	data->view = view;
@@ -471,6 +495,8 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 		g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
 				 view_history_selection_changed_idle,
 				 data, g_free);
+
+	giggle_history_changed (GIGGLE_HISTORY (data->view));
 }
 
 static gboolean
@@ -572,11 +598,6 @@ view_history_setup_revision_pane (GObject *object)
 	priv->view_diff = giggle_view_diff_new ();
 	giggle_view_shell_append_view (GIGGLE_VIEW_SHELL (priv->revision_shell),
 				       GIGGLE_VIEW (priv->view_diff));
-
-#if 0
-	g_signal_connect (priv->file_view, "path-selected",
-			  G_CALLBACK (view_diff_path_selected), view);
-#endif
 
 	/* revision view */
 	priv->revision_view = giggle_revision_view_new ();
@@ -690,43 +711,113 @@ giggle_view_history_searchable_init (GiggleSearchableIface *iface)
 }
 
 static void
-giggle_view_history_history_init (GiggleHistoryIface *iface)
+giggle_view_history_snapshot_init (GiggleViewHistorySnapshot *snapshot)
 {
 }
 
-#if 0
 static void
-view_diff_path_selected (GiggleDiffTreeView *diff_tree_view,
-			 const gchar        *path,
-			 GiggleViewDiff     *view)
+view_history_snapshot_dispose (GObject *object)
 {
-	GiggleViewDiffPriv *priv;
-	GList              *list = NULL;
+	GiggleViewHistorySnapshot *snapshot;
 
-	priv = GET_PRIV (view);
+	snapshot = GIGGLE_VIEW_HISTORY_SNAPSHOT (object);
 
-	if (priv->current_history_elem) {
-		list = priv->current_history_elem;
-
-		if (list->prev) {
-			/* unlink from the first elements */
-			list->prev->next = NULL;
-			list->prev = NULL;
-
-			g_list_foreach (priv->history, (GFunc) g_free, NULL);
-			g_list_free (priv->history);
-		}
-	} else {
-		g_list_foreach (priv->history, (GFunc) g_free, NULL);
-		g_list_free (priv->history);
+	while (snapshot->rows) {
+		gtk_tree_row_reference_free (snapshot->rows->data);
+		snapshot->rows = g_list_delete_link (snapshot->rows, snapshot->rows);
 	}
 
-	list = g_list_prepend (list, g_strdup (path));
-	priv->history = priv->current_history_elem = list;
+	if (snapshot->cursor_row) {
+		gtk_tree_row_reference_free (snapshot->cursor_row);
+		snapshot->cursor_row = NULL;
+	}
 
-	view_diff_update_revisions (view);
+	if (snapshot->cursor_column) {
+		g_object_unref (snapshot->cursor_column);
+		snapshot->cursor_column = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_view_history_snapshot_parent_class)->dispose (object);
 }
-#endif
+
+static void
+giggle_view_history_snapshot_class_init (GiggleViewHistorySnapshotClass *class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	object_class->dispose = view_history_snapshot_dispose;
+}
+
+static GObject *
+view_history_capture (GiggleHistory *history)
+{
+	GiggleViewHistoryPriv     *priv = GET_PRIV (history);
+	GiggleViewHistorySnapshot *snapshot;
+	GtkTreeRowReference       *reference;
+	GtkTreeSelection          *selection;
+	GtkTreeViewColumn         *column;
+	GtkTreeModel              *model;
+	GtkTreePath               *path;
+	GList                     *l;
+
+	snapshot = g_object_new (GIGGLE_TYPE_VIEW_HISTORY_SNAPSHOT, NULL);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
+	snapshot->rows = gtk_tree_selection_get_selected_rows (selection, &model);
+
+	for (l = snapshot->rows; l; l = l->next) {
+		reference = gtk_tree_row_reference_new (model, l->data);
+		gtk_tree_path_free (l->data);
+		l->data = reference;
+	}
+
+	gtk_tree_view_get_cursor (GTK_TREE_VIEW (priv->revision_list), &path, &column);
+
+	if (path) {
+		snapshot->cursor_row = gtk_tree_row_reference_new (model, path);
+		gtk_tree_path_free (path);
+	}
+
+	if (column)
+		snapshot->cursor_column = g_object_ref (column);
+
+	return G_OBJECT (snapshot);
+}
+
+static void
+view_history_restore (GiggleHistory *history,
+		      GObject       *object)
+{
+	GiggleViewHistoryPriv     *priv = GET_PRIV (history);
+	GtkTreeSelection          *selection;
+	GiggleViewHistorySnapshot *snapshot;
+	GtkTreePath               *path;
+	GList                     *l;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_HISTORY_SNAPSHOT (object));
+	snapshot = GIGGLE_VIEW_HISTORY_SNAPSHOT (object);
+
+	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->revision_list));
+
+	gtk_tree_selection_unselect_all (selection);
+
+	if (snapshot->cursor_row) {
+		gtk_tree_view_set_cursor (GTK_TREE_VIEW (priv->revision_list),
+					  gtk_tree_row_reference_get_path (snapshot->cursor_row),
+					  snapshot->cursor_column, FALSE);
+	}
+
+	for (l = snapshot->rows; l; l = l->next) {
+		path = gtk_tree_row_reference_get_path (l->data);
+		gtk_tree_selection_select_path (selection, path);
+	}
+}
+
+static void
+giggle_view_history_history_init (GiggleHistoryIface *iface)
+{
+	iface->capture = view_history_capture;
+	iface->restore = view_history_restore;
+}
 
 static void
 giggle_view_history_init (GiggleViewHistory *view)
