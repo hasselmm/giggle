@@ -12,7 +12,6 @@ src/giggle-file-list.c
 src/giggle-main.c
 src/giggle-remote-editor.c
 src/giggle-remotes-view.c
-src/giggle-revision-tooltip.c
 src/giggle-revision-view.c
 src/giggle-rev-list-view.c
 src/giggle-short-list.c
