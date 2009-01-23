@@ -47,12 +47,32 @@
 #include "ige-mac-menu.h"
 #endif
 
-#define MAX_N_RECENT            10
-#define RECENT_ITEM_MAX_N_CHARS 40
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
-typedef struct GiggleWindowPriv GiggleWindowPriv;
+#define RECENT_FILES_GROUP		"giggle"
+#define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
-struct GiggleWindowPriv {
+#define HISTORY_GO_BACK_PATH		"/ui/MainToolbar/HistoryGoBack"
+#define HISTORY_GO_FORWARD_PATH		"/ui/MainToolbar/HistoryGoForward"
+#if 0
+#define SAVE_PATCH_UI_PATH 		"/ui/MainMenubar/ProjectMenu/SavePatch"
+#endif
+#define SHOW_GRAPH_PATH			"/ui/MainMenubar/ViewMenu/ShowGraph"
+
+#define CUT_PATH			"/ui/MainMenubar/EditMenu/Cut"
+#define COPY_PATH			"/ui/MainMenubar/EditMenu/Copy"
+#define PASTE_PATH			"/ui/MainMenubar/EditMenu/Paste"
+#define DELETE_PATH			"/ui/MainMenubar/EditMenu/Delete"
+
+#define MAX_N_RECENT			10
+#define RECENT_ITEM_MAX_N_CHARS		40
+
+enum {
+	SEARCH_NEXT,
+	SEARCH_PREV
+};
+
+typedef struct {
 	/* Model */
 	GiggleConfiguration *configuration;
 	GiggleGit           *git;
@@ -89,12 +109,15 @@ struct GiggleWindowPriv {
 
 	GiggleClipboard     *clipboard;
 	GigglePluginManager *plugin_manager;
-};
 
-enum {
-	SEARCH_NEXT,
-	SEARCH_PREV
-};
+	GList               *history;
+	guint                history_locked;
+} GiggleWindowPriv;
+
+typedef struct {
+	GiggleView *view;
+	GObject    *view_data;
+} GiggleWindowSnapshot;
 
 static void giggle_window_clipboard_init (GiggleClipboardIface *iface);
 
@@ -103,31 +126,122 @@ G_DEFINE_TYPE_WITH_CODE (GiggleWindow, giggle_window, GTK_TYPE_WINDOW,
 						giggle_window_clipboard_init))
 
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
+static void
+window_history_list_free (GList *list)
+{
+	GiggleWindowSnapshot *snapshot;
 
-#define RECENT_FILES_GROUP "giggle"
+	while (list) {
+		snapshot = list->data;
 
-#if 0
-#define BACK_HISTORY_PATH		"/ui/MainToolbar/BackHistory"
-#define FORWARD_HISTORY_PATH		"/ui/MainToolbar/ForwardHistory"
-#endif
-#define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
-#if 0
-#define SAVE_PATCH_UI_PATH 		"/ui/MainMenubar/ProjectMenu/SavePatch"
-#endif
-#define SHOW_GRAPH_PATH			"/ui/MainMenubar/ViewMenu/ShowGraph"
+		if (snapshot->view_data)
+			g_object_unref (snapshot->view_data);
 
-#define CUT_PATH			"/ui/MainMenubar/EditMenu/Cut"
-#define COPY_PATH			"/ui/MainMenubar/EditMenu/Copy"
-#define PASTE_PATH			"/ui/MainMenubar/EditMenu/Paste"
-#define DELETE_PATH			"/ui/MainMenubar/EditMenu/Delete"
+		g_slice_free (GiggleWindowSnapshot, snapshot);
+		list = g_list_delete_link (list, list);
+	}
+}
+
+static void
+window_history_update_ui (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	gboolean          back = FALSE, forward = FALSE;
+	GtkAction        *action;
+
+	if (priv->history) {
+		back = (NULL != priv->history->prev);
+		forward = (NULL != priv->history->next);
+	}
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, HISTORY_GO_BACK_PATH);
+	gtk_action_set_sensitive (action, back);
+
+	action = gtk_ui_manager_get_action (priv->ui_manager, HISTORY_GO_FORWARD_PATH);
+	gtk_action_set_sensitive (action, forward);
+}
+
+static void
+window_history_reset (GiggleWindow *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	GList            *head;
+
+	head = g_list_first (priv->history);
+	window_history_list_free (head);
+	priv->history = NULL;
+
+	window_history_update_ui (window);
+}
+
+static void
+window_history_remove_view (GiggleWindow *window,
+			    GiggleView   *view)
+{
+	window_history_update_ui (window);
+}
+
+static void
+window_history_capture (GiggleWindow *window)
+{
+	GiggleWindowPriv     *priv = GET_PRIV (window);
+	GiggleWindowSnapshot *snapshot;
+
+	if (priv->history_locked)
+		return;
+
+	snapshot = g_slice_new0 (GiggleWindowSnapshot);
+
+	snapshot->view = giggle_view_shell_get_selected
+		(GIGGLE_VIEW_SHELL (priv->view_shell));
+
+	if (GIGGLE_IS_HISTORY (snapshot->view)) {
+		snapshot->view_data = giggle_history_capture
+			(GIGGLE_HISTORY (snapshot->view));
+	}
+
+	if (priv->history) {
+		window_history_list_free (priv->history->next);
+		priv->history->next = NULL;
+	}
+
+	priv->history = g_list_append (priv->history, snapshot);
+	priv->history = g_list_last (priv->history);
+
+	window_history_update_ui (window);
+}
+
+static void
+window_history_restore_snapshot (GiggleWindow         *window,
+				 GiggleWindowSnapshot *snapshot)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+
+	if (priv->history_locked)
+		return;
+
+	priv->history_locked += 1;
+
+	giggle_view_shell_select (GIGGLE_VIEW_SHELL (priv->view_shell),
+				  snapshot->view);
+
+	if (GIGGLE_IS_HISTORY (snapshot->view)) {
+		giggle_history_restore (GIGGLE_HISTORY (snapshot->view),
+					snapshot->view_data);
+	}
+
+	window_history_update_ui (window);
+
+	priv->history_locked -= 1;
+}
 
 static void
 window_dispose (GObject *object)
 {
-	GiggleWindowPriv *priv;
+	GiggleWindow     *window = GIGGLE_WINDOW (object);
+	GiggleWindowPriv *priv = GET_PRIV (window);
 
-	priv = GET_PRIV (object);
+	window_history_reset (window);
 
 	if (priv->summary_dialog) {
 		gtk_widget_destroy (priv->summary_dialog);
@@ -515,6 +629,9 @@ window_bind_state (GiggleWindow *window)
 		(priv->configuration, CONFIG_FIELD_FILE_VIEW_PATH,
 		 G_OBJECT (priv->file_view), "path");
 
+	window_history_reset (window);
+	window_history_capture (window);
+
 	gtk_widget_show (GTK_WIDGET (window));
 
 #if 0
@@ -735,7 +852,7 @@ window_action_view_graph_cb (GtkAction    *action,
 }
 
 static void
-window_action_history_refresh (GtkAction    *action,
+window_action_refresh_history (GtkAction    *action,
 			       GiggleWindow *window)
 {
 	GiggleWindowPriv *priv;
@@ -821,6 +938,32 @@ window_add_widget_cb (GtkUIManager *merge,
 }
 
 static void
+window_action_history_go_back (GtkAction    *action,
+			       GiggleWindow *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+
+	g_return_if_fail (priv->history);
+	g_return_if_fail (priv->history->prev);
+
+	priv->history = priv->history->prev;
+	window_history_restore_snapshot (window, priv->history->data);
+}
+
+static void
+window_action_history_go_forward (GtkAction    *action,
+				  GiggleWindow *window)
+{
+	GiggleWindowPriv *priv = GET_PRIV (window);
+
+	g_return_if_fail (priv->history);
+	g_return_if_fail (priv->history->next);
+
+	priv->history = priv->history->next;
+	window_history_restore_snapshot (window, priv->history->data);
+}
+
+static void
 window_create_ui_manager (GiggleWindow *window)
 {
 	static const GtkActionEntry find_action_entries[] = {
@@ -881,13 +1024,13 @@ window_create_ui_manager (GiggleWindow *window)
 		},
 
 		/* Toolbar items */
-		{ "BackHistory", GTK_STOCK_GO_BACK, NULL,
+		{ "HistoryGoBack", GTK_STOCK_GO_BACK, NULL,
 		  "<alt>Left", N_("Go backward in history"),
-		  NULL /*G_CALLBACK (window_action_history_go_back)*/
+		  G_CALLBACK (window_action_history_go_back)
 		},
-		{ "ForwardHistory", GTK_STOCK_GO_FORWARD, NULL,
+		{ "HistoryGoForward", GTK_STOCK_GO_FORWARD, NULL,
 		  "<alt>Right", N_("Go forward in history"),
-		  NULL /*G_CALLBACK (window_action_history_go_forward)*/
+		  G_CALLBACK (window_action_history_go_forward)
 		},
 
 		{ "Homepage", GTK_STOCK_HOME, N_("Visit _Homepage"),
@@ -918,7 +1061,7 @@ window_create_ui_manager (GiggleWindow *window)
 		},
 		{ "RefreshHistory", GTK_STOCK_REFRESH, NULL,
 		  "<control>R", N_("Refresh current view"),
-		  G_CALLBACK (window_action_history_refresh)
+		  G_CALLBACK (window_action_refresh_history)
 		},
 	};
 
@@ -962,8 +1105,8 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <placeholder name='ViewMenuActions'/>"
 		"    </menu>"
 		"    <menu action='GoMenu'>"
-		"      <menuitem action='BackHistory'/>"
-		"      <menuitem action='ForwardHistory'/>"
+		"      <menuitem action='HistoryGoBack'/>"
+		"      <menuitem action='HistoryGoForward'/>"
 		"    </menu>"
 		"    <menu action='HelpMenu'>"
 		"      <menuitem action='Homepage'/>"
@@ -973,8 +1116,8 @@ window_create_ui_manager (GiggleWindow *window)
 		"    </menu>"
 		"  </menubar>"
 		"  <toolbar name='MainToolbar'>"
-		"    <toolitem action='BackHistory'/>"
-		"    <toolitem action='ForwardHistory'/>"
+		"    <toolitem action='HistoryGoBack'/>"
+		"    <toolitem action='HistoryGoForward'/>"
 		"    <toolitem action='RefreshHistory'/>"
 		"    <separator/>"
 		"    <toolitem action='Cut'/>"
@@ -1266,41 +1409,55 @@ window_update_search_ui (GiggleWindow *window)
 }
 
 static void
-window_update_history_ui (GiggleWindow *window)
+window_view_shell_switch_page_cb (GtkNotebook     *notebook,
+				  GtkNotebookPage *page,
+				  guint            page_num,
+				  GiggleWindow    *window)
 {
-#if 0
-	GiggleWindowPriv *priv;
-	GtkAction        *action;
-	GtkWidget        *page_widget;
-	gboolean          back, forward;
-	gint              page_num;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page_widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-	back = forward = FALSE;
-
-	if (GIGGLE_IS_HISTORY (page_widget)) {
-		back = giggle_history_can_go_back (GIGGLE_HISTORY (page_widget));
-		forward = giggle_history_can_go_forward (GIGGLE_HISTORY (page_widget));
-	}
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, BACK_HISTORY_PATH);
-	gtk_action_set_sensitive (action, back);
-
-	action = gtk_ui_manager_get_action (priv->ui_manager, FORWARD_HISTORY_PATH);
-	gtk_action_set_sensitive (action, forward);
-#endif
+	window_update_search_ui (window);
+	window_history_capture (window);
 }
 
 static void
-window_notebook_switch_page_cb (GtkNotebook     *notebook,
-				GtkNotebookPage *page,
-				guint            page_num,
-				GiggleWindow    *window)
+window_history_changed_cb (GiggleHistory *history,
+			   GiggleWindow  *window)
 {
-	window_update_search_ui (window);
-	window_update_history_ui (window);
+	GiggleWindowPriv *priv = GET_PRIV (window);
+	GiggleView       *view;
+
+	view = giggle_view_shell_get_selected (GIGGLE_VIEW_SHELL (priv->view_shell));
+
+	if (GIGGLE_IS_HISTORY (view) && GIGGLE_HISTORY (view) == history)
+		window_history_capture (window);
+}
+
+static void
+window_view_shell_page_added_cb (GtkNotebook  *notebook,
+				 GtkWidget    *page,
+				 guint         page_num,
+				 GiggleWindow *window)
+{
+	if (GIGGLE_IS_HISTORY (page)) {
+		g_signal_connect
+			(page, "history-changed",
+			  G_CALLBACK (window_history_changed_cb), window);
+
+		g_signal_connect_swapped
+			(page, "history-reset",
+			 G_CALLBACK (window_history_reset), window);
+	}
+}
+
+static void
+window_view_shell_page_removed_cb (GtkNotebook  *notebook,
+				   GtkWidget    *page,
+				   guint         page_num,
+				   GiggleWindow *window)
+{
+	window_history_remove_view (window, GIGGLE_VIEW (page));
+
+	g_signal_handlers_disconnect_by_func (page, window_update_search_ui, window);
+	g_signal_handlers_disconnect_by_func (page, window_history_changed_cb, window);
 }
 
 static void
@@ -1408,6 +1565,16 @@ giggle_window_init (GiggleWindow *window)
 	giggle_view_shell_add_placeholder (GIGGLE_VIEW_SHELL (priv->view_shell),
 				           "/MainMenubar/ViewMenu/ViewShell");
 
+	g_signal_connect_after (priv->view_shell, "switch-page",
+				G_CALLBACK (window_view_shell_switch_page_cb),
+				window);
+	g_signal_connect_after (priv->view_shell, "page-added",
+				G_CALLBACK (window_view_shell_page_added_cb),
+				window);
+	g_signal_connect_after (priv->view_shell, "page-removed",
+				G_CALLBACK (window_view_shell_page_removed_cb),
+				window);
+
 	giggle_view_shell_append_view (GIGGLE_VIEW_SHELL (priv->view_shell),
 				       GIGGLE_VIEW (priv->file_view));
 	giggle_view_shell_append_view (GIGGLE_VIEW_SHELL (priv->view_shell),
@@ -1416,30 +1583,17 @@ giggle_window_init (GiggleWindow *window)
 	gtk_box_pack_start_defaults (GTK_BOX (priv->content_vbox),
 				     priv->view_shell);
 
-	g_signal_connect_after (priv->view_shell, "switch-page",
-				G_CALLBACK (window_notebook_switch_page_cb),
-				window);
-
 	gtk_container_add (GTK_CONTAINER (window), priv->content_vbox);
 	gtk_widget_show_all (priv->content_vbox);
 	gtk_widget_hide (priv->view_shell);
 
-	g_signal_connect_after (priv->git,
-			  "notify::directory",
-			  G_CALLBACK (window_directory_changed_cb),
-			  window);
-	g_signal_connect_swapped (priv->git,
-				  "notify::project-dir",
-				  G_CALLBACK (window_recent_repositories_add),
-				  window);
+	g_signal_connect_after (priv->git, "notify::directory",
+				G_CALLBACK (window_directory_changed_cb), window);
+	g_signal_connect_swapped (priv->git, "notify::project-dir",
+				  G_CALLBACK (window_recent_repositories_add), window);
 
 #if 0
 	window_create_menu (window);
-
-	/* append history view */
-	g_signal_connect_swapped (priv->history_view, "history-changed",
-				  G_CALLBACK (window_update_toolbar_buttons), window);
-
 #endif
 
 	priv->plugin_manager = giggle_plugin_manager_new ();
@@ -1450,7 +1604,7 @@ giggle_window_init (GiggleWindow *window)
 	gtk_about_dialog_set_url_hook (about_activate_link, window, NULL);
 
 	window_update_search_ui (window);
-	window_update_history_ui (window);
+	window_history_update_ui (window);
 }
 
 #if 0
@@ -1510,37 +1664,6 @@ window_action_diff_cb (GtkAction    *action,
 {
 	giggle_window_show_diff_window (window);
 }
-
-static void
-window_action_history_go_back (GtkAction    *action,
-			       GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	gint              page_num;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-
-	giggle_history_go_back (GIGGLE_HISTORY (page));
-}
-
-static void
-window_action_history_go_forward (GtkAction    *action,
-				  GiggleWindow *window)
-{
-	GiggleWindowPriv *priv;
-	GtkWidget        *page;
-	gint              page_num;
-
-	priv = GET_PRIV (window);
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->main_notebook));
-	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->main_notebook), page_num);
-
-	giggle_history_go_forward (GIGGLE_HISTORY (page));
-}
-
 #endif
 
 GtkWidget *
