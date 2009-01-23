@@ -149,6 +149,9 @@ window_history_update_ui (GiggleWindow *window)
 	gboolean          back = FALSE, forward = FALSE;
 	GtkAction        *action;
 
+	if (!priv->ui_manager)
+		return;
+
 	if (priv->history) {
 		back = (NULL != priv->history->prev);
 		forward = (NULL != priv->history->next);
@@ -240,6 +243,13 @@ window_dispose (GObject *object)
 {
 	GiggleWindow     *window = GIGGLE_WINDOW (object);
 	GiggleWindowPriv *priv = GET_PRIV (window);
+
+	if (priv->view_shell) {
+		while (gtk_notebook_get_n_pages (GTK_NOTEBOOK (priv->view_shell)))
+			gtk_notebook_remove_page (GTK_NOTEBOOK (priv->view_shell), 0);
+
+		priv->view_shell = NULL;
+	}
 
 	window_history_reset (window);
 
