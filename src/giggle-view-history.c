@@ -18,27 +18,24 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <gtk/gtk.h>
-#include <glib/gi18n.h>
-#include <gdk/gdkkeysyms.h>
-#include <string.h>
+#include "config.h"
+#include "giggle-view-history.h"
 
-#include "libgiggle/giggle-configuration.h"
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-git-revisions.h"
-#include "libgiggle/giggle-git-refs.h"
-#include "libgiggle/giggle-git-diff.h"
-#include "giggle-diff-tree-view.h"
-#include "giggle-diff-view.h"
-#include "giggle-file-list.h"
 #include "giggle-rev-list-view.h"
 #include "giggle-revision-view.h"
 #include "giggle-view-diff.h"
-#include "giggle-view-history.h"
 #include "giggle-view-shell.h"
-#include "libgiggle/giggle-searchable.h"
+
+#include "libgiggle/giggle-configuration.h"
+#include "libgiggle/giggle-git-diff.h"
+#include "libgiggle/giggle-git-refs.h"
+#include "libgiggle/giggle-git-revisions.h"
+#include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-history.h"
+#include "libgiggle/giggle-searchable.h"
+
+#include <gdk/gdkkeysyms.h>
+#include <glib/gi18n.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_HISTORY, GiggleViewHistoryPriv))
 
