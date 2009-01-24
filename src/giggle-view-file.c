@@ -27,6 +27,7 @@
 #include "giggle-view-shell.h"
 
 #include "libgiggle/giggle-configuration.h"
+#include "libgiggle/giggle-history.h"
 #include "libgiggle/giggle-searchable.h"
 
 #include "libgiggle/giggle-git.h"
@@ -43,9 +44,16 @@
 #include <gtksourceview/gtksourcelanguagemanager.h>
 #include <gtksourceview/gtksourceview.h>
 
-typedef struct GiggleViewFilePriv GiggleViewFilePriv;
+#define GIGGLE_TYPE_VIEW_FILE_SNAPSHOT            (giggle_view_file_snapshot_get_type ())
+#define GIGGLE_VIEW_FILE_SNAPSHOT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GIGGLE_TYPE_VIEW_FILE_SNAPSHOT, GiggleViewFileSnapshot))
+#define GIGGLE_VIEW_FILE_SNAPSHOT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GIGGLE_TYPE_VIEW_FILE_SNAPSHOT, GiggleViewFileSnapshotClass))
+#define GIGGLE_IS_VIEW_FILE_SNAPSHOT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_VIEW_FILE_SNAPSHOT))
+#define GIGGLE_IS_VIEW_FILE_SNAPSHOT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_VIEW_FILE_SNAPSHOT))
+#define GIGGLE_VIEW_FILE_SNAPSHOT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_VIEW_FILE_SNAPSHOT, GiggleViewFileSnapshotClass))
 
-struct GiggleViewFilePriv {
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
+
+typedef struct {
 	GtkWidget           *file_list;
 	GtkWidget           *revision_list;
 	GtkWidget           *source_view;
@@ -62,21 +70,41 @@ struct GiggleViewFilePriv {
 	char                *current_file;
 	GiggleRevision      *current_revision;
 	GiggleConfiguration *configuration;
-};
+} GiggleViewFilePriv;
+
+typedef struct {
+	GObject parent;
+
+	GtkTreeRowReference *file_list_row;
+	GtkTreeViewColumn   *file_list_column;
+
+	GtkTreeRowReference *revision_list_row;
+	GtkTreeViewColumn   *revision_list_column;
+} GiggleViewFileSnapshot;
+
+typedef struct {
+	GObjectClass parent_class;
+} GiggleViewFileSnapshotClass;
 
 enum {
 	PROP_0,
 	PROP_PATH,
 };
 
+static void	giggle_view_file_searchable_init	(GiggleSearchableIface *iface);
+static void	giggle_view_file_history_init		(GiggleHistoryIface    *iface);
 
-static void giggle_view_file_searchable_init (GiggleSearchableIface *iface);
+static GType	giggle_view_file_snapshot_get_type	(void) G_GNUC_CONST;
+
 
 G_DEFINE_TYPE_WITH_CODE (GiggleViewFile, giggle_view_file, GIGGLE_TYPE_VIEW,
 			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_SEARCHABLE,
-						giggle_view_file_searchable_init))
+						giggle_view_file_searchable_init)
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_HISTORY,
+						giggle_view_file_history_init))
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
+G_DEFINE_TYPE (GiggleViewFileSnapshot,
+	       giggle_view_file_snapshot, G_TYPE_OBJECT)
 
 static void
 view_file_get_property (GObject      *object,
@@ -569,6 +597,7 @@ view_file_selection_changed_cb (GtkTreeSelection *selection,
 			    view);
 
 	g_object_notify (G_OBJECT (view), "path");
+	giggle_history_changed (GIGGLE_HISTORY (view));
 }
 
 static void
@@ -592,6 +621,8 @@ view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 					      revision1, revision2);
 
 	view_file_read_source_code (view);
+
+	giggle_history_changed (GIGGLE_HISTORY (view));
 }
 
 static void
@@ -1057,6 +1088,115 @@ static void
 giggle_view_file_searchable_init (GiggleSearchableIface *iface)
 {
 	iface->search = view_file_search;
+}
+
+static void
+giggle_view_file_snapshot_init (GiggleViewFileSnapshot *snapshot)
+{
+}
+
+static void
+view_file_snapshot_dispose (GObject *object)
+{
+	GiggleViewFileSnapshot *snapshot;
+
+	snapshot = GIGGLE_VIEW_FILE_SNAPSHOT (object);
+
+	if (snapshot->file_list_row) {
+		gtk_tree_row_reference_free (snapshot->file_list_row);
+		snapshot->file_list_row = NULL;
+	}
+
+	if (snapshot->file_list_column) {
+		g_object_unref (snapshot->file_list_column);
+		snapshot->file_list_column = NULL;
+	}
+
+	if (snapshot->revision_list_row) {
+		gtk_tree_row_reference_free (snapshot->revision_list_row);
+		snapshot->revision_list_row = NULL;
+	}
+
+	if (snapshot->revision_list_column) {
+		g_object_unref (snapshot->revision_list_column);
+		snapshot->revision_list_column = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_view_file_snapshot_parent_class)->dispose (object);
+}
+
+static void
+giggle_view_file_snapshot_class_init (GiggleViewFileSnapshotClass *class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	object_class->dispose = view_file_snapshot_dispose;
+}
+
+static GObject *
+view_file_capture (GiggleHistory *history)
+{
+	GiggleViewFilePriv     *priv = GET_PRIV (history);
+	GiggleViewFileSnapshot *snapshot;
+	GtkTreeViewColumn      *column;
+	GtkTreeModel           *model;
+	GtkTreePath            *path;
+
+	snapshot = g_object_new (GIGGLE_TYPE_VIEW_FILE_SNAPSHOT, NULL);
+
+	gtk_tree_view_get_cursor (GTK_TREE_VIEW (priv->file_list), &path, &column);
+
+	if (path) {
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->file_list));
+		snapshot->file_list_row = gtk_tree_row_reference_new (model, path);
+		gtk_tree_path_free (path);
+	}
+
+	if (column)
+		snapshot->file_list_column = g_object_ref (column);
+
+	gtk_tree_view_get_cursor (GTK_TREE_VIEW (priv->revision_list), &path, &column);
+
+	if (path) {
+		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
+		snapshot->revision_list_row = gtk_tree_row_reference_new (model, path);
+		gtk_tree_path_free (path);
+	}
+
+	if (column)
+		snapshot->revision_list_column = g_object_ref (column);
+
+	return G_OBJECT (snapshot);
+}
+
+static void
+view_file_restore (GiggleHistory *history,
+		   GObject       *object)
+{
+	GiggleViewFilePriv     *priv = GET_PRIV (history);
+	GiggleViewFileSnapshot *snapshot;
+	GtkTreePath            *path;
+
+	g_return_if_fail (GIGGLE_IS_VIEW_FILE_SNAPSHOT (object));
+	snapshot = GIGGLE_VIEW_FILE_SNAPSHOT (object);
+
+	if (snapshot->file_list_row) {
+		path = gtk_tree_row_reference_get_path (snapshot->file_list_row);
+		gtk_tree_view_set_cursor (GTK_TREE_VIEW (priv->file_list), path,
+					  snapshot->file_list_column, FALSE);
+	}
+
+	if (snapshot->revision_list_row) {
+		path = gtk_tree_row_reference_get_path (snapshot->revision_list_row);
+		gtk_tree_view_set_cursor (GTK_TREE_VIEW (priv->revision_list), path,
+					  snapshot->revision_list_column, FALSE);
+	}
+}
+
+static void
+giggle_view_file_history_init (GiggleHistoryIface *iface)
+{
+	iface->capture = view_file_capture;
+	iface->restore = view_file_restore;
 }
 
 static gboolean
