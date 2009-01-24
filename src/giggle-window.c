@@ -1086,6 +1086,26 @@ window_recent_connect_proxy_cb (GtkActionGroup *action_group,
 	gtk_label_set_max_width_chars (label, RECENT_ITEM_MAX_N_CHARS);
 }
 
+static int
+window_compare_recent_info (gconstpointer a,
+			    gconstpointer b)
+{
+	GtkRecentInfo *info_a = (GtkRecentInfo *) a;
+	GtkRecentInfo *info_b = (GtkRecentInfo *) b;
+	time_t         time_a, time_b;
+
+	time_a = gtk_recent_info_get_modified (info_a);
+	time_b = gtk_recent_info_get_modified (info_b);
+
+	if (time_a > time_b)
+		return -1;
+	if (time_a < time_b)
+		return +1;
+
+	return g_strcmp0 (gtk_recent_info_get_uri_display (info_a),
+			  gtk_recent_info_get_uri_display (info_b));
+}
+
 /* this should not be necessary when there's
  * GtkRecentManager/GtkUIManager integration
  */
@@ -1124,12 +1144,15 @@ window_recent_repositories_update (GiggleWindow *window)
 	priv->recent_merge_id = gtk_ui_manager_new_merge_id (priv->ui_manager);
 
 	recent_items = gtk_recent_manager_get_items (priv->recent_manager);
-	l = recent_items = g_list_reverse (recent_items);
+	recent_items = g_list_sort (recent_items, window_compare_recent_info);
 
-	while (l && count < MAX_N_RECENT) {
+	for (l = recent_items; l && count < MAX_N_RECENT; l = l->next) {
 		info = l->data;
 
 		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
+			if (!gtk_recent_info_exists (info))
+				continue;
+
 			action_name = g_strdup_printf ("recent-repository-%d", count);
 			recent_label = gtk_recent_info_get_uri_display (info);
 
@@ -1169,8 +1192,6 @@ window_recent_repositories_update (GiggleWindow *window)
 			g_free (recent_label);
 			g_free (action_name);
 		}
-
-		l = l->next;
 	}
 
 	g_list_foreach (recent_items, (GFunc) gtk_recent_info_unref, NULL);
