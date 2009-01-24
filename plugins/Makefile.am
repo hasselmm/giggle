@@ -6,7 +6,8 @@ AM_CPPFLAGS = \
 	$(WARN_CFLAGS)
 
 AM_LDFLAGS = \
-	$(PLATFORM_LDFLAGS)
+	$(PLATFORM_LDFLAGS) \
+	-module -rpath "$(pkglibdir)/plugins"
 
 plugindir = $(pkglibdir)/plugins
 
@@ -28,5 +29,3 @@ libpersonal_details_la_SOURCES = \
 
 libpersonal_details_la_CFLAGS = $(EBOOK_CFLAGS)
 libpersonal_details_la_LIBADD = $(EBOOK_LIBS)
-
-
