@@ -280,10 +280,10 @@ rev_list_view_add_popup_refs (GiggleRevListView *list,
 			      const gchar        *name_str)
 {
 	GiggleRevListViewPriv *priv;
-	GiggleRef              *ref;
-	GtkAction              *action;
-	gchar                  *action_name, *label;
-	const gchar            *name;
+	GiggleRef             *ref;
+	GtkAction             *action;
+	gchar                 *action_name, *label;
+	const gchar           *name;
 
 	priv = GET_PRIV (list);
 
@@ -1636,6 +1636,21 @@ rev_list_view_selection_changed_cb (GtkTreeSelection  *selection,
 }
 
 static void
+rev_list_view_connect_proxy_cb (GtkActionGroup *action_group,
+				GtkAction      *action,
+				GtkWidget      *proxy,
+				gpointer        data)
+{
+	GtkLabel *label;
+
+	if (!GTK_IS_MENU_ITEM (proxy))
+		return;
+
+	label = GTK_LABEL (gtk_bin_get_child (GTK_BIN (proxy)));
+	gtk_label_set_use_underline (label, FALSE);
+}
+
+static void
 giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 {
 	GtkActionEntry menu_items [] = {
@@ -1782,6 +1797,9 @@ giggle_rev_list_view_init (GiggleRevListView *rev_list_view)
 	/* create the popup menu */
 	action_group = gtk_action_group_new ("PopupActions");
 	priv->refs_action_group = gtk_action_group_new ("Refs");
+
+	g_signal_connect (priv->refs_action_group, "connect-proxy",
+			  G_CALLBACK (rev_list_view_connect_proxy_cb), NULL);
 
 	gtk_action_group_set_translation_domain (action_group, NULL);
 	gtk_action_group_add_actions (action_group, menu_items,
