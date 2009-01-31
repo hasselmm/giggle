@@ -18,14 +18,16 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <stdio.h>
-#include <string.h>
+#include "config.h"
 #include "giggle-configuration.h"
-#include "giggle-enums.h"
+
 #include "giggle-git.h"
 #include "giggle-git-read-config.h"
 #include "giggle-git-write-config.h"
+
+#include <gdk/gdk.h>
+#include <stdio.h>
+#include <string.h>
 
 /* Keep this list in sync with the
  * GiggleConfigurationField enum
@@ -611,7 +613,7 @@ giggle_configuration_set_field (GiggleConfiguration      *configuration,
 	priv->changed_keys = g_list_prepend (priv->changed_keys, g_strdup (fields[field].name));
 
 	if (!priv->commit_timeout_id) {
-		priv->commit_timeout_id = g_timeout_add
+		priv->commit_timeout_id = gdk_threads_add_timeout
 			(200, configuration_commit_timeout_cb,
 			 configuration);
 	}

@@ -452,19 +452,15 @@ view_history_idle_cb (gpointer data)
 static gboolean
 view_history_selection_changed_idle (gpointer user_data)
 {
-	GiggleViewHistoryPriv        *priv;
 	ViewHistorySelectionIdleData *data = user_data;
+	GiggleViewHistoryPriv        *priv;
 	GList                        *files;
-
-	GDK_THREADS_ENTER ();
 
 	priv = GET_PRIV (data->view);
 	files = NULL;
 
 	giggle_view_diff_set_revisions (GIGGLE_VIEW_DIFF (priv->view_diff),
 					data->revision1, data->revision2, files);
-
-	GDK_THREADS_LEAVE ();
 
 	return FALSE;
 }
@@ -492,9 +488,9 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 	data->revision2 = revision2;
 
 	priv->selection_changed_idle =
-		g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
-				 view_history_selection_changed_idle,
-				 data, g_free);
+		gdk_threads_add_idle (G_PRIORITY_DEFAULT_IDLE,
+				      view_history_selection_changed_idle,
+				      data, g_free);
 
 	giggle_history_changed (GIGGLE_HISTORY (data->view));
 }
@@ -635,7 +631,7 @@ view_history_constructed (GObject *object)
 	gtk_widget_pop_composite_child ();
 
 	/* configuration bindings */
-	g_idle_add (view_history_idle_cb, object);
+	gdk_threads_add_idle (view_history_idle_cb, object);
 }
 
 static void
