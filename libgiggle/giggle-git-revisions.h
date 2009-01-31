@@ -44,13 +44,17 @@ struct GiggleGitRevisions {
 
 struct GiggleGitRevisionsClass {
 	GiggleJobClass parent_class;
+
+	/*< signals >*/
+	void (* revisions_added) (GiggleGitRevisions  *job,
+				  GiggleRevision     **revisions);
 };
 
-GType	     giggle_git_revisions_get_type      (void);
+GType        giggle_git_revisions_get_type      (void) G_GNUC_CONST;
 GiggleJob *  giggle_git_revisions_new           (void);
 GiggleJob *  giggle_git_revisions_new_for_files (GList *files);
 
-GList *      giggle_git_revisions_get_revisions (GiggleGitRevisions *revisions);      
+GList *      giggle_git_revisions_get_revisions (GiggleGitRevisions *revisions);
 
 G_END_DECLS
 

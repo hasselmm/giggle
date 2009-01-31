@@ -29,10 +29,17 @@ enum {
 	PROP_FILES,
 };
 
+enum {
+	REVISIONS_ADDED,
+	LAST_SIGNAL,
+};
+
 typedef struct {
 	GList *revisions;
 	GList *files;
 } GiggleGitRevisionsPriv;
+
+static guint signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB)
 
@@ -315,6 +322,14 @@ giggle_git_revisions_class_init (GiggleGitRevisionsClass *class)
 							       "files",
 							       "files to filter the revisions",
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	signals[REVISIONS_ADDED] = g_signal_new ("revisions-added",
+						 GIGGLE_TYPE_GIT_REVISIONS,
+						 G_SIGNAL_RUN_FIRST,
+						 G_STRUCT_OFFSET (GiggleGitRevisionsClass,
+								  revisions_added),
+						 NULL, NULL, g_cclosure_marshal_VOID__POINTER,
+						 G_TYPE_NONE, 1, G_TYPE_POINTER);
 
 	g_type_class_add_private (object_class, sizeof (GiggleGitRevisionsPriv));
 }
