@@ -18,82 +18,23 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-
+#include "config.h"
+#include "giggle-git-revisions.h"
 #include <string.h>
 
-#include "giggle-git-revisions.h"
-
-typedef struct GiggleGitRevisionsPriv GiggleGitRevisionsPriv;
-
-struct GiggleGitRevisionsPriv {
-	GList *revisions;
-	GList *files;
-};
-
-static void     git_revisions_finalize            (GObject           *object);
-static void     git_revisions_get_property        (GObject           *object,
-						   guint              param_id,
-						   GValue            *value,
-						   GParamSpec        *pspec);
-static void     git_revisions_set_property        (GObject           *object,
-						   guint              param_id,
-						   const GValue      *value,
-						   GParamSpec        *pspec);
-
-static gboolean git_revisions_get_command_line    (GiggleJob         *job,
-						   gchar            **command_line);
-static void     git_revisions_handle_output       (GiggleJob         *job,
-						   const gchar       *output_str,
-						   gsize              output_len);
-static GiggleRevision* git_revisions_get_revision (const gchar *str,
-						   GHashTable  *revisions_hash);
-static void     git_revisions_get_committer_info  (GiggleRevision  *revision,
-						   const gchar     *line,
-						   gchar          **author,
-						   struct tm      **tm);
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_REVISIONS, GiggleGitRevisionsPriv))
 
 enum {
 	PROP_0,
 	PROP_FILES,
 };
 
+typedef struct {
+	GList *revisions;
+	GList *files;
+} GiggleGitRevisionsPriv;
+
 G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB)
-
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_REVISIONS, GiggleGitRevisionsPriv))
-
-static void
-giggle_git_revisions_class_init (GiggleGitRevisionsClass *class)
-{
-	GObjectClass   *object_class = G_OBJECT_CLASS (class);
-	GiggleJobClass *job_class    = GIGGLE_JOB_CLASS (class);
-
-	object_class->finalize     = git_revisions_finalize;
-	object_class->get_property = git_revisions_get_property;
-	object_class->set_property = git_revisions_set_property;
-
-	job_class->get_command_line = git_revisions_get_command_line;
-	job_class->handle_output    = git_revisions_handle_output;
-
-	g_object_class_install_property (object_class,
-					 PROP_FILES,
-					 g_param_spec_pointer ("files",
-							       "files",
-							       "files to filter the revisions",
-							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
-	g_type_class_add_private (object_class, sizeof (GiggleGitRevisionsPriv));
-}
-
-static void
-giggle_git_revisions_init (GiggleGitRevisions *revisions)
-{
-	GiggleGitRevisionsPriv *priv;
-
-	priv = GET_PRIV (revisions);
-
-	priv->revisions = NULL;
-}
 
 static void
 git_revisions_finalize (GObject *object)
@@ -173,35 +114,6 @@ git_revisions_get_command_line (GiggleJob *job, gchar **command_line)
 
 	*command_line = g_string_free (str, FALSE);
 	return TRUE;
-}
-
-static void
-git_revisions_handle_output (GiggleJob   *job,
-			     const gchar *output_str,
-			     gsize        output_len)
-{
-	GiggleGitRevisionsPriv *priv;
-	GHashTable             *revisions_hash;
-	gchar                  *str;
-
-	priv = GET_PRIV (job);
-	priv->revisions = NULL;
-	str = (gchar *) output_str;
-	revisions_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-						g_free, g_object_unref);
-
-	while (strlen (str) > 0) {
-		GiggleRevision *revision;
-
-		revision = git_revisions_get_revision (str, revisions_hash);
-		priv->revisions = g_list_prepend (priv->revisions, revision);
-
-		/* go to the next entry, they're separated by NULLs */
-		str += strlen (str) + 1;
-	}
-
-	priv->revisions = g_list_reverse (priv->revisions);
-	g_hash_table_destroy (revisions_hash);
 }
 
 static struct tm *
@@ -353,6 +265,68 @@ git_revisions_get_revision (const gchar *str,
 	g_strfreev (lines);
 
 	return g_object_ref (revision);
+}
+
+static void
+git_revisions_handle_output (GiggleJob   *job,
+			     const gchar *output_str,
+			     gsize        output_len)
+{
+	GiggleGitRevisionsPriv *priv;
+	GHashTable             *revisions_hash;
+	gchar                  *str;
+
+	priv = GET_PRIV (job);
+	priv->revisions = NULL;
+	str = (gchar *) output_str;
+	revisions_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+						g_free, g_object_unref);
+
+	while (strlen (str) > 0) {
+		GiggleRevision *revision;
+
+		revision = git_revisions_get_revision (str, revisions_hash);
+		priv->revisions = g_list_prepend (priv->revisions, revision);
+
+		/* go to the next entry, they're separated by NULLs */
+		str += strlen (str) + 1;
+	}
+
+	priv->revisions = g_list_reverse (priv->revisions);
+	g_hash_table_destroy (revisions_hash);
+}
+
+static void
+giggle_git_revisions_class_init (GiggleGitRevisionsClass *class)
+{
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GiggleJobClass *job_class    = GIGGLE_JOB_CLASS (class);
+
+	object_class->finalize     = git_revisions_finalize;
+	object_class->get_property = git_revisions_get_property;
+	object_class->set_property = git_revisions_set_property;
+
+	job_class->get_command_line = git_revisions_get_command_line;
+	job_class->handle_output    = git_revisions_handle_output;
+
+	g_object_class_install_property (object_class,
+					 PROP_FILES,
+					 g_param_spec_pointer ("files",
+							       "files",
+							       "files to filter the revisions",
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_type_class_add_private (object_class, sizeof (GiggleGitRevisionsPriv));
+}
+
+static void
+giggle_git_revisions_init (GiggleGitRevisions *revisions)
+{
+	GiggleGitRevisionsPriv *priv;
+
+	priv = GET_PRIV (revisions);
+
+	priv->revisions = NULL;
 }
 
 GiggleJob *
