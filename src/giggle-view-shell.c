@@ -400,15 +400,13 @@ giggle_view_shell_set_view_name (GiggleViewShell *shell,
 const char *
 giggle_view_shell_get_view_name (GiggleViewShell *shell)
 {
-	int        page_num;
-	GtkWidget *view;
+	GiggleView *view;
 
 	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (shell), NULL);
 
-	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (shell));
-	view = gtk_notebook_get_nth_page (GTK_NOTEBOOK (shell), page_num);
+	view = giggle_view_shell_get_selected (shell);
 
-	if (GIGGLE_IS_VIEW (view))
+	if (view)
 		return giggle_view_get_name (GIGGLE_VIEW (view));
 
 	return NULL;
@@ -475,5 +473,22 @@ giggle_view_shell_select (GiggleViewShell *shell,
 	}
 
 	return FALSE;
+}
+
+GiggleView *
+giggle_view_shell_get_selected (GiggleViewShell *shell)
+{
+	int        page_num;
+	GtkWidget *page;
+
+	g_return_val_if_fail (GIGGLE_IS_VIEW_SHELL (shell), NULL);
+
+	page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (shell));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (shell), page_num);
+
+	if (GIGGLE_IS_VIEW (page))
+		return GIGGLE_VIEW (page);
+
+	return NULL;
 }
 

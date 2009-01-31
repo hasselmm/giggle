@@ -66,6 +66,7 @@ GiggleView *   giggle_view_shell_find_view       (GiggleViewShell *shell,
 						  GType            type);
 gboolean       giggle_view_shell_select          (GiggleViewShell *shell,
 						  GiggleView      *view);
+GiggleView *   giggle_view_shell_get_selected    (GiggleViewShell *shell);
 
 G_END_DECLS
 

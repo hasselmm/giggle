@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2007 Imendio AB
+ * Copyright (C) 2009 Mathias Hasselmann
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,33 +30,31 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_HISTORY(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_HISTORY))
 #define GIGGLE_HISTORY_GET_IFACE(obj)  (G_TYPE_INSTANCE_GET_INTERFACE ((obj), GIGGLE_TYPE_HISTORY, GiggleHistoryIface))
 
-typedef struct GiggleHistoryIface GiggleHistoryIface;
-typedef struct GiggleHistory      GiggleHistory; /* dummy */
+typedef struct _GiggleHistoryIface    GiggleHistoryIface;
+typedef struct _GiggleHistory         GiggleHistory;          /* dummy */
 
-struct GiggleHistoryIface {
+struct _GiggleHistoryIface {
 	GTypeInterface iface;
 
 	/* vtable */
-	void     (* go_back)         (GiggleHistory     *history);
-	gboolean (* can_go_back)     (GiggleHistory     *history);
-
-	void     (* go_forward)      (GiggleHistory     *history);
-	gboolean (* can_go_forward)  (GiggleHistory     *history);
+	GObject * (* capture)	(GiggleHistory *history);
+	void      (* restore)	(GiggleHistory *history,
+				 GObject       *snapshot);
 
 	/* signals */
-	void     (* history_changed) (GiggleHistory     *history);
+	void      (* changed)	(GiggleHistory *history);
+	void      (* reset)	(GiggleHistory *history);
 };
 
+GType      giggle_history_get_type	(void) G_GNUC_CONST;
 
-GType      giggle_history_get_type (void);
+GObject *  giggle_history_capture	(GiggleHistory *history);
 
-void       giggle_history_go_back        (GiggleHistory *history);
-gboolean   giggle_history_can_go_back    (GiggleHistory *history);
+void       giggle_history_restore	(GiggleHistory *history,
+					 GObject       *snapshot);
 
-void       giggle_history_go_forward     (GiggleHistory *history);
-gboolean   giggle_history_can_go_forward (GiggleHistory *history);
-
-void       giggle_history_changed        (GiggleHistory *history);
+void       giggle_history_changed	(GiggleHistory *history);
+void       giggle_history_reset		(GiggleHistory *history);
 
 G_END_DECLS
 
