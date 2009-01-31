@@ -67,7 +67,7 @@ typedef struct {
 
 	GiggleGit               *git;
 	GiggleJob               *job;
-	GiggleJob               *diff_current_job;
+	GiggleJob               *refs_job;
 	GiggleConfiguration     *configuration;
 
 	guint                    selection_changed_idle;
@@ -163,10 +163,10 @@ view_history_finalize (GObject *object)
 		priv->job = NULL;
 	}
 
-	if (priv->diff_current_job) {
-		giggle_git_cancel_job (priv->git, priv->diff_current_job);
-		g_object_unref (priv->diff_current_job);
-		priv->diff_current_job = NULL;
+	if (priv->refs_job) {
+		giggle_git_cancel_job (priv->git, priv->refs_job);
+		g_object_unref (priv->refs_job);
+		priv->refs_job = NULL;
 	}
 
 	g_object_unref (priv->configuration);
@@ -221,71 +221,6 @@ view_history_add_refs (GiggleRevision *revision,
 }
 
 static void
-view_history_get_branches_cb (GiggleGit    *git,
-			      GiggleJob    *job,
-			      GError       *error,
-			      gpointer      user_data)
-{
-	GiggleViewHistory     *view;
-	GiggleViewHistoryPriv *priv;
-	GiggleRevision        *revision;
-	GtkTreeModel          *model;
-	GtkTreePath           *path;
-	GtkTreeIter            iter;
-	gboolean               valid;
-	GList                 *branches, *tags, *remotes;
-	gboolean               changed;
-
-	view = GIGGLE_VIEW_HISTORY (user_data);
-	priv = GET_PRIV (view);
-
-	if (error) {
-		GtkWidget *dialog;
-
-		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
-						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-						 GTK_MESSAGE_ERROR,
-						 GTK_BUTTONS_OK,
-						 _("An error ocurred when getting the revisions list:\n%s"),
-						 error->message);
-
-		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
-	} else {
-		model = gtk_tree_view_get_model (GTK_TREE_VIEW (priv->revision_list));
-		valid = gtk_tree_model_get_iter_first (model, &iter);
-		branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
-		tags = giggle_git_refs_get_tags (GIGGLE_GIT_REFS (job));
-		remotes = giggle_git_refs_get_remotes (GIGGLE_GIT_REFS (job));
-
-		while (valid) {
-			gtk_tree_model_get (model, &iter,
-					    REVISION_COL_OBJECT, &revision,
-					    -1);
-
-			if (revision) {
-				changed  = view_history_add_refs (revision, branches, giggle_revision_add_branch_head);
-				changed |= view_history_add_refs (revision, tags, giggle_revision_add_tag);
-				changed |= view_history_add_refs (revision, remotes, giggle_revision_add_remote);
-
-				if (changed) {
-					path = gtk_tree_model_get_path (model, &iter);
-					gtk_tree_model_row_changed (model, path, &iter);
-					gtk_tree_path_free (path);
-				}
-
-				g_object_unref (revision);
-			}
-
-			valid = gtk_tree_model_iter_next (model, &iter);
-		}
-	}
-
-	g_object_unref (priv->job);
-	priv->job = NULL;
-}
-
-static void
 view_history_diff_current_cb (GiggleGit *git,
 			      GiggleJob *job,
 			      GError    *error,
@@ -320,19 +255,59 @@ view_history_diff_current_cb (GiggleGit *git,
 }
 
 static void
+view_history_update_rev_list_view (GiggleViewHistory  *view)
+{
+	GiggleViewHistoryPriv *priv = GET_PRIV (view);
+	GList                 *revisions, *branches, *tags, *remotes;
+	GtkListStore          *store;
+	GtkTreeIter            iter;
+
+	g_return_if_fail (GIGGLE_IS_GIT_REVISIONS (priv->job));
+	g_return_if_fail (GIGGLE_IS_GIT_REFS (priv->refs_job));
+
+	store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
+
+	revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (priv->job));
+	branches  = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (priv->refs_job));
+	tags      = giggle_git_refs_get_tags (GIGGLE_GIT_REFS (priv->refs_job));
+	remotes   = giggle_git_refs_get_remotes (GIGGLE_GIT_REFS (priv->refs_job));
+
+	while (revisions) {
+		gtk_list_store_append (store, &iter);
+
+		view_history_add_refs (revisions->data, branches,
+				       giggle_revision_add_branch_head);
+		view_history_add_refs (revisions->data, tags,
+				       giggle_revision_add_tag);
+		view_history_add_refs (revisions->data, remotes,
+				       giggle_revision_add_remote);
+
+		gtk_list_store_set (store, &iter,
+				    REVISION_COL_OBJECT, revisions->data,
+				    -1);
+
+		revisions = revisions->next;
+	}
+
+	giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list),
+					GTK_TREE_MODEL (store));
+
+	g_object_unref (store);
+
+	g_object_unref (priv->refs_job);
+	priv->refs_job = NULL;
+
+	giggle_history_reset (GIGGLE_HISTORY (view));
+}
+
+static void
 view_history_get_revisions_cb (GiggleGit    *git,
 			       GiggleJob    *job,
 			       GError       *error,
 			       gpointer      user_data)
 {
-	GiggleViewHistory     *view;
-	GiggleViewHistoryPriv *priv;
-	GtkListStore          *store;
-	GtkTreeIter            iter;
-	GList                 *revisions;
-
-	view = GIGGLE_VIEW_HISTORY (user_data);
-	priv = GET_PRIV (view);
+	GiggleViewHistory     *view = GIGGLE_VIEW_HISTORY (user_data);
+	GiggleViewHistoryPriv *priv = GET_PRIV (view);
 
 	if (error) {
 		GtkWidget *dialog;
@@ -349,46 +324,59 @@ view_history_get_revisions_cb (GiggleGit    *git,
 		g_object_unref (priv->job);
 		priv->job = NULL;
 	} else {
-		store = gtk_list_store_new (REVISION_NUM_COLS, GIGGLE_TYPE_REVISION);
-		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));
+		/* update revision list */
+		view_history_update_rev_list_view (view);
 
-		while (revisions) {
-			gtk_list_store_append (store, &iter);
-			gtk_list_store_set (store, &iter,
-					    REVISION_COL_OBJECT, revisions->data,
-					    -1);
-			revisions = revisions->next;
-		}
-
-		view_history_set_busy (GTK_WIDGET (priv->revision_list), FALSE);
-		giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list),
-						GTK_TREE_MODEL (store));
-		g_object_unref (store);
 		g_object_unref (priv->job);
 		priv->job = NULL;
 
-		/* now get the list of branches */
-		priv->job = giggle_git_refs_new ();
+		view_history_set_busy (GTK_WIDGET (priv->revision_list), FALSE);
+
+		/* retreive uncommited changes */
+		priv->job = giggle_git_diff_new ();
 
 		giggle_git_run_job (priv->git, priv->job,
-				    view_history_get_branches_cb,
-				    view);
-
-		/* and current diff row */
-		if (priv->diff_current_job) {
-			giggle_git_cancel_job (priv->git, priv->diff_current_job);
-			g_object_unref (priv->diff_current_job);
-			priv->diff_current_job = NULL;
-		}
-
-		priv->diff_current_job = giggle_git_diff_new ();
-
-		giggle_git_run_job (priv->git, priv->diff_current_job,
 				    view_history_diff_current_cb,
 				    view);
-
-		giggle_history_reset (GIGGLE_HISTORY (view));
 	}
+}
+
+static void
+view_history_get_branches_cb (GiggleGit    *git,
+			      GiggleJob    *job,
+			      GError       *error,
+			      gpointer      user_data)
+{
+	GiggleViewHistory     *view = GIGGLE_VIEW_HISTORY (user_data);
+	GiggleViewHistoryPriv *priv = GET_PRIV (view);
+
+	if (error) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (view))),
+						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+						 GTK_MESSAGE_ERROR,
+						 GTK_BUTTONS_OK,
+						 _("An error ocurred when getting the revisions list:\n%s"),
+						 error->message);
+
+		gtk_dialog_run (GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+	} else {
+		/* now get revision list */
+		if (priv->job) {
+			giggle_git_cancel_job (priv->git, priv->job);
+			g_object_unref (priv->job);
+			priv->job = NULL;
+		}
+
+		priv->job = giggle_git_revisions_new ();
+
+		giggle_git_run_job (priv->git, priv->job,
+				    view_history_get_revisions_cb,
+				    view);
+	}
+
 }
 
 static void
@@ -401,17 +389,17 @@ view_history_update_revisions (GiggleViewHistory  *view)
 	view_history_set_busy (GTK_WIDGET (priv->revision_list), TRUE);
 	giggle_rev_list_view_set_model (GIGGLE_REV_LIST_VIEW (priv->revision_list), NULL);
 
-	/* get revision list */
-	if (priv->job) {
-		giggle_git_cancel_job (priv->git, priv->job);
-		g_object_unref (priv->job);
-		priv->job = NULL;
+	/* first get the list of branches */
+	if (priv->refs_job) {
+		giggle_git_cancel_job (priv->git, priv->refs_job);
+		g_object_unref (priv->refs_job);
+		priv->refs_job = NULL;
 	}
 
-	priv->job = giggle_git_revisions_new ();
+	priv->refs_job = giggle_git_refs_new ();
 
-	giggle_git_run_job (priv->git, priv->job,
-			    view_history_get_revisions_cb,
+	giggle_git_run_job (priv->git, priv->refs_job,
+			    view_history_get_branches_cb,
 			    view);
 }
 
