@@ -488,9 +488,9 @@ view_history_revision_list_selection_changed_cb (GiggleRevListView *list,
 	data->revision2 = revision2;
 
 	priv->selection_changed_idle =
-		gdk_threads_add_idle (G_PRIORITY_DEFAULT_IDLE,
-				      view_history_selection_changed_idle,
-				      data, g_free);
+		gdk_threads_add_idle_full (G_PRIORITY_DEFAULT_IDLE,
+					   view_history_selection_changed_idle,
+					   data, g_free);
 
 	giggle_history_changed (GIGGLE_HISTORY (data->view));
 }
