@@ -292,8 +292,9 @@ short_list_show_dialog (GiggleShortList* self)
 }
 
 static gboolean
-short_list_update_label_idle (GiggleShortList* self)
+short_list_update_label_idle (gpointer user_data)
 {
+	GiggleShortList     *self = user_data;
 	GiggleShortListPriv *priv;
 	GtkTreeIter          iter;
 	gboolean             valid;
@@ -337,10 +338,10 @@ short_list_update_label_idle (GiggleShortList* self)
 static void
 short_list_update_label (GiggleShortList* self)
 {
-	g_idle_add_full (G_PRIORITY_LOW,
-			 (GSourceFunc)short_list_update_label_idle,
-			 g_object_ref (self),
-			 g_object_unref);
+	gdk_threads_add_idle_full (G_PRIORITY_LOW,
+				   short_list_update_label_idle,
+				   g_object_ref (self),
+				   g_object_unref);
 }
 
 static void

@@ -42,14 +42,20 @@ int
 main (int    argc,
       char **argv)
 {
-	GtkWidget      *window;
-	gchar          *dir;
-	GOptionContext *context;
+	GtkWidget      *window = NULL;
 	GError         *error = NULL;
+	GOptionContext *context;
+	char           *dir;
+	int             result = EXIT_SUCCESS;
 	
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
+
+	g_thread_init (NULL);
+
+	gdk_threads_init ();
+	gdk_threads_enter ();
 
 	context = g_option_context_new (NULL);
 	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
@@ -60,7 +66,8 @@ main (int    argc,
 				 GETTEXT_PACKAGE,
 				 &error)) {
 		g_printerr ("%s\n", error->message);
-		return 1;
+		result = EXIT_FAILURE;
+		goto end;
 	}
 
 	if (g_file_test ("pixmaps", G_FILE_TEST_IS_DIR))
@@ -72,7 +79,7 @@ main (int    argc,
 			 "Copyright (C) 2008 Mathias Hasselmann\n",
 			 PACKAGE_NAME, PACKAGE_VERSION);
 
-		return EXIT_SUCCESS;
+		goto end;
 	}
 
 	gtk_window_set_default_icon_name (PACKAGE);
@@ -103,13 +110,16 @@ main (int    argc,
 	g_free (dir);
 
 	/* window will show itself when it reads its initial size configuration */
-	if (diff_window) {
+	if (diff_window)
 		giggle_window_show_diff_window (GIGGLE_WINDOW (window));
-	}
 
 	gtk_main ();
 
-	gtk_widget_destroy (window);
+end:
+	if (window)
+		gtk_widget_destroy (window);
 
-	return 0;
+	gdk_threads_leave ();
+
+	return result;
 }

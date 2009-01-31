@@ -1323,7 +1323,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	gtk_widget_pop_composite_child ();
 
 	/* bindings */
-	g_idle_add (view_file_idle_cb, view);
+	gdk_threads_add_idle (view_file_idle_cb, view);
 }
 
 GtkWidget *
