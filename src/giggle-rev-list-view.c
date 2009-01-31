@@ -1826,7 +1826,7 @@ giggle_rev_list_view_set_model (GiggleRevListView *list,
 				GtkTreeModel      *model)
 {
 	GiggleRevListViewPriv *priv;
-	GType                   type;
+	GType                  type;
 
 	g_return_if_fail (GIGGLE_IS_REV_LIST_VIEW (list));
 	g_return_if_fail (!model || GTK_IS_TREE_MODEL (model));

@@ -239,8 +239,8 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 }
 
 static GiggleRevision*
-git_revisions_get_revision (const gchar *str,
-			    GHashTable  *revisions_hash)
+git_revisions_get_revision (const char *str,
+			    GHashTable *revisions)
 {
 	GiggleRevision *revision, *parent;
 	gchar **lines, **ids;
@@ -249,17 +249,17 @@ git_revisions_get_revision (const gchar *str,
 	lines = g_strsplit (str, "\n", -1);
 	ids = g_strsplit (lines[0], " ", -1);
 
-	if (!(revision = g_hash_table_lookup (revisions_hash, ids[0]))) {
+	if (!(revision = g_hash_table_lookup (revisions, ids[0]))) {
 		/* revision hasn't been created in a previous step, create it */
 		revision = giggle_revision_new (ids[0]);
-		g_hash_table_insert (revisions_hash, g_strdup (ids[0]), revision);
+		g_hash_table_insert (revisions, g_strdup (ids[0]), revision);
 	}
 
 	/* add parents */
 	while (ids[i] != NULL) {
-		if (!(parent = g_hash_table_lookup (revisions_hash, ids[i]))) {
+		if (!(parent = g_hash_table_lookup (revisions, ids[i]))) {
 			parent = giggle_revision_new (ids[i]);
-			g_hash_table_insert (revisions_hash, g_strdup (ids[i]), parent);
+			g_hash_table_insert (revisions, g_strdup (ids[i]), parent);
 		}
 
 		giggle_revision_add_parent (revision, parent);
@@ -274,33 +274,113 @@ git_revisions_get_revision (const gchar *str,
 	return g_object_ref (revision);
 }
 
-static void
-git_revisions_handle_output (GiggleJob   *job,
-			     const gchar *output_str,
-			     gsize        output_len)
+typedef struct {
+	GiggleJob  *job;
+	GHashTable *revisions;
+	GMainLoop  *loop;
+	const char *head;
+} GiggleGitRevisionsParseData;
+
+typedef struct {
+	GiggleJob *job;
+	GPtrArray *revisions;
+} GiggleGitRevisionsAddedData;
+
+static gboolean
+git_revisions_parse_revisions_added_idle (gpointer user_data)
 {
-	GiggleGitRevisionsPriv *priv;
-	GHashTable             *revisions_hash;
-	gchar                  *str;
+	GiggleGitRevisionsAddedData *data = user_data;
 
-	priv = GET_PRIV (job);
-	priv->revisions = NULL;
-	str = (gchar *) output_str;
-	revisions_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-						g_free, g_object_unref);
+	g_signal_emit (data->job,
+		       signals[REVISIONS_ADDED], 0,
+		       data->revisions->pdata);
 
-	while (strlen (str) > 0) {
-		GiggleRevision *revision;
+	g_ptr_array_free (data->revisions, TRUE);
+	g_object_unref (data->job);
 
-		revision = git_revisions_get_revision (str, revisions_hash);
+	g_slice_free (GiggleGitRevisionsAddedData, data);
+
+	return FALSE;
+}
+
+static void
+git_revisions_parse_emit_revisions_added (GiggleJob *job,
+					  GPtrArray *revisions)
+{
+	GiggleGitRevisionsAddedData *data;
+
+	data = g_slice_new (GiggleGitRevisionsAddedData);
+	data->job = g_object_ref (job);
+	data->revisions = revisions;
+
+	gdk_threads_add_idle (git_revisions_parse_revisions_added_idle, data);
+}
+
+static gboolean
+git_revisions_parse_quit_idle (gpointer user_data)
+{
+	GiggleGitRevisionsParseData *data = user_data;
+
+	g_main_loop_quit (data->loop);
+
+	return FALSE;
+}
+
+static gpointer
+git_revisions_parse (gpointer user_data)
+{
+	GiggleGitRevisionsParseData *data = user_data;
+	GiggleGitRevisionsPriv      *priv = GET_PRIV (data->job);
+	GPtrArray                   *revision_array;
+	GiggleRevision              *revision;
+
+	revision_array = g_ptr_array_sized_new (21);
+
+	while (*data->head) {
+		revision = git_revisions_get_revision (data->head, data->revisions);
 		priv->revisions = g_list_prepend (priv->revisions, revision);
+		g_ptr_array_add (revision_array, revision);
 
-		/* go to the next entry, they're separated by NULLs */
-		str += strlen (str) + 1;
+		if (revision_array->len >= 20) {
+			git_revisions_parse_emit_revisions_added (data->job, revision_array);
+			revision_array = g_ptr_array_sized_new (21);
+		}
+
+		/* go to the next entry, they're separated by NULs */
+		data->head += strlen (data->head) + 1;
 	}
 
+	git_revisions_parse_emit_revisions_added (data->job, revision_array);
+	gdk_threads_add_idle (git_revisions_parse_quit_idle, data);
+
+	return NULL;
+}
+
+static void
+git_revisions_handle_output (GiggleJob  *job,
+			     const char *output_str,
+			     gsize       output_len)
+{
+	GiggleGitRevisionsParseData data;
+	GiggleGitRevisionsPriv     *priv = GET_PRIV (job);
+
+	priv->revisions = NULL;
+
+	data.revisions = g_hash_table_new_full (g_str_hash, g_str_equal,
+						g_free, g_object_unref);
+
+	data.loop = g_main_loop_new (NULL, FALSE);
+	data.head = output_str;
+	data.job  = job;
+
+	g_thread_create (git_revisions_parse, &data, FALSE, NULL);
+
+	g_main_loop_run (data.loop);
+	g_main_loop_unref (data.loop);
+
+	g_hash_table_destroy (data.revisions);
+
 	priv->revisions = g_list_reverse (priv->revisions);
-	g_hash_table_destroy (revisions_hash);
 }
 
 static void
