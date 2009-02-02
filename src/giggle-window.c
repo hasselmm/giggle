@@ -606,22 +606,22 @@ window_bind_state (GiggleWindow *window)
 
 	priv = GET_PRIV (window);
 
-	geometry = giggle_configuration_get_field
-		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
-	maximized = giggle_configuration_get_boolean_field
-		(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED);
+	if (!GTK_WIDGET_VISIBLE (window)) {
+		geometry = giggle_configuration_get_field
+			(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_GEOMETRY);
+		maximized = giggle_configuration_get_boolean_field
+			(priv->configuration, CONFIG_FIELD_MAIN_WINDOW_MAXIMIZED);
 
-	if (!geometry) {
-		gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
-	}
+		if (!geometry) {
+			gtk_window_set_default_size (GTK_WINDOW (window), 700, 550);
+		} else {
+			if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
+				geometry = NULL;
+		}
 
-	if (geometry) {
-		if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
-			geometry = NULL;
-	}
-
-	if (maximized) {
-		gtk_window_maximize (GTK_WINDOW (window));
+		if (maximized) {
+			gtk_window_maximize (GTK_WINDOW (window));
+		}
 	}
 
 	show_graph_action = gtk_ui_manager_get_action
