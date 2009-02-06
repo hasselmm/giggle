@@ -188,11 +188,15 @@ remotes_view_last_data_func (GtkTreeViewColumn *column,
 			     gpointer           data)
 {
 	GiggleRemote *remote = NULL;
-	gboolean      visible;
+	gboolean      visible = TRUE;
 
 	gtk_tree_model_get (model, iter, COL_REMOTE, &remote, -1);
 
-	visible = !GIGGLE_IS_REMOTE (remote);
+	if (GIGGLE_IS_REMOTE (remote)) {
+		g_object_unref (remote);
+		visible = FALSE;
+	}
+
 	g_object_set (cell, "visible", visible, NULL);
 }
 
