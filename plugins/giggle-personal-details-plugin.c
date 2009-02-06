@@ -55,7 +55,7 @@ personal_details_activate (GtkAction    *action,
 
 	window = giggle_personal_details_window_new ();
 	gtk_window_set_transient_for (GTK_WINDOW (window), find_parent ());
-	g_signal_connect_after (window, "response", G_CALLBACK (g_object_unref), NULL);
+	g_signal_connect_after (window, "response", G_CALLBACK (gtk_widget_destroy), NULL);
 
 	gtk_widget_show (window);
 }
