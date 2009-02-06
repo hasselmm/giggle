@@ -50,6 +50,8 @@ giggle_SOURCES= \
 	giggle-revision-view.h \
 	giggle-short-list.c \
 	giggle-short-list.h \
+	giggle-spaning-renderer.c \
+	giggle-spaning-renderer.h \
 	giggle-view.c \
 	giggle-view.h \
 	giggle-view-diff.c \

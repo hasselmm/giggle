@@ -23,6 +23,7 @@
 
 #include "giggle-helpers.h"
 #include "giggle-remote-editor.h"
+#include "giggle-spaning-renderer.h"
 
 #include "libgiggle/giggle-git.h"
 
@@ -31,8 +32,8 @@
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REMOTES_VIEW, GiggleRemotesViewPriv))
 
 typedef struct {
-	GtkListStore *store;
-	GiggleGit    *git;
+	GtkListStore    *store;
+	GiggleGit       *git;
 } GiggleRemotesViewPriv;
 
 enum {
@@ -43,31 +44,38 @@ enum {
 G_DEFINE_TYPE (GiggleRemotesView, giggle_remotes_view, GTK_TYPE_TREE_VIEW)
 
 static void
-remotes_view_finalize (GObject *object)
+remotes_view_dispose (GObject *object)
 {
 	GiggleRemotesViewPriv *priv;
 
 	priv = GET_PRIV (object);
 
-	g_object_unref (priv->git);
-	g_object_unref (priv->store);
+	if (priv->git) {
+		g_object_unref (priv->git);
+		priv->git = NULL;
+	}
 
-	G_OBJECT_CLASS (giggle_remotes_view_parent_class)->finalize (object);
+	if (priv->store) {
+		g_object_unref (priv->store);
+		priv->store = NULL;
+	}
+
+	G_OBJECT_CLASS (giggle_remotes_view_parent_class)->dispose (object);
 }
 
 static gboolean
 remotes_view_key_press_event (GtkWidget   *widget,
 			      GdkEventKey *event)
 {
-	gboolean retval = giggle_list_view_delete_selection (widget, event);
-
-	if (retval) {
+	if (giggle_list_view_delete_selection (widget, event)) {
 		// FIXME: delete the files
-	} else if (GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event) {
-		retval = GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event (widget, event);
+		return TRUE;
 	}
 
-	return retval;
+	if (GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event)
+		return GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event (widget, event);
+
+	return FALSE;
 }
 
 static void
@@ -76,8 +84,7 @@ giggle_remotes_view_class_init (GiggleRemotesViewClass *class)
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
-	object_class->finalize = remotes_view_finalize;
-
+	object_class->dispose         = remotes_view_dispose;
 	widget_class->key_press_event = remotes_view_key_press_event;
 
 	g_type_class_add_private (object_class, sizeof (GiggleRemotesViewPriv));
@@ -133,35 +140,21 @@ remotes_view_icon_data_func (GtkTreeViewColumn *column,
 }
 
 static void
-remotes_view_cell_data_func (GtkTreeViewColumn *column,
+remotes_view_name_data_func (GtkTreeViewColumn *column,
 			     GtkCellRenderer   *cell,
 			     GtkTreeModel      *model,
 			     GtkTreeIter       *iter,
 			     gpointer           data)
 {
 	GiggleRemote *remote = NULL;
-	GtkWidget    *widget;
-	GtkStyle     *style;
+	const char   *name = NULL;
 
-	gtk_tree_model_get (model, iter,
-			    COL_REMOTE, &remote,
-			    -1);
+	gtk_tree_model_get (model, iter, COL_REMOTE, &remote, -1);
 
-	widget = gtk_tree_view_column_get_tree_view (column);
-	style = gtk_widget_get_style (widget);
+	if (GIGGLE_IS_REMOTE (remote))
+		name = giggle_remote_get_name (remote);
 
-	if (GIGGLE_IS_REMOTE (remote)) {
-		g_object_set (cell,
-			      "foreground-gdk", &style->text[GTK_STATE_NORMAL],
-			      "text", giggle_remote_get_name (remote),
-			      NULL);
-		g_object_unref (remote);
-	} else {
-		g_object_set (cell,
-			      "foreground-gdk", &style->text[GTK_STATE_INSENSITIVE],
-			      "text", _("Double click to add remote..."),
-			      NULL);
-	}
+	g_object_set (cell, "text", name, NULL);
 }
 
 static void
@@ -188,13 +181,29 @@ remotes_view_url_data_func (GtkTreeViewColumn *column,
 }
 
 static void
+remotes_view_last_data_func (GtkTreeViewColumn *column,
+			     GtkCellRenderer   *cell,
+			     GtkTreeModel      *model,
+			     GtkTreeIter       *iter,
+			     gpointer           data)
+{
+	GiggleRemote *remote = NULL;
+	gboolean      visible;
+
+	gtk_tree_model_get (model, iter, COL_REMOTE, &remote, -1);
+
+	visible = !GIGGLE_IS_REMOTE (remote);
+	g_object_set (cell, "visible", visible, NULL);
+}
+
+static void
 window_remotes_row_activated_cb (GiggleRemotesView *view,
 				 GtkTreePath       *path,
 				 GtkTreeViewColumn *column,
 				 GtkTreeView       *treeview)
 {
 	GiggleRemotesViewPriv *priv = GET_PRIV (view);
-	GiggleRemote          *remote;
+	GiggleRemote          *remote = NULL;
 	GtkTreeModel          *model;
 	GtkTreeIter            iter;
 	GtkWidget             *editor;
@@ -230,10 +239,8 @@ window_remotes_row_activated_cb (GiggleRemotesView *view,
 	if (response == GTK_RESPONSE_ACCEPT)
 		giggle_git_save_remote (priv->git, remote);
 
-	if (remote) {
-		/* doesn't happen in this case: !remote && response != ACCEPT */
+	if (remote)
 		g_object_unref (remote);
-	}
 
 	gtk_widget_destroy (editor);
 }
@@ -243,6 +250,7 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 {
 	GiggleRemotesViewPriv *priv;
 	GtkCellRenderer       *renderer;
+	GtkTreeViewColumn     *column;
 
 	priv = GET_PRIV (view);
 
@@ -257,15 +265,28 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 	renderer = gtk_cell_renderer_text_new ();
 	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
 						    _("Name"), renderer,
-						    remotes_view_cell_data_func,
+						    remotes_view_name_data_func,
 						    NULL, NULL);
+
+	column = gtk_tree_view_column_new ();
+	gtk_tree_view_column_set_title (column, _("URL"));
+	gtk_tree_view_insert_column (GTK_TREE_VIEW (view), column, -1);
 
 	renderer = gtk_cell_renderer_text_new ();
 	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_MIDDLE, NULL);
-	gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (view), -1,
-						    _("URL"), renderer,
-						    remotes_view_url_data_func,
-						    NULL, NULL);
+	gtk_tree_view_column_pack_start (column, renderer, TRUE);
+	gtk_tree_view_column_set_cell_data_func (column, renderer,
+						 remotes_view_url_data_func,
+						 NULL, NULL);
+
+	renderer = giggle_spaning_renderer_new ();
+	g_object_set (renderer,
+		      "first-column", 1, "style", PANGO_STYLE_ITALIC,
+		      "text", _("Double click to add remote..."), NULL);
+	gtk_tree_view_column_pack_start (column, renderer, FALSE);
+	gtk_tree_view_column_set_cell_data_func (column, renderer,
+						 remotes_view_last_data_func,
+						 NULL, NULL);
 
 	g_signal_connect_swapped (view, "row-activated",
 				  G_CALLBACK (window_remotes_row_activated_cb), view);
