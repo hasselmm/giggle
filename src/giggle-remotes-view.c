@@ -173,12 +173,13 @@ window_remotes_row_activated_cb (GiggleRemotesView *view,
 				 GtkTreeViewColumn *column,
 				 GtkTreeView       *treeview)
 {
-	GiggleRemote*remote;
-	GtkTreeModel*model;
-	GtkTreeIter  iter;
-	GtkWidget   *editor;
-	GtkWidget   *toplevel;
-	gint         response;
+	GiggleRemotesViewPriv *priv = GET_PRIV (view);
+	GiggleRemote          *remote;
+	GtkTreeModel          *model;
+	GtkTreeIter            iter;
+	GtkWidget             *editor;
+	GtkWidget             *toplevel;
+	gint                   response;
 
 	model = gtk_tree_view_get_model (treeview);
 	g_return_if_fail (gtk_tree_model_get_iter (model, &iter, path));
@@ -206,10 +207,8 @@ window_remotes_row_activated_cb (GiggleRemotesView *view,
 				    -1);
 	}
 
-	if (response == GTK_RESPONSE_ACCEPT) {
-		GiggleGit *git = giggle_window_get_git (GIGGLE_WINDOW (toplevel));
-		giggle_git_save_remote (git, remote);
-	}
+	if (response == GTK_RESPONSE_ACCEPT)
+		giggle_git_save_remote (priv->git, remote);
 
 	if (remote) {
 		/* doesn't happen in this case: !remote && response != ACCEPT */
