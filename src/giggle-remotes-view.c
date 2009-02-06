@@ -18,37 +18,57 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
+#include "config.h"
+#include "giggle-remotes-view.h"
+
+#include "giggle-helpers.h"
+#include "giggle-remote-editor.h"
 
 #include "libgiggle/giggle-git.h"
-#include "giggle-remotes-view.h"
-#include "giggle-remote-editor.h"
-#include "libgiggle/giggle-remote.h"
-#include "giggle-helpers.h"
-#include "giggle-window.h"
 
-typedef struct GiggleRemotesViewPriv GiggleRemotesViewPriv;
+#include <glib/gi18n.h>
 
-struct GiggleRemotesViewPriv {
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REMOTES_VIEW, GiggleRemotesViewPriv))
+
+typedef struct {
 	GtkListStore *store;
-
 	GiggleGit    *git;
-};
+} GiggleRemotesViewPriv;
 
 enum {
 	COL_REMOTE,
 	N_COLUMNS
 };
 
-static void     remotes_view_finalize            (GObject *object);
-static gboolean remotes_view_key_press_event     (GtkWidget   *widget,
-						  GdkEventKey *event);
-
 G_DEFINE_TYPE (GiggleRemotesView, giggle_remotes_view, GTK_TYPE_TREE_VIEW)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REMOTES_VIEW, GiggleRemotesViewPriv))
+static void
+remotes_view_finalize (GObject *object)
+{
+	GiggleRemotesViewPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	g_object_unref (priv->git);
+	g_object_unref (priv->store);
+
+	G_OBJECT_CLASS (giggle_remotes_view_parent_class)->finalize (object);
+}
+
+static gboolean
+remotes_view_key_press_event (GtkWidget   *widget,
+			      GdkEventKey *event)
+{
+	gboolean retval = giggle_list_view_delete_selection (widget, event);
+
+	if (retval) {
+		// FIXME: delete the files
+	} else if (GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event) {
+		retval = GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event (widget, event);
+	}
+
+	return retval;
+}
 
 static void
 giggle_remotes_view_class_init (GiggleRemotesViewClass *class)
@@ -262,34 +282,6 @@ giggle_remotes_view_init (GiggleRemotesView *view)
 
 	/* initialize for first time */
 	remotes_view_update (view);
-}
-
-static void
-remotes_view_finalize (GObject *object)
-{
-	GiggleRemotesViewPriv *priv;
-
-	priv = GET_PRIV (object);
-	
-	g_object_unref (priv->git);
-	g_object_unref (priv->store);
-
-	G_OBJECT_CLASS (giggle_remotes_view_parent_class)->finalize (object);
-}
-
-static gboolean
-remotes_view_key_press_event (GtkWidget   *widget,
-			      GdkEventKey *event)
-{
-	gboolean retval = giggle_list_view_delete_selection (widget, event);
-
-	if (retval) {
-		// FIXME: delete the files
-	} else if (GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event) {
-		retval = GTK_WIDGET_CLASS (giggle_remotes_view_parent_class)->key_press_event (widget, event);
-	}
-
-	return retval;
 }
 
 GtkWidget *
