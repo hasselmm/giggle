@@ -984,11 +984,11 @@ window_create_ui_manager (GiggleWindow *window)
 		{ "FindSlash", NULL, NULL, "slash", NULL,
 		  G_CALLBACK (window_action_find_cb)
 		},
-		{ "FindNext", NULL, N_("Find _Next"),
+		{ "FindNext", NULL, N_("Find Ne_xt"),
 		  "<control>G", N_("Find next match"),
 		  G_CALLBACK (window_action_find_next_cb)
 		},
-		{ "FindPrev", NULL, N_("Find _Previous"),
+		{ "FindPrev", NULL, N_("Find Pre_vious"),
 		  "<control><shift>G", N_("Find previous match"),
 		  G_CALLBACK (window_action_find_prev_cb)
 		},

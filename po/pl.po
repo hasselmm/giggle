@@ -544,7 +544,7 @@ msgid "Find..."
 msgstr "Znajdź..."
 
 #: ../src/giggle-window.c:836
-msgid "Find _Next"
+msgid "Find Ne_xt"
 msgstr "Znajdź _następne"
 
 #: ../src/giggle-window.c:837
@@ -552,7 +552,7 @@ msgid "Find next match"
 msgstr "Wyszukuje następny ciąg pasujący do wyrażenia"
 
 #: ../src/giggle-window.c:840
-msgid "Find _Previous"
+msgid "Find Pre_vious"
 msgstr "Znajdź _poprzednie"
 
 #: ../src/giggle-window.c:841

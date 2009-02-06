@@ -501,7 +501,7 @@ msgid "Find..."
 msgstr "Rechercher..."
 
 #: ../src/giggle-window.c:204
-msgid "Find _Next"
+msgid "Find Ne_xt"
 msgstr "Rechercher le _suivant"
 
 #: ../src/giggle-window.c:204
@@ -509,7 +509,7 @@ msgid "Find next"
 msgstr "Rechercher le suivant"
 
 #: ../src/giggle-window.c:208
-msgid "Find _Previous"
+msgid "Find Pre_vious"
 msgstr "Rechercher le _précédent"
 
 #: ../src/giggle-window.c:208

@@ -448,7 +448,7 @@ msgid "Find..."
 msgstr "Sök..."
 
 #: ../src/giggle-window.c:204
-msgid "Find _Next"
+msgid "Find Ne_xt"
 msgstr "Sök _nästa"
 
 #: ../src/giggle-window.c:204
@@ -456,7 +456,7 @@ msgid "Find next"
 msgstr "Sök nästa"
 
 #: ../src/giggle-window.c:208
-msgid "Find _Previous"
+msgid "Find Pre_vious"
 msgstr "Sök _föregående"
 
 #: ../src/giggle-window.c:208

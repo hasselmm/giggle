@@ -438,7 +438,7 @@ msgid "Find..."
 msgstr "Tìm..."
 
 #: ../src/giggle-window.c:191
-msgid "Find _Next"
+msgid "Find Ne_xt"
 msgstr "Tìm _tiếp"
 
 #: ../src/giggle-window.c:191
@@ -446,7 +446,7 @@ msgid "Find next"
 msgstr "Tìm tiếp"
 
 #: ../src/giggle-window.c:195
-msgid "Find _Previous"
+msgid "Find Pre_vious"
 msgstr "Tìm _ngược"
 
 #: ../src/giggle-window.c:195

@@ -441,16 +441,16 @@ msgid "Find..."
 msgstr "検索..."
 
 #: ../src/giggle-window.c:191
-msgid "Find _Next"
-msgstr "次を検索(_N)"
+msgid "Find Ne_xt"
+msgstr "次を検索(_X)"
 
 #: ../src/giggle-window.c:191
 msgid "Find next"
 msgstr "次を検索"
 
 #: ../src/giggle-window.c:195
-msgid "Find _Previous"
-msgstr "前を検索(_P)"
+msgid "Find Pre_vious"
+msgstr "前を検索(_V)"
 
 #: ../src/giggle-window.c:195
 msgid "Find previous"

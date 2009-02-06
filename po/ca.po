@@ -457,7 +457,7 @@ msgid "Find..."
 msgstr "Cerca..."
 
 #: ../src/giggle-window.c:185
-msgid "Find _Next"
+msgid "Find Ne_xt"
 msgstr "Cerca el _següent"
 
 #: ../src/giggle-window.c:185
@@ -465,7 +465,7 @@ msgid "Find next"
 msgstr "Cerca el següent"
 
 #: ../src/giggle-window.c:189
-msgid "Find _Previous"
+msgid "Find Pre_vious"
 msgstr "Cerca l'_anterior"
 
 #: ../src/giggle-window.c:189
