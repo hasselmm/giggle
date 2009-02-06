@@ -73,10 +73,14 @@ revision_info_action_connect_proxy (GtkAction *action,
 static void
 revision_info_action_update_proxies (GtkAction *action)
 {
-	GSList *l;
+	GSList *proxies;
 
-	for (l = gtk_action_get_proxies (action); l; l = l->next)
-		gtk_action_connect_proxy (action, l->data);
+	proxies = g_slist_copy (gtk_action_get_proxies (action));
+
+	while (proxies) {
+		gtk_action_connect_proxy (action, proxies->data);
+		proxies = g_slist_delete_link (proxies, proxies);
+	}
 }
 
 static GtkWidget *
@@ -100,9 +104,9 @@ revision_info_action_create_tool_item (GtkAction *action)
 
 static void
 revision_info_action_get_property (GObject    *object,
-			   guint       param_id,
-			   GValue     *value,
-			   GParamSpec *pspec)
+				   guint       param_id,
+				   GValue     *value,
+				   GParamSpec *pspec)
 {
 	GiggleRevisionInfoActionPriv *priv;
 
@@ -125,9 +129,9 @@ revision_info_action_get_property (GObject    *object,
 
 static void
 revision_info_action_set_property (GObject      *object,
-			   guint         param_id,
-			   const GValue *value,
-			   GParamSpec   *pspec)
+				   guint         param_id,
+				   const GValue *value,
+				   GParamSpec   *pspec)
 {
 	GiggleRevisionInfoActionPriv *priv;
 
