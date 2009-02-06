@@ -6,7 +6,7 @@
       <object class="GtkActionGroup" id="ActionGroup">
         <child>
           <object class="GtkAction" id="PersonalDetails">
-            <property name="label"   translatable="yes">_Personal Details</property>
+            <property name="label"   translatable="yes">Personal Details</property>
             <property name="tooltip" translatable="yes">Edit personal details</property>
             <property name="stock-id">gtk-preferences</property>
           </object>
