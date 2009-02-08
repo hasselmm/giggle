@@ -60,13 +60,16 @@ main (int    argc,
 	context = g_option_context_new (NULL);
 	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
 
-	if (!gtk_init_with_args (&argc, &argv,
-				 NULL,
-				 options,
-				 GETTEXT_PACKAGE,
-				 &error)) {
-		g_printerr ("%s\n", error->message);
+	if (!gtk_init_with_args (&argc, &argv, _("[DIRECTORY]"),
+				 options, GETTEXT_PACKAGE, &error)) {
+		char *basename = g_filename_display_basename (argv[0]);
+
+		g_printerr ("%s: %s\n", basename, error->message);
+		g_printerr (_("Try `%s --help' for more information.\n"), basename);
+
 		result = EXIT_FAILURE;
+		g_free (basename);
+
 		goto end;
 	}
 
