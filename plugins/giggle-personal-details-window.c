@@ -223,7 +223,7 @@ giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
 	gtk_table_set_row_spacings (GTK_TABLE (table), 6);
 	gtk_container_set_border_width (GTK_CONTAINER (table), 6);
 
-	label = gtk_label_new_with_mnemonic ("_Name:");
+	label = gtk_label_new_with_mnemonic (_("_Name:"));
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 
@@ -231,7 +231,7 @@ giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
 	gtk_label_set_mnemonic_widget (GTK_LABEL (label), priv->name_entry);
 	gtk_table_attach (GTK_TABLE (table), priv->name_entry, 1, 2, 0, 1, GTK_FILL|GTK_EXPAND, GTK_FILL, 0, 0);
 
-	label = gtk_label_new_with_mnemonic ("_Email:");
+	label = gtk_label_new_with_mnemonic (_("_Email:"));
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
 
