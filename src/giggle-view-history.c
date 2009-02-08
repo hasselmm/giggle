@@ -831,7 +831,7 @@ giggle_view_history_new (GtkUIManager *manager)
 			       "name", "HistoryView",
 			       "label", _("_History"),
 			       "tooltip", _("Browse the history of this project"),
-			       "stock-id", GTK_STOCK_INDEX,
+			       "icon-name", "giggle-history-view",
 			       "is-important", TRUE, NULL);
 
 	return g_object_new (GIGGLE_TYPE_VIEW_HISTORY,
