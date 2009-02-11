@@ -57,11 +57,14 @@ main (int    argc,
 	gdk_threads_init ();
 	gdk_threads_enter ();
 
-	context = g_option_context_new (NULL);
-	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
+ 	context = g_option_context_new (_("[DIRECTORY]"));
 
-	if (!gtk_init_with_args (&argc, &argv, _("[DIRECTORY]"),
-				 options, GETTEXT_PACKAGE, &error)) {
+	g_option_context_set_summary (context, _("Giggle is a graphical frontend for the git directory tracker."));
+
+	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
+	g_option_context_add_group (context, gtk_get_option_group (TRUE));
+
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		char *basename = g_filename_display_basename (argv[0]);
 
 		g_printerr ("%s: %s\n", basename, error->message);
