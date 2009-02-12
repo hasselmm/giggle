@@ -13,11 +13,13 @@ plugindir = $(pkglibdir)/plugins
 
 plugin_LTLIBRARIES = \
 	libpersonal-details.la
-plugin_DATA = \
+dist_plugin_DATA = \
 	personal-details.xml
 
 noinst_LTLIBRARIES = \
 	libhello-world.la
+dist_noinst_DATA = \
+	hello-world.xml	    
 
 libhello_world_la_SOURCES = \
 	giggle-hello-world-plugin.c
