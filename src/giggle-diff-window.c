@@ -203,7 +203,7 @@ diff_window_job_callback (GiggleGit *git,
 						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 						 GTK_MESSAGE_ERROR,
 						 GTK_BUTTONS_CLOSE,
-						 _("An error ocurred when committing:\n%s"),
+						 _("An error occurred when committing:\n%s"),
 						 error->message);
 
 		gtk_dialog_run (GTK_DIALOG (dialog));

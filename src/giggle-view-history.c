@@ -246,7 +246,7 @@ view_history_get_branches_cb (GiggleGit    *git,
 						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 						 GTK_MESSAGE_ERROR,
 						 GTK_BUTTONS_OK,
-						 _("An error ocurred when getting the revisions list:\n%s"),
+						 _("An error occurred when getting the revisions list:\n%s"),
 						 error->message);
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
@@ -341,7 +341,7 @@ view_history_get_revisions_cb (GiggleGit    *git,
 						 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 						 GTK_MESSAGE_ERROR,
 						 GTK_BUTTONS_OK,
-						 _("An error ocurred when getting the revisions list:\n%s"),
+						 _("An error occurred when getting the revisions list:\n%s"),
 						 error->message);
 
 		gtk_dialog_run (GTK_DIALOG (dialog));

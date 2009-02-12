@@ -482,7 +482,7 @@ view_file_list_tree_job_callback (GiggleGit *git,
 	priv->job = NULL;
 
 	if (error) {
-		show_error (view, _("An error ocurred when getting file ref:\n%s"), error);
+		show_error (view, _("An error occurred when getting file ref:\n%s"), error);
 	} else {
 		type = giggle_git_list_tree_get_kind (GIGGLE_GIT_LIST_TREE (job),
 						      priv->current_file);
@@ -553,7 +553,7 @@ view_file_select_file_job_callback (GiggleGit *git,
 	priv->job = NULL;
 
 	if (error) {
-		show_error (view, _("An error ocurred when getting the revisions list:\n%s"), error);
+		show_error (view, _("An error occurred when getting the revisions list:\n%s"), error);
 	} else {
 		store = gtk_list_store_new (1, GIGGLE_TYPE_REVISION);
 		revisions = giggle_git_revisions_get_revisions (GIGGLE_GIT_REVISIONS (job));

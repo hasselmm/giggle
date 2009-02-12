@@ -587,7 +587,7 @@ giggle_window_set_directory (GiggleWindow *window,
 						 GTK_MESSAGE_ERROR,
 						 GTK_BUTTONS_OK,
 						 _("The directory '%s' does not look like a "
-						   "GIT repository."), directory);
+						   "git repository."), directory);
 
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
@@ -671,7 +671,7 @@ window_action_open_cb (GtkAction    *action,
 	priv = GET_PRIV (window);
 
 	file_chooser = gtk_file_chooser_dialog_new (
-		_("Select GIT repository"),
+		_("Select git repository"),
 		GTK_WINDOW (window),
 		GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -1002,7 +1002,7 @@ window_create_ui_manager (GiggleWindow *window)
 		{ "HelpMenu",    NULL, N_("_Help"),    NULL, NULL, NULL },
 
 		{ "Open", GTK_STOCK_OPEN, NULL,
-		  NULL, N_("Open a GIT repository"),
+		  NULL, N_("Open a git repository"),
 		  G_CALLBACK (window_action_open_cb)
 		},
 #if 0
@@ -1044,7 +1044,7 @@ window_create_ui_manager (GiggleWindow *window)
 		},
 
 		{ "Homepage", GTK_STOCK_HOME, N_("Visit _Homepage"),
-		  NULL, N_("Visit the homepage of giggle"),
+		  NULL, N_("Visit the homepage of Giggle"),
 		  G_CALLBACK (window_action_homepage_cb)
 		},
 		{ "BugReport", NULL, N_("Report _Issue"),
@@ -1688,7 +1688,7 @@ window_action_save_patch_cb (GtkAction    *action,
 
 		if (!g_file_set_contents (path, text, strlen (text), &error)) {
 			window_show_error (window,
-					   N_("An error ocurred when saving to file:\n%s"),
+					   N_("An error occurred when saving to file:\n%s"),
 					   error);
 			g_error_free (error);
 		}

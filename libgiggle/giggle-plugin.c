@@ -484,7 +484,7 @@ giggle_plugin_new_from_file (const char  *filename,
 	} else {
 		g_set_error (error, GIGGLE_PLUGIN_ERROR,
 			     GIGGLE_PLUGIN_ERROR_MALFORMED,
-			     _("Cannot find plugin description in `%s'"),
+			     _("Cannot find plugin description in '%s'"),
 			     filename);
 	}
 
