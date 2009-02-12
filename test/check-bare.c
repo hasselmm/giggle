@@ -23,8 +23,11 @@
  * if advised of the possibility of such damage.
  */
 
-#include <giggle-git.h>
-#include <giggle-git-refs.h>
+#include <libgiggle/giggle-git.h>
+#include <libgiggle/giggle-git-refs.h>
+#include <libgiggle/giggle-ref.h>
+
+#include <string.h>
 
 static gboolean passed = TRUE;
 
@@ -34,7 +37,6 @@ callback (GiggleGit* git,
 	  GError   * error,
 	  gpointer   loop)
 {
-	GMainLoop* mainloop = loop;
 	GList    * branches = giggle_git_refs_get_branches (GIGGLE_GIT_REFS (job));
 	gchar    * compare[] = {
 		"clean-makefile-am",
@@ -46,7 +48,8 @@ callback (GiggleGit* git,
 
 	for (i = 0; branches && i < G_N_ELEMENTS (compare); branches = branches->next, i++) {
 		if (strcmp (compare[i], giggle_ref_get_name (branches->data))) {
-			g_warning ("Branch %d was %s (expected: %s)",
+			//g_warning ("Branch %d was %s (expected: %s)",
+			g_print ("Branch %d was %s (expected: %s)",
 				   i, giggle_ref_get_name (branches->data), compare[i]);
 		}
 	}
