@@ -34,6 +34,7 @@ typedef struct GiggleRevisionViewPriv GiggleRevisionViewPriv;
 struct GiggleRevisionViewPriv {
 	GiggleRevision *revision;
 
+	GtkWidget      *table;
 	GtkWidget      *branches;
 	GtkWidget      *author;
 	GtkWidget      *date;
@@ -170,7 +171,6 @@ giggle_revision_view_init (GiggleRevisionView *view)
 {
 	GiggleRevisionViewPriv *priv;
 	GtkWidget              *scrolled_window;
-	GtkWidget              *table;
 	GtkTextBuffer          *buffer;
 	GtkTextIter             iter;
 	int                     row = 0;
@@ -178,15 +178,15 @@ giggle_revision_view_init (GiggleRevisionView *view)
 	priv = GET_PRIV (view);
 	priv->git = giggle_git_get ();
 
-	table = gtk_table_new (5, 2, FALSE);
+	priv->table = gtk_table_new (5, 2, FALSE);
 
 	priv->author = gtk_link_button_new ("");
 	gtk_button_set_alignment (GTK_BUTTON (priv->author), 0.0, 0.5);
-	revision_view_attach_info (table, _("Author:"), priv->author, row++);
+	revision_view_attach_info (priv->table, _("Author:"), priv->author, row++);
 
-	priv->date     = revision_view_create_info (table, _("Date:"),     row++);
-	priv->branches = revision_view_create_info (table, _("Branches:"), row++);
-	priv->sha      = revision_view_create_info (table, _("SHA:"),      row++);
+	priv->date     = revision_view_create_info (priv->table, _("Date:"),     row++);
+	priv->branches = revision_view_create_info (priv->table, _("Branches:"), row++);
+	priv->sha      = revision_view_create_info (priv->table, _("SHA:"),      row++);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -204,15 +204,16 @@ giggle_revision_view_init (GiggleRevisionView *view)
 
 	gtk_container_add (GTK_CONTAINER (scrolled_window), priv->log);
 
-	revision_view_attach_info (table, _("Change Log:"), scrolled_window, row);
+	revision_view_attach_info (priv->table, _("Change Log:"), scrolled_window, row);
 
 	gtk_text_buffer_get_start_iter (buffer, &iter);
 	priv->search_mark = gtk_text_buffer_create_mark (buffer,
 							 "search-mark",
 							 &iter, FALSE);
 
-	gtk_container_add (GTK_CONTAINER (view), table);
-	gtk_widget_show_all (table);
+	gtk_container_add (GTK_CONTAINER (view), priv->table);
+	gtk_widget_show_all (priv->table);
+	gtk_widget_hide (priv->table);
 
 	gtk_widget_grab_focus (priv->log);
 }
@@ -452,6 +453,12 @@ revision_view_update (GiggleRevisionView *view)
 	gtk_link_button_set_uri (GTK_LINK_BUTTON (priv->author), uri ? uri : "");
 
 	revision_view_update_branches_label (view);
+
+	if (priv->revision) {
+		gtk_widget_show (priv->table);
+	} else {
+		gtk_widget_hide (priv->table);
+	}
 
 	g_free (uri);
 }
