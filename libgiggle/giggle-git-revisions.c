@@ -30,8 +30,9 @@ enum {
 };
 
 typedef struct {
-	GList *revisions;
-	GList *files;
+	GRegex *regex_committer;
+	GList  *revisions;
+	GList  *files;
 } GiggleGitRevisionsPriv;
 
 G_DEFINE_TYPE (GiggleGitRevisions, giggle_git_revisions, GIGGLE_TYPE_JOB)
@@ -42,6 +43,9 @@ git_revisions_finalize (GObject *object)
 	GiggleGitRevisionsPriv *priv;
 
 	priv = GET_PRIV (object);
+
+	if (priv->regex_committer)
+		g_regex_unref (priv->regex_committer);
 
 	g_list_foreach (priv->revisions, (GFunc) g_object_unref, NULL);
 	g_list_free (priv->revisions);
@@ -144,34 +148,43 @@ git_revisions_get_time (const gchar *date)
 }
 
 static void
-git_revisions_get_committer_info (GiggleRevision  *revision,
-				  const gchar     *line,
-				  gchar          **author,
-				  struct tm      **tm)
+git_revisions_get_committer_info (GiggleGitRevisionsPriv  *priv,
+				  GiggleRevision          *revision,
+				  const gchar             *line,
+				  gchar                  **author,
+				  gchar                  **email,
+				  struct tm              **tm)
 {
-	const gchar *str;
-	const gchar *ch;
+	GMatchInfo *match;
+	char       *tstamp;
 
-	str = line;
-	
-	ch = strstr (str, " <");
-	*author = g_strndup (str, ch - str);
-	str = ch + 2;
+	if (!priv->regex_committer) {
+		priv->regex_committer = g_regex_new
+			("^([^>]*)\\s+<([^>]+?)>\\s+(\\d+ \\+\\d+)\\b",
+			 G_REGEX_OPTIMIZE, 0, NULL);
+	}
 
-	ch = strstr (str, "> ");
+	if (g_regex_match (priv->regex_committer, line, 0, &match)) {
+		*author = g_match_info_fetch (match, 1);
+		*email  = g_match_info_fetch (match, 2);
+		tstamp  = g_match_info_fetch (match, 3);
+		*tm     = git_revisions_get_time (tstamp);
+		g_free (tstamp);
+	}
 
-	*tm = git_revisions_get_time (ch + 2);
+	g_match_info_free (match);
 }
 
 static void
-git_revisions_parse_revision_info (GiggleRevision  *revision,
-				   gchar          **lines)
+git_revisions_parse_revision_info (GiggleGitRevisionsPriv  *priv,
+				   GiggleRevision          *revision,
+				   gchar                  **lines)
 {
 	gint       i = 0;
 	struct tm *tm = NULL;
-	gchar     *author, *short_log;
-
-	author = short_log = NULL;
+	gchar     *author = NULL;
+	gchar     *email = NULL;
+	gchar     *short_log = NULL;
 
 	while (lines[i]) {
 		gchar* converted = NULL;
@@ -208,9 +221,9 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		}
 
 		if (g_str_has_prefix (converted, "author ")) {
-			git_revisions_get_committer_info (revision,
+			git_revisions_get_committer_info (priv, revision,
 							  converted + strlen ("author "),
-							  &author, &tm);
+							  &author, &email, &tm);
 		} else if (!short_log && g_str_has_prefix (converted, " ")) {
 			g_strstrip (converted);
 			short_log = g_strdup (converted);
@@ -221,19 +234,17 @@ git_revisions_parse_revision_info (GiggleRevision  *revision,
 		i++;
 	}
 
-	g_object_set (revision,
-		      "author", author,
-		      "date", tm,
-		      "short-log", short_log,
-		      NULL);
+	g_object_set (revision,"author", author, "email", email,
+		      "date", tm, "short-log", short_log, NULL);
 
 	g_free (author);
 	g_free (short_log);
 }
 
 static GiggleRevision*
-git_revisions_get_revision (const gchar *str,
-			    GHashTable  *revisions_hash)
+git_revisions_get_revision (GiggleGitRevisionsPriv *priv,
+			    const gchar            *str,
+			    GHashTable             *revisions_hash)
 {
 	GiggleRevision *revision, *parent;
 	gchar **lines, **ids;
@@ -259,7 +270,7 @@ git_revisions_get_revision (const gchar *str,
 		i++;
 	}
 
-	git_revisions_parse_revision_info (revision, lines);
+	git_revisions_parse_revision_info (priv, revision, lines);
 
 	g_strfreev (ids);
 	g_strfreev (lines);
@@ -285,7 +296,7 @@ git_revisions_handle_output (GiggleJob   *job,
 	while (strlen (str) > 0) {
 		GiggleRevision *revision;
 
-		revision = git_revisions_get_revision (str, revisions_hash);
+		revision = git_revisions_get_revision (priv, str, revisions_hash);
 		priv->revisions = g_list_prepend (priv->revisions, revision);
 
 		/* go to the next entry, they're separated by NULLs */

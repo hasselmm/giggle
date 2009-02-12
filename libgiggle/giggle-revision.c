@@ -30,6 +30,7 @@ typedef struct GiggleRevisionPriv GiggleRevisionPriv;
 struct GiggleRevisionPriv {
 	gchar              *sha;
 	gchar              *author;
+	gchar              *email;
 	struct tm          *date;
 	gchar              *short_log;
 
@@ -62,6 +63,7 @@ enum {
 	PROP_0,
 	PROP_SHA,
 	PROP_AUTHOR,
+	PROP_EMAIL,
 	PROP_DATE,
 	PROP_SHORT_LOG
 };
@@ -92,6 +94,15 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 		g_param_spec_string ("author",
 				     "Author",
 				     "Author of the revision",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_EMAIL,
+		g_param_spec_string ("email",
+				     "Email",
+				     "Email address for author of the revision",
 				     NULL,
 				     G_PARAM_READWRITE));
 
@@ -132,6 +143,7 @@ revision_finalize (GObject *object)
 
 	g_free (priv->sha);
 	g_free (priv->author);
+	g_free (priv->email);
 	g_free (priv->short_log);
 
 	if (priv->date) {
@@ -172,6 +184,9 @@ revision_get_property (GObject    *object,
 	case PROP_AUTHOR:
 		g_value_set_string (value, priv->author);
 		break;
+	case PROP_EMAIL:
+		g_value_set_string (value, priv->email);
+		break;
 	case PROP_DATE:
 		g_value_set_pointer (value, priv->date);
 		break;
@@ -197,21 +212,23 @@ revision_set_property (GObject      *object,
 	switch (param_id) {
 	case PROP_SHA:
 		g_free (priv->sha);
-		priv->sha = g_strdup (g_value_get_string (value));
+		priv->sha = g_value_dup_string (value);
 		break;
 	case PROP_AUTHOR:
 		g_free (priv->author);
-		priv->author = g_strdup (g_value_get_string (value));
+		priv->author = g_value_dup_string (value);
+		break;
+	case PROP_EMAIL:
+		g_free (priv->email);
+		priv->email = g_value_dup_string (value);
 		break;
 	case PROP_DATE:
-		if (priv->date) {
-			g_free (priv->date);
-		}
+		g_free (priv->date);
 		priv->date = g_value_get_pointer (value);
 		break;
 	case PROP_SHORT_LOG:
 		g_free (priv->short_log);
-		priv->short_log = g_strdup (g_value_get_string (value));
+		priv->short_log = g_value_dup_string (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -222,9 +239,7 @@ revision_set_property (GObject      *object,
 GiggleRevision *
 giggle_revision_new (const gchar *sha)
 {
-	return g_object_new (GIGGLE_TYPE_REVISION,
-			     "sha", sha,
-			     NULL);
+	return g_object_new (GIGGLE_TYPE_REVISION, "sha", sha, NULL);
 }
 
 const gchar *
@@ -249,6 +264,18 @@ giggle_revision_get_author (GiggleRevision *revision)
 	priv = GET_PRIV (revision);
 
 	return priv->author;
+}
+
+const gchar *
+giggle_revision_get_email (GiggleRevision *revision)
+{
+	GiggleRevisionPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
+
+	priv = GET_PRIV (revision);
+
+	return priv->email;
 }
 
 const struct tm *
