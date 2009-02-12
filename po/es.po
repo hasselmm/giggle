@@ -110,7 +110,7 @@ msgstr ""
 #: ../src/giggle-authors-view.c:80
 # c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo la lista de autores:\n"
@@ -123,7 +123,7 @@ msgstr "Autores:"
 #: ../src/giggle-branches-view.c:80
 # c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo la lista de ramas de desarrollo:\n"
@@ -136,7 +136,7 @@ msgstr "Ramas de desarrollo:"
 #: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1334
 # c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo la lista de archivos diferentes:\n"
@@ -149,7 +149,7 @@ msgstr "Archivos cambiados"
 #: ../src/giggle-diff-view.c:258
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo el diff:\n"
@@ -166,7 +166,7 @@ msgstr "Co_mmit"
 #: ../src/giggle-diff-window.c:199
 # c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error haciendo commit de los cambios:\n"
@@ -199,7 +199,7 @@ msgstr "Proyecto"
 #: ../src/giggle-file-list.c:563
 # c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo la lista de archivos:\n"
@@ -208,7 +208,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:733
 # c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error añadiendo el archivo a git:\n"
@@ -366,7 +366,7 @@ msgstr "_Diferencias"
 #: ../src/giggle-view-history.c:533
 # c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error extrayendo la lista de revisiones:\n"
@@ -414,7 +414,7 @@ msgid "_Open"
 msgstr "_Abrir"
 
 #: ../src/giggle-window.c:161
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Abrir un repositorio GIT"
 
 #: ../src/giggle-window.c:165
@@ -495,7 +495,7 @@ msgstr "Buscar dentro de _diffs"
 
 #: ../src/giggle-window.c:367
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "La carpeta '%s' no parece un repositorio GIT."
 
 #: ../src/giggle-window.c:510
@@ -507,7 +507,7 @@ msgid "Summary"
 msgstr "Sumario"
 
 #: ../src/giggle-window.c:724
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Seleccionar repositorio GIT"
 
 #: ../src/giggle-window.c:759
@@ -517,7 +517,7 @@ msgstr "Guardar parche"
 #: ../src/giggle-window.c:779
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Ha ocurrido un error guardando a archivo:\n"

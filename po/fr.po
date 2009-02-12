@@ -82,7 +82,7 @@ msgstr "Bascule la sensibilité à la casse lors de la recherche"
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la liste des auteurs :\n"
@@ -96,7 +96,7 @@ msgstr "Auteurs :"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la liste des branches :\n"
@@ -110,7 +110,7 @@ msgstr "Branches :"
 #: ../src/giggle-diff-tree-view.c:107 ../src/giggle-file-list.c:1692
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la liste des fichiers modifiés :\n"
@@ -123,7 +123,7 @@ msgstr "Fichiers modifiés"
 #: ../src/giggle-diff-view.c:258
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la différence :\n"
@@ -146,7 +146,7 @@ msgstr "C_ommiter"
 #: ../src/giggle-diff-window.c:206
 #, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Une erreur s'est produite lors du commit :\n"
@@ -184,7 +184,7 @@ msgstr "Projet"
 #: ../src/giggle-file-list.c:666
 #, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la liste des fichiers :\n"
@@ -194,7 +194,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:873
 #, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Impossible d'ajouter un fichier à git :\n"
@@ -406,7 +406,7 @@ msgstr "Di_fférences"
 #: ../src/giggle-view-history.c:726
 #, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Impossible d'obtenir la liste des révisions :\n"
@@ -457,7 +457,7 @@ msgid "_Open"
 msgstr "_Ouvrir"
 
 #: ../src/giggle-window.c:180
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Ouvrir un dépôt git"
 
 #: ../src/giggle-window.c:184
@@ -546,7 +546,7 @@ msgstr "Rechercher dans les _différences"
 
 #: ../src/giggle-window.c:420
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "Le répertoire « %s » n'est pas un dépôt git."
 
 #: ../src/giggle-window.c:569
@@ -558,7 +558,7 @@ msgid "Summary"
 msgstr "Résumé"
 
 #: ../src/giggle-window.c:798
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Choisissez un dépôt git"
 
 #: ../src/giggle-window.c:833
@@ -568,7 +568,7 @@ msgstr "Enregistrez un fichier patch"
 #: ../src/giggle-window.c:853
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Une erreur est survenue lors de l'enregistrement du fichier :\n"

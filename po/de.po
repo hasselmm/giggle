@@ -111,7 +111,7 @@ msgstr ""
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Beim Lesen der Autoren trat ein Fehler auf:\n"
@@ -124,7 +124,7 @@ msgstr "Autoren:"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Beim Lesen der Zweige trat ein Fehler auf:\n"
@@ -137,7 +137,7 @@ msgstr "Zweige:"
 #: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1334
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr "Beim Lesen von Änderungen trat ein Fehler auf:\n"
 "%s"
@@ -149,7 +149,7 @@ msgstr "Veränderte Dateien"
 #: ../src/giggle-diff-view.c:258
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Beim Empfangen von Änderungen trat ein Fehler auf:\n"
@@ -166,7 +166,7 @@ msgstr ""
 #: ../src/giggle-diff-window.c:199
 #, fuzzy, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Beim Speichern trat ein Fehler auf:\n"
@@ -199,14 +199,14 @@ msgstr "Projekt"
 #: ../src/giggle-file-list.c:563
 #, fuzzy, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr "Beim Empfangen von Zweigen trat ein Fehler auf: %s"
 
 #: ../src/giggle-file-list.c:733
 #, fuzzy, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Beim Speichern trat ein Fehler auf:\n"
@@ -359,7 +359,7 @@ msgstr "_Unterschiede"
 #: ../src/giggle-view-history.c:486
 #, fuzzy, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Beim Empfangen von Änderungen trat ein Fehler auf:\n"
@@ -407,7 +407,7 @@ msgid "_Open"
 msgstr "Ö_ffnen"
 
 #: ../src/giggle-window.c:161
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Ein GIT-Repository öffnen"
 
 #: ../src/giggle-window.c:165
@@ -488,7 +488,7 @@ msgstr ""
 
 #: ../src/giggle-window.c:367
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "Der Ordner »%s« sieht nicht nach einem GIT-Repository aus."
 
 #: ../src/giggle-window.c:510
@@ -500,7 +500,7 @@ msgid "Summary"
 msgstr "Übersicht"
 
 #: ../src/giggle-window.c:724
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Ein GIT-Repository auswählen"
 
 #: ../src/giggle-window.c:759
@@ -510,7 +510,7 @@ msgstr "Eine Patch-Datei speichern"
 #: ../src/giggle-window.c:779
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Beim Speichern trat ein Fehler auf:\n"

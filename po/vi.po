@@ -79,7 +79,7 @@ msgstr "Bật tắt phân biệt hoa thường"
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Lỗi khi nhận danh sách tác giả:\n"
@@ -92,7 +92,7 @@ msgstr "Tác giả:"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Lỗi khi nhận danh sách nhánh:\n"
@@ -105,7 +105,7 @@ msgstr "Nhánh:"
 #: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1513
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "Lỗi khi nhận danh sách tập tin khác biệt:\n"
@@ -118,7 +118,7 @@ msgstr "Tập tin thay đổi:"
 #: ../src/giggle-diff-view.c:259
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Lỗi khi nhận diff:\n"
@@ -139,7 +139,7 @@ msgstr "Co_mmit"
 #: ../src/giggle-diff-window.c:206
 #, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Lỗi khi commit:\n"
@@ -172,7 +172,7 @@ msgstr "Dự án"
 #: ../src/giggle-file-list.c:644
 #, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "Lỗi khi nhận danh sách tập tin:\n"
@@ -181,7 +181,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:851
 #, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Lỗi khi thêm tập tin vào git:\n"
@@ -343,7 +343,7 @@ msgstr "_Khác biệt"
 #: ../src/giggle-view-history.c:722
 #, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Lỗi khi lấy danh sách phiên bản:\n"
@@ -394,7 +394,7 @@ msgid "_Open"
 msgstr "_Mở"
 
 #: ../src/giggle-window.c:167
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Mở kho GIT"
 
 #: ../src/giggle-window.c:171
@@ -475,7 +475,7 @@ msgstr "Tìm trong _diff"
 
 #: ../src/giggle-window.c:374
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "Thư mục '%s' trông không giống kho GIT."
 
 #: ../src/giggle-window.c:517
@@ -487,7 +487,7 @@ msgid "Summary"
 msgstr "Tóm tắt"
 
 #: ../src/giggle-window.c:732
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Chọn kho GIT"
 
 #: ../src/giggle-window.c:767
@@ -497,7 +497,7 @@ msgstr "Lưu tập tin patch"
 #: ../src/giggle-window.c:787
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Lỗi khi lưu tập tin:\n"

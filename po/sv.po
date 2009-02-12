@@ -82,7 +82,7 @@ msgstr "Växla skiftlägeskänslig sökning"
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när listan med upphovsmän hämtades:\n"
@@ -95,7 +95,7 @@ msgstr "Upphovsmän:"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när listan med brancher:\n"
@@ -109,7 +109,7 @@ msgstr "Brancher:"
 #: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1518
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när listan med ändrade filer hämtades:\n"
@@ -122,7 +122,7 @@ msgstr "Ändrade filer"
 #: ../src/giggle-diff-view.c:259
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när diff hämtades:\n"
@@ -143,7 +143,7 @@ msgstr "_Committa"
 #: ../src/giggle-diff-window.c:206
 #, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade under commit:\n"
@@ -176,7 +176,7 @@ msgstr "Projekt"
 #: ../src/giggle-file-list.c:649
 #, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när fillistan hämtades:\n"
@@ -185,7 +185,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:856
 #, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när en fil lades till i git:\n"
@@ -353,7 +353,7 @@ msgstr "_Skillnader"
 #: ../src/giggle-view-history.c:724
 #, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade när revisionslista hämtades:\n"
@@ -404,7 +404,7 @@ msgid "_Open"
 msgstr "_Öppna"
 
 #: ../src/giggle-window.c:180
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Öppna ett GIT-repo"
 
 #: ../src/giggle-window.c:184
@@ -493,7 +493,7 @@ msgstr "Sök i _diffar"
 
 #: ../src/giggle-window.c:420
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "Katalogen \"%s\" ser inte ut som ett GIT-repo."
 
 #: ../src/giggle-window.c:566
@@ -505,7 +505,7 @@ msgid "Summary"
 msgstr "Sammanfattning"
 
 #: ../src/giggle-window.c:795
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Välj GIT-repo"
 
 #: ../src/giggle-window.c:830
@@ -515,7 +515,7 @@ msgstr "Spara patchfil"
 #: ../src/giggle-window.c:850
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Ett fel inträffade under filsparande:\n"

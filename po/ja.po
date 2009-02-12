@@ -80,7 +80,7 @@ msgstr "大文字小文字の区別を切り替える"
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "著作者リストの取得時にエラーが発生しました:\n"
@@ -93,7 +93,7 @@ msgstr "著作者:"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "ブランチリスト取得時にエラーが発生しました:"
@@ -106,7 +106,7 @@ msgstr "ブランチ:"
 #: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1513
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "差異のあるファイルリストの取得時にエラーが発生しました:\n"
@@ -119,7 +119,7 @@ msgstr "変更されているファイル"
 #: ../src/giggle-diff-view.c:259
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "差分の取得時にエラーが発生しました:\n"
@@ -139,7 +139,7 @@ msgstr "commit(_M)"
 #: ../src/giggle-diff-window.c:206
 #, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "commit時にエラーが発生しました:\n"
@@ -172,7 +172,7 @@ msgstr "プロジェクト"
 #: ../src/giggle-file-list.c:644
 #, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "ファイルリストの取得時にエラーが発生しました:\n"
@@ -181,7 +181,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:851
 #, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "ファイルのgit追加時にエラーが発生しました:\n"
@@ -346,7 +346,7 @@ msgstr "差分(_D)"
 #: ../src/giggle-view-history.c:722
 #, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "リビジョン・リストの取得時にエラーが発生しました:\n"
@@ -397,7 +397,7 @@ msgid "_Open"
 msgstr "開く(_O)"
 
 #: ../src/giggle-window.c:167
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "GITリポジトリを開く"
 
 #: ../src/giggle-window.c:171
@@ -478,7 +478,7 @@ msgstr "内部の差分を検索(_D)"
 
 #: ../src/giggle-window.c:374
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "ディレクトリ'%s'はGITリポジトリではないみたいです。"
 
 #: ../src/giggle-window.c:517
@@ -490,7 +490,7 @@ msgid "Summary"
 msgstr "概要"
 
 #: ../src/giggle-window.c:732
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "GITリポジトリの選択"
 
 #: ../src/giggle-window.c:767
@@ -500,7 +500,7 @@ msgstr "パッチファイルの保存"
 #: ../src/giggle-window.c:787
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "ファイルの保存時にエラーが発生しました:\n"

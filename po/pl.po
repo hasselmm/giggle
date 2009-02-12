@@ -42,7 +42,7 @@ msgstr "URL:"
 
 #: ../libgiggle/giggle-plugin.c:487
 #, c-format
-msgid "Cannot find plugin description in `%s'"
+msgid "Cannot find plugin description in '%s'"
 msgstr "Nie można odnaleźć opisu wtyczki w %s"
 
 #: ../plugins/giggle-personal-details-window.c:80
@@ -97,7 +97,7 @@ msgstr "Ustawia rozróżnianie małych i wielkich liter"
 #: ../src/giggle-authors-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving authors list:\n"
+"An error occurred when retrieving authors list:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas pobierania listy autorów:\n"
@@ -110,7 +110,7 @@ msgstr "Autorzy:"
 #: ../src/giggle-branches-view.c:80
 #, c-format
 msgid ""
-"An error ocurred when retrieving branches list:\n"
+"An error occurred when retrieving branches list:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas pobierania listy gałęzi:\n"
@@ -123,7 +123,7 @@ msgstr "Gałęzie:"
 #: ../src/giggle-diff-tree-view.c:143 ../src/giggle-file-list.c:1695
 #, c-format
 msgid ""
-"An error ocurred when retrieving different files list:\n"
+"An error occurred when retrieving different files list:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas pobierania listy różniących się plików: \n"
@@ -136,7 +136,7 @@ msgstr "Zmienione pliki"
 #: ../src/giggle-diff-view.c:479
 #, c-format
 msgid ""
-"An error ocurred when retrieving a diff:\n"
+"An error occurred when retrieving a diff:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas pobierania pliku diff:\n"
@@ -157,7 +157,7 @@ msgstr "_Zatwierdź"
 #: ../src/giggle-diff-window.c:206
 #, c-format
 msgid ""
-"An error ocurred when committing:\n"
+"An error occurred when committing:\n"
 "%s"
 msgstr ""
 "Wysąpił błąd podczas zatwierdzania:\n"
@@ -166,7 +166,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:395
 #, c-format
 msgid ""
-"An error ocurred when retrieving the file list:\n"
+"An error occurred when retrieving the file list:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas pobierania listy plików:\n"
@@ -175,7 +175,7 @@ msgstr ""
 #: ../src/giggle-file-list.c:787
 #, c-format
 msgid ""
-"An error ocurred when adding a file to git:\n"
+"An error occurred when adding a file to git:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas dodawania pliku do git:\n"
@@ -452,7 +452,7 @@ msgstr "Podświetl wybrany numer linii"
 #: ../src/giggle-view-file.c:485
 #, c-format
 msgid ""
-"An error ocurred when getting file ref:\n"
+"An error occurred when getting file ref:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas zapisu do pliku:\n"
@@ -462,7 +462,7 @@ msgstr ""
 #: ../src/giggle-view-history.c:344
 #, c-format
 msgid ""
-"An error ocurred when getting the revisions list:\n"
+"An error occurred when getting the revisions list:\n"
 "%s"
 msgstr ""
 "Wystąpił bład podczas pobierania listy rewizji:\n"
@@ -522,11 +522,11 @@ msgstr "O Giggle"
 
 #: ../src/giggle-window.c:589
 #, c-format
-msgid "The directory '%s' does not look like a GIT repository."
+msgid "The directory '%s' does not look like a git repository."
 msgstr "Katalog '%s' nie wygląda na repozytorium GIT."
 
 #: ../src/giggle-window.c:674
-msgid "Select GIT repository"
+msgid "Select git repository"
 msgstr "Wybór repozytorium GIT"
 
 #: ../src/giggle-window.c:710
@@ -587,7 +587,7 @@ msgid "_Help"
 msgstr "Pomo_c"
 
 #: ../src/giggle-window.c:1005
-msgid "Open a GIT repository"
+msgid "Open a git repository"
 msgstr "Otwiera repozytorium GIT"
 
 #: ../src/giggle-window.c:1010
@@ -623,7 +623,7 @@ msgid "Visit _Homepage"
 msgstr "Odwiedź stronę domową"
 
 #: ../src/giggle-window.c:1047
-msgid "Visit the homepage of giggle"
+msgid "Visit the homepage of Giggle"
 msgstr "Pozwala odwiedzić stronę domową Giggle."
 
 #: ../src/giggle-window.c:1050
@@ -661,7 +661,7 @@ msgstr "Zapisywanie łatki"
 #: ../src/giggle-window.c:1682
 #, c-format
 msgid ""
-"An error ocurred when saving to file:\n"
+"An error occurred when saving to file:\n"
 "%s"
 msgstr ""
 "Wystąpił błąd podczas zapisu do pliku:\n"
