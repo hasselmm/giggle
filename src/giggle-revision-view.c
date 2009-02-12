@@ -18,16 +18,17 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <string.h>
+#include "config.h"
+#include "giggle-revision-view.h"
+#include "giggle-avatar-image.h"
 
 #include "libgiggle/giggle-git.h"
 #include "libgiggle/giggle-git-log.h"
-#include "giggle-revision-view.h"
 #include "libgiggle/giggle-revision.h"
 #include "libgiggle/giggle-searchable.h"
+
+#include <glib/gi18n.h>
+#include <string.h>
 
 typedef struct GiggleRevisionViewPriv GiggleRevisionViewPriv;
 
@@ -36,6 +37,7 @@ struct GiggleRevisionViewPriv {
 
 	GtkWidget      *table;
 	GtkWidget      *branches;
+	GtkWidget      *avatar;
 	GtkWidget      *author;
 	GtkWidget      *date;
 	GtkWidget      *sha;
@@ -131,6 +133,7 @@ revision_view_attach_info (GtkWidget  *table,
 	int              xpad = 6, ypad = 3;
 	double           yalign = 0.5;
 	GtkAttachOptions yattach = GTK_FILL;
+	int              end = 2;
 
 	if (GTK_IS_BUTTON (info))
 		xpad = ypad = 0;
@@ -140,12 +143,13 @@ revision_view_attach_info (GtkWidget  *table,
 		ypad = MAX (0, ypad - info->style->ythickness);
 		yattach |= GTK_EXPAND;
 		yalign = 0.0;
+		end = 3;
 	}
 
 	gtk_table_attach (GTK_TABLE (table),
 			  revision_view_create_label (label, 0.0, yalign),
 			  0, 1, row, row + 1, GTK_FILL, GTK_FILL, 6, 2);
-	gtk_table_attach (GTK_TABLE (table), info, 1, 2, row, row + 1,
+	gtk_table_attach (GTK_TABLE (table), info, 1, end, row, row + 1,
 			  GTK_FILL | GTK_EXPAND, yattach, xpad, ypad);
 }
 
@@ -178,15 +182,22 @@ giggle_revision_view_init (GiggleRevisionView *view)
 	priv = GET_PRIV (view);
 	priv->git = giggle_git_get ();
 
-	priv->table = gtk_table_new (5, 2, FALSE);
+	priv->table = gtk_table_new (5, 3, FALSE);
+
+	priv->avatar = giggle_avatar_image_new ();
+	gtk_misc_set_alignment (GTK_MISC (priv->avatar), 0.5, 0.0);
+	giggle_avatar_image_set_image_size (GIGGLE_AVATAR_IMAGE (priv->avatar), 80);
+
+	gtk_table_attach (GTK_TABLE (priv->table), priv->avatar,
+			  2, 3, 0, 4, GTK_FILL, GTK_FILL, 3, 3);
 
 	priv->author = gtk_link_button_new ("");
 	gtk_button_set_alignment (GTK_BUTTON (priv->author), 0.0, 0.5);
 	revision_view_attach_info (priv->table, _("Author:"), priv->author, row++);
 
 	priv->date     = revision_view_create_info (priv->table, _("Date:"),     row++);
-	priv->branches = revision_view_create_info (priv->table, _("Branches:"), row++);
 	priv->sha      = revision_view_create_info (priv->table, _("SHA:"),      row++);
+	priv->branches = revision_view_create_info (priv->table, _("Branches:"), row++);
 
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled_window),
@@ -451,6 +462,7 @@ revision_view_update (GiggleRevisionView *view)
 	gtk_label_set_text (GTK_LABEL (priv->sha), sha);
 	gtk_button_set_label (GTK_BUTTON (priv->author), author);
 	gtk_link_button_set_uri (GTK_LINK_BUTTON (priv->author), uri ? uri : "");
+	giggle_avatar_image_set_gravatar_id (GIGGLE_AVATAR_IMAGE (priv->avatar), email);
 
 	revision_view_update_branches_label (view);
 

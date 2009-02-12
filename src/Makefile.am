@@ -16,6 +16,10 @@ giggle_SOURCES= \
 	eggfindbar.h \
 	giggle-authors-view.c \
 	giggle-authors-view.h \
+	giggle-avatar-cache.c \
+	giggle-avatar-cache.h \
+	giggle-avatar-image.c \
+	giggle-avatar-image.h \
 	giggle-branches-view.c \
 	giggle-branches-view.h \
 	giggle-description-editor.c \
