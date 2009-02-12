@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.59])
 
-AC_INIT([giggle],[0.4],
+AC_INIT([giggle],[0.4.90],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=giggle])
 
 AC_CONFIG_SRCDIR([src/giggle-main.c])

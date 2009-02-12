@@ -1,54 +1,76 @@
+Giggle 0.4.90, 2009-02-12
+-------------------------
+
+This is a development release leading up to Giggle 0.5,
+the first release since since more than a year.
+
+Notes:
+
+ * This is unstable development release. While it has had
+   a bit of testing, there are plenty of bugs and regressions
+   remaining to be found. This release should not be used
+   in production.
+
+ * Bugs should be reported to http://bugzilla.gnome.org.
+
+Most Important Changes:
+
+ * The user interface has been cleaned up dramatically.
+ * The file browing view was restored and has annotation support now.
+ * The compact view is gone.
+ * There are the basics of a plugin system now.
+ * The revision view shows avatars retreived from Gravatar.
+
 Giggle 0.4, 2007-12-07
 ----------------------
-Bug
 
-    * [GGL-67] - Rendering Broken
-    * [GGL-78] - Refresh button changes git repository path
-    * [GGL-80] - Giggle fails to run on Solaris due to a segfault.
+Bugs closed since the last release:
 
-Improvements
+ * [GGL-67] - Rendering Broken
+ * [GGL-78] - Refresh button changes git repository path
+ * [GGL-80] - Giggle fails to run on Solaris due to a segfault.
 
-    * [GGL-53] - Make compact view apply to everything.
-    * [GGL-69] - Initial french translation
-    * [GGL-70] - Define LOCALEDIR as config.h macro
-    * [GGL-71] - Application's icon
-    * [GGL-73] - doesn't build with gtksourceview 1.90
-    * [GGL-75] - Add Vietnamese translation
-    * [GGL-77] - Add "remote info" in history view
+Improvements:
+
+ * [GGL-53] - Make compact view apply to everything.
+ * [GGL-69] - Initial french translation
+ * [GGL-70] - Define LOCALEDIR as config.h macro
+ * [GGL-71] - Application's icon
+ * [GGL-73] - doesn't build with gtksourceview 1.90
+ * [GGL-75] - Add Vietnamese translation
+ * [GGL-77] - Add "remote info" in history view
 
 New Feature
 
-    * [GGL-64] - Support for --diff flag
-    * [GGL-65] - Saving patches
-    * [GGL-74] - Refreshing
+ * [GGL-64] - Support for --diff flag
+ * [GGL-65] - Saving patches
+ * [GGL-74] - Refreshing
 
 
 Giggle 0.3, 2007-05-09
 ----------------------
 
-Giggle is a graphical frontend for the git directory tracker (think of gitk on GTK+).
-
 Bugs closed since the last release:
 
-  - [GGL-61] - Problem with gitignore
-  - [GGL-37] - Integrate "git-ls-files -t" in file view
-  - [GGL-41] - Improved rendering of "graph"-column for projects with lots of branches
-  - [GGL-47] - Add the branch name to the revision info
-  - [GGL-49] - Make it possible to add the graph from the revision list.
-  - [GGL-56] - Make the current "Show local diff" dialog more commit specific
-  - [GGL-58] - Execute jobs in an idle
-  - [GGL-54] - Show current working directory in the revision list
+ * [GGL-61] - Problem with gitignore
+ * [GGL-37] - Integrate "git-ls-files -t" in file view
+ * [GGL-41] - Improved rendering of "graph"-column for projects with lots of branches
+ * [GGL-47] - Add the branch name to the revision info
+ * [GGL-49] - Make it possible to add the graph from the revision list.
+ * [GGL-56] - Make the current "Show local diff" dialog more commit specific
+ * [GGL-58] - Execute jobs in an idle
+ * [GGL-54] - Show current working directory in the revision list
 
 Other Changes:
 
-  - Be a lot more memory & cpu friendly with large repositories (Carlos)
-  - Build Fixes (Richard)
+ * Be a lot more memory & cpu friendly with large repositories (Carlos)
+ * Build Fixes (Richard)
 
 Updated translations:
 
-  - ca (Gil Forcada)
-  - pl (Łukasz Jernaś)
-  - sv (Richard Hult)
+ * ca (Gil Forcada)
+ * pl (Łukasz Jernaś)
+ * sv (Richard Hult)
 
 Downloads:
 
@@ -63,41 +85,41 @@ Giggle is a graphical frontend for the git directory tracker (think of gitk on G
 
 Bugs fixed since the last release:
 
-  - Segfault when displaying revision informations (GGL-28)
-  - Add a changed file list (GGL-19)
-  - Add an icon column to the revision list and move the branch information icon there (GGL-48)
-  - Add ctrl+g and ctrl+shift+g to go to next/prev search hit (GGL-51)
-  - Add support for double clicking files in the project tree (GGL-44)
-  - Compile with -Werror on AMD64 (GGL-29)
-  - Compiler warning fix (GGL-33)
-  - Create/edit/save Remotes (GGL-9)
-  - Grouping for Files and Folders in the Project view (GGL-30)
-  - Improve the look of the summary view (GGL-7)
-  - Make it possible to go back to the "full project" revision list by clicking on project root (GGL-43)
-  - Possibility to hide the Project Tree easily (GGL-45)
-  - Show changed files in the project tree (GGL-42)
-  - Stop using Glade for the main window (GGL-10)
-  - Tooltips don't Update (GGL-25)
-  - directory is not detected as a git repository (GGL-27)
-  - .gitignore allows beginning '/' to match files in the root directory (GGL-38)
-  - Clicking an already-selected revision causes the detail pane to reload (GGL-40)
-  - Desktop file category 'Application' is deprecated (GGL-39)
+ * Segfault when displaying revision informations (GGL-28)
+ * Add a changed file list (GGL-19)
+ * Add an icon column to the revision list and move the branch information icon there (GGL-48)
+ * Add ctrl+g and ctrl+shift+g to go to next/prev search hit (GGL-51)
+ * Add support for double clicking files in the project tree (GGL-44)
+ * Compile with -Werror on AMD64 (GGL-29)
+ * Compiler warning fix (GGL-33)
+ * Create/edit/save Remotes (GGL-9)
+ * Grouping for Files and Folders in the Project view (GGL-30)
+ * Improve the look of the summary view (GGL-7)
+ * Make it possible to go back to the "full project" revision list by clicking on project root (GGL-43)
+ * Possibility to hide the Project Tree easily (GGL-45)
+ * Show changed files in the project tree (GGL-42)
+ * Stop using Glade for the main window (GGL-10)
+ * Tooltips don't Update (GGL-25)
+ * directory is not detected as a git repository (GGL-27)
+ * .gitignore allows beginning '/' to match files in the root directory (GGL-38)
+ * Clicking an already-selected revision causes the detail pane to reload (GGL-40)
+ * Desktop file category 'Application' is deprecated (GGL-39)
 
 Other Changes:
 
-  - Detect the git command in configure time (Carlos)
-  - Add a compact mode for the diff view (Richard)
-  - Add commit support (Carlos)
-  - Add support to add files to the repository (Carlos)
-  - Save window size and compact mode (Jonathon Jongsma)
-  - Add history (Carlos)
-  - Add hability to create/delete tags/branches (Carlos)
+ * Detect the git command in configure time (Carlos)
+ * Add a compact mode for the diff view (Richard)
+ * Add commit support (Carlos)
+ * Add support to add files to the repository (Carlos)
+ * Save window size and compact mode (Jonathon Jongsma)
+ * Add history (Carlos)
+ * Add hability to create/delete tags/branches (Carlos)
 
 Updated translations:
 
-  - de
-  - es
-  - sv
+ * de
+ * es
+ * sv
 
 Downloads:
 
