@@ -1,5 +1,6 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
+	-DICONDIR='"$(datadir)/icons"' \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
 	-DPACKAGE_WEBSITE='"http://live.gnome.org/giggle/"' \
 	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \

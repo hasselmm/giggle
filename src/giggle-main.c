@@ -48,8 +48,8 @@ main (int    argc,
 	char           *dir, *description;
 	int             result = EXIT_SUCCESS;
 	
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);  
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
 	g_thread_init (NULL);
@@ -78,6 +78,8 @@ main (int    argc,
 
 		goto end;
 	}
+
+	gtk_icon_theme_prepend_search_path (gtk_icon_theme_get_default (), ICONDIR);
 
 	if (g_file_test ("pixmaps", G_FILE_TEST_IS_DIR))
 		gtk_icon_theme_prepend_search_path (gtk_icon_theme_get_default (), "pixmaps");
