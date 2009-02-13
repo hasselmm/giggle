@@ -120,34 +120,6 @@ plugin_manager_children_ready (GObject      *object,
 	}
 }
 
-#if !GLIB_CHECK_VERSION(2,18,0)
-
-static GFileType
-g_file_query_file_type (GFile               *file,
-			GFileQueryInfoFlags  flags,
-			GCancellable        *cancellable)
-{
-	GFileType  type = G_FILE_TYPE_UNKNOWN;
-	GError    *error = NULL;
-	GFileInfo *info;
-
-	info = g_file_query_info
-		(file, G_FILE_ATTRIBUTE_STANDARD_TYPE,
-		 flags, cancellable, &error);
-
-	if (info) {
-		type = g_file_info_get_file_type (info);
-		g_object_unref (info);
-	} else {
-		g_warning ("%s: %s", G_STRLOC, error->message);
-		g_error_free (error);
-	}
-
-	return type;
-}
-
-#endif /* GLIB 2.18 */
-
 static void
 giggle_plugin_manager_init (GigglePluginManager *manager)
 {

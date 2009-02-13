@@ -30,7 +30,7 @@ dnl | Pkgconfig checks |---------------------------------------
 dnl  ------------------
 
 PKG_CHECK_MODULES(GIGGLE, [
-        gio-2.0           >= 2.16
+        gio-2.0           >= 2.18
         glib-2.0          >= 2.18
         gthread-2.0       >= 2.16
         gtk+-2.0          >= 2.12
