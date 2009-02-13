@@ -21,6 +21,7 @@
 #include "config.h"
 #include "giggle-plugin.h"
 
+#include <string.h>
 #include <glib/gi18n.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PLUGIN, GigglePluginPriv))

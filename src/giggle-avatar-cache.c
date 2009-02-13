@@ -21,6 +21,7 @@
 #include "config.h"
 #include "giggle-avatar-cache.h"
 
+#include <glib.h>
 #include <gio/gio.h>
 #include <string.h>
 
