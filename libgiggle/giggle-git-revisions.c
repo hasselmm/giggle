@@ -160,7 +160,7 @@ git_revisions_get_committer_info (GiggleGitRevisionsPriv  *priv,
 
 	if (!priv->regex_committer) {
 		priv->regex_committer = g_regex_new
-			("^([^>]*)\\s+<([^>]+?)>\\s+(\\d+ \\+\\d+)\\b",
+			("^([^>]*)\\s+<([^>]+?)>\\s+(\\d+ [+-]\\d+)\\b",
 			 G_REGEX_OPTIMIZE, 0, NULL);
 	}
 
