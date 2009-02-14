@@ -17,44 +17,44 @@ libgiggle_git_h_files =  \
 	giggle-git-blame.h \
 	giggle-git-cat-file.h \
 	giggle-git-commit.h \
+	giggle-git-config.h \
+	giggle-git-config-read.h \
+	giggle-git-config-write.h \
 	giggle-git-delete-ref.h \
-	giggle-git-diff.h \
 	giggle-git-diff-tree.h \
+	giggle-git-diff.h \
 	giggle-git-ignore.h \
 	giggle-git-list-files.h \
 	giggle-git-list-tree.h \
 	giggle-git-log.h \
-	giggle-git-read-config.h \
 	giggle-git-refs.h \
 	giggle-git-remote-list.h \
 	giggle-git-revisions.h \
-	giggle-git-write-config.h \
-	giggle-configuration.h \
 	$(NULL)
 
 libgiggle_git_la_SOURCES = \
 	$(libgiggle_git_h_files) \
 	$(BUILT_SOURCES) \
-        giggle-git.c \
-	giggle-git-add.c \
 	giggle-git-add-ref.c \
+	giggle-git-add.c \
 	giggle-git-authors.c \
 	giggle-git-blame.c \
 	giggle-git-cat-file.c \
 	giggle-git-commit.c \
+	giggle-git-config.c \
+	giggle-git-config-read.c \
+	giggle-git-config-write.c \
 	giggle-git-delete-ref.c \
-	giggle-git-diff.c \
 	giggle-git-diff-tree.c \
+	giggle-git-diff.c \
 	giggle-git-ignore.c \
 	giggle-git-list-files.c \
 	giggle-git-list-tree.c \
 	giggle-git-log.c \
-	giggle-git-read-config.c \
 	giggle-git-refs.c \
 	giggle-git-remote-list.c \
 	giggle-git-revisions.c \
-	giggle-git-write-config.c \
-	giggle-configuration.c \
+        giggle-git.c \
 	$(NULL)
 	 
 libgiggle_git_HEADERS = \

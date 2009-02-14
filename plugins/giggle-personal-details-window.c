@@ -21,7 +21,7 @@
 #include "config.h"
 #include "giggle-personal-details-window.h"
 
-#include <libgiggle-git/giggle-configuration.h>
+#include <libgiggle-git/giggle-git-config.h>
 
 #include <glib/gi18n.h>
 #include <libebook/e-book.h>
@@ -32,10 +32,10 @@
 typedef struct GigglePersonalDetailsWindowPriv GigglePersonalDetailsWindowPriv;
 
 struct GigglePersonalDetailsWindowPriv {
-	GtkWidget           *name_entry;
-	GtkWidget           *email_entry;
+	GtkWidget       *name_entry;
+	GtkWidget       *email_entry;
 
-	GiggleConfiguration *configuration;
+	GiggleGitConfig *configuration;
 };
 
 G_DEFINE_TYPE (GigglePersonalDetailsWindow, giggle_personal_details_window, GTK_TYPE_DIALOG)
@@ -56,9 +56,9 @@ personal_details_window_dispose (GObject *object)
 }
 
 static void
-personal_details_configuration_changed_cb (GiggleConfiguration *configuration,
-					   gboolean             success,
-					   gpointer             user_data)
+personal_details_configuration_changed_cb (GiggleGitConfig *config,
+					   gboolean         success,
+					   gpointer         user_data)
 {
 	GigglePersonalDetailsWindow *window;
 	GtkWidget                   *dialog;
@@ -92,17 +92,17 @@ personal_details_window_response (GtkDialog *dialog,
 
 	priv = GET_PRIV (dialog);
 
-	giggle_configuration_set_field (priv->configuration,
-					CONFIG_FIELD_NAME,
-					gtk_entry_get_text (GTK_ENTRY (priv->name_entry)));
+	giggle_git_config_set_field (priv->configuration,
+				     GIGGLE_GIT_CONFIG_FIELD_NAME,
+				     gtk_entry_get_text (GTK_ENTRY (priv->name_entry)));
 
-	giggle_configuration_set_field (priv->configuration,
-					CONFIG_FIELD_EMAIL,
-					gtk_entry_get_text (GTK_ENTRY (priv->email_entry)));
+	giggle_git_config_set_field (priv->configuration,
+				     GIGGLE_GIT_CONFIG_FIELD_EMAIL,
+				     gtk_entry_get_text (GTK_ENTRY (priv->email_entry)));
 
-	giggle_configuration_commit (priv->configuration,
-				     personal_details_configuration_changed_cb,
-				     g_object_ref (dialog));
+	giggle_git_config_commit (priv->configuration,
+				  personal_details_configuration_changed_cb,
+				  g_object_ref (dialog));
 }
 
 static void
@@ -147,9 +147,9 @@ create_email_completion (EContact *contact)
 }
 
 static void
-personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
-					   gboolean             success,
-					   gpointer             user_data)
+personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
+					   gboolean         success,
+					   gpointer         user_data)
 {
 	GigglePersonalDetailsWindow     *window = user_data;
 	GigglePersonalDetailsWindowPriv *priv = GET_PRIV (window);
@@ -185,14 +185,14 @@ personal_details_configuration_updated_cb (GiggleConfiguration *configuration,
 			   G_STRFUNC, error->message);
 	}
 
-	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_NAME);
+	value = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_NAME);
 
 	if ((!value || !*value) && contact)
 		value = e_contact_get_const (contact, E_CONTACT_FULL_NAME);
 	if (value)
 		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), value);
 
-	value = giggle_configuration_get_field (configuration, CONFIG_FIELD_EMAIL);
+	value = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_EMAIL);
 
 	if ((!value || !*value) && contact)
 		value = e_contact_get_const (contact, E_CONTACT_EMAIL_1);
@@ -247,11 +247,11 @@ giggle_personal_details_window_init (GigglePersonalDetailsWindow *window)
 	gtk_dialog_add_button (GTK_DIALOG (window), GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
 	gtk_widget_set_sensitive (GTK_WIDGET (window), FALSE);
 
-	priv->configuration = giggle_configuration_new ();
+	priv->configuration = giggle_git_config_new ();
 
-	giggle_configuration_update (priv->configuration,
-				     personal_details_configuration_updated_cb,
-				     window);
+	giggle_git_config_update (priv->configuration,
+				  personal_details_configuration_updated_cb,
+				  window);
 }
 
 GtkWidget*

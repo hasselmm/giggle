@@ -21,7 +21,7 @@
 #include "config.h"
 #include "giggle-git.h"
 
-#include "giggle-git-read-config.h"
+#include "giggle-git-config-read.h"
 #include "giggle-git-remote-list.h"
 
 #include <libgiggle/giggle-dispatcher.h>
@@ -442,7 +442,7 @@ giggle_git_remote_config_cb (GiggleGit *git,
 
 	priv = GET_PRIV (git);
 
-	config = giggle_git_read_config_get_config (GIGGLE_GIT_READ_CONFIG (job));
+	config = giggle_git_config_read_get_config (GIGGLE_GIT_CONFIG_READ (job));
 
 	/* apply configuration */
 	for (l = priv->remotes; l; l = l->next) {
@@ -514,7 +514,7 @@ giggle_git_remote_list_cb (GiggleGit *git,
 	g_object_unref (job);
 
 	/* receive configuration of remotes */
-	giggle_git_run_job (git, giggle_git_read_config_new (),
+	giggle_git_run_job (git, giggle_git_config_read_new (),
 			    giggle_git_remote_config_cb, NULL);
 }
 

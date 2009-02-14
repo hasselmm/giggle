@@ -34,7 +34,7 @@
 #include <libgiggle-git/giggle-git-cat-file.h>
 #include <libgiggle-git/giggle-git-revisions.h>
 #include <libgiggle-git/giggle-git-list-tree.h>
-#include <libgiggle-git/giggle-configuration.h>
+#include <libgiggle-git/giggle-git-config.h>
 
 #include <fnmatch.h>
 #include <gio/gio.h>
@@ -69,7 +69,7 @@ typedef struct {
 
 	char                *current_file;
 	GiggleRevision      *current_revision;
-	GiggleConfiguration *configuration;
+	GiggleGitConfig     *configuration;
 } GiggleViewFilePriv;
 
 typedef struct {
@@ -1206,13 +1206,13 @@ view_file_idle_cb (gpointer data)
 
 	priv = GET_PRIV (data);
 
-	giggle_configuration_bind (priv->configuration,
-				   CONFIG_FIELD_FILE_VIEW_HPANE_POSITION,
-				   G_OBJECT (priv->hpaned), "position");
+	giggle_git_config_bind (priv->configuration,
+				GIGGLE_GIT_CONFIG_FIELD_FILE_VIEW_HPANE_POSITION,
+				G_OBJECT (priv->hpaned), "position");
 
-	giggle_configuration_bind (priv->configuration,
-				   CONFIG_FIELD_FILE_VIEW_VPANE_POSITION,
-				   G_OBJECT (priv->vpaned), "position");
+	giggle_git_config_bind (priv->configuration,
+				GIGGLE_GIT_CONFIG_FIELD_FILE_VIEW_VPANE_POSITION,
+				G_OBJECT (priv->vpaned), "position");
 
 	return FALSE;
 }
@@ -1230,7 +1230,7 @@ giggle_view_file_init (GiggleViewFile *view)
 	priv = GET_PRIV (view);
 
 	priv->git = giggle_git_get ();
-	priv->configuration = giggle_configuration_new ();
+	priv->configuration = giggle_git_config_new ();
 
 	gtk_widget_push_composite_child ();
 

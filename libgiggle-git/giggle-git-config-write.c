@@ -19,38 +19,38 @@
  */
 
 #include "config.h"
-#include "giggle-git-write-config.h"
+#include "giggle-git-config-write.h"
 
 #include <string.h>
 
-typedef struct GiggleGitWriteConfigPriv GiggleGitWriteConfigPriv;
+typedef struct GiggleGitConfigWritePriv GiggleGitConfigWritePriv;
 
-struct GiggleGitWriteConfigPriv {
+struct GiggleGitConfigWritePriv {
 	gboolean  global;
 	gchar    *field;
 	gchar    *value;
 };
 
-static void     git_write_config_finalize         (GObject           *object);
-static void     git_write_config_get_property     (GObject           *object,
+static void     git_config_write_finalize         (GObject           *object);
+static void     git_config_write_get_property     (GObject           *object,
 						   guint              param_id,
 						   GValue            *value,
 						   GParamSpec        *pspec);
-static void     git_write_config_set_property     (GObject           *object,
+static void     git_config_write_set_property     (GObject           *object,
 						   guint              param_id,
 						   const GValue      *value,
 						   GParamSpec        *pspec);
 
-static gboolean git_write_config_get_command_line (GiggleJob         *job,
+static gboolean git_config_write_get_command_line (GiggleJob         *job,
 						   gchar            **command_line);
-static void     git_write_config_handle_output    (GiggleJob         *job,
+static void     git_config_write_handle_output    (GiggleJob         *job,
 						   const gchar       *output_str,
 						   gsize              output_len);
 
 
-G_DEFINE_TYPE (GiggleGitWriteConfig, giggle_git_write_config, GIGGLE_TYPE_JOB)
+G_DEFINE_TYPE (GiggleGitConfigWrite, giggle_git_config_write, GIGGLE_TYPE_JOB)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_WRITE_CONFIG, GiggleGitWriteConfigPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_CONFIG_WRITE, GiggleGitConfigWritePriv))
 
 enum {
 	PROP_0,
@@ -61,17 +61,17 @@ enum {
 
 
 static void
-giggle_git_write_config_class_init (GiggleGitWriteConfigClass *class)
+giggle_git_config_write_class_init (GiggleGitConfigWriteClass *class)
 {
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GiggleJobClass *job_class    = GIGGLE_JOB_CLASS (class);
 
-	object_class->finalize     = git_write_config_finalize;
-	object_class->get_property = git_write_config_get_property;
-	object_class->set_property = git_write_config_set_property;
+	object_class->finalize     = git_config_write_finalize;
+	object_class->get_property = git_config_write_get_property;
+	object_class->set_property = git_config_write_set_property;
 
-	job_class->get_command_line = git_write_config_get_command_line;
-	job_class->handle_output    = git_write_config_handle_output;
+	job_class->get_command_line = git_config_write_get_command_line;
+	job_class->handle_output    = git_config_write_handle_output;
 
 	g_object_class_install_property (object_class,
 					 PROP_GLOBAL,
@@ -95,34 +95,34 @@ giggle_git_write_config_class_init (GiggleGitWriteConfigClass *class)
 							      NULL,
 							      G_PARAM_READWRITE));
 
-	g_type_class_add_private (object_class, sizeof (GiggleGitWriteConfigPriv));
+	g_type_class_add_private (object_class, sizeof (GiggleGitConfigWritePriv));
 }
 
 static void
-giggle_git_write_config_init (GiggleGitWriteConfig *config)
+giggle_git_config_write_init (GiggleGitConfigWrite *config)
 {
 }
 
 static void
-git_write_config_finalize (GObject *object)
+git_config_write_finalize (GObject *object)
 {
-	GiggleGitWriteConfigPriv *priv;
+	GiggleGitConfigWritePriv *priv;
 
 	priv = GET_PRIV (object);
 
 	g_free (priv->field);
 	g_free (priv->value);
 
-	G_OBJECT_CLASS (giggle_git_write_config_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_git_config_write_parent_class)->finalize (object);
 }
 
 static void
-git_write_config_get_property (GObject    *object,
+git_config_write_get_property (GObject    *object,
 			       guint       param_id,
 			       GValue     *value,
 			       GParamSpec *pspec)
 {
-	GiggleGitWriteConfigPriv *priv;
+	GiggleGitConfigWritePriv *priv;
 
 	priv = GET_PRIV (object);
 	
@@ -143,12 +143,12 @@ git_write_config_get_property (GObject    *object,
 }
 
 static void
-git_write_config_set_property (GObject      *object,
+git_config_write_set_property (GObject      *object,
 			       guint         param_id,
 			       const GValue *value,
 			       GParamSpec   *pspec)
 {
-	GiggleGitWriteConfigPriv *priv;
+	GiggleGitConfigWritePriv *priv;
 
 	priv = GET_PRIV (object);
 
@@ -175,10 +175,10 @@ git_write_config_set_property (GObject      *object,
 }
 
 static gboolean
-git_write_config_get_command_line (GiggleJob  *job,
+git_config_write_get_command_line (GiggleJob  *job,
 				   gchar     **command_line)
 {
-	GiggleGitWriteConfigPriv *priv;
+	GiggleGitConfigWritePriv *priv;
 	char                     *value;
 
 	priv = GET_PRIV (job);
@@ -200,7 +200,7 @@ git_write_config_get_command_line (GiggleJob  *job,
 }
 
 static void
-git_write_config_handle_output (GiggleJob   *job,
+git_config_write_handle_output (GiggleJob   *job,
 				const gchar *output_str,
 				gsize        output_len)
 {
@@ -208,12 +208,12 @@ git_write_config_handle_output (GiggleJob   *job,
 }
 
 GiggleJob *
-giggle_git_write_config_new (const gchar *field,
+giggle_git_config_write_new (const gchar *field,
 			     const gchar *value)
 {
 	g_return_val_if_fail (field != NULL, NULL);
 
-	return g_object_new (GIGGLE_TYPE_GIT_WRITE_CONFIG,
+	return g_object_new (GIGGLE_TYPE_GIT_CONFIG_WRITE,
 			     "field", field,
 			     "value", value,
 			     NULL);

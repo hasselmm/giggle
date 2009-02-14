@@ -19,58 +19,58 @@
  */
 
 #include "config.h"
-#include "giggle-git-read-config.h"
+#include "giggle-git-config-read.h"
 
 #include <string.h>
 
-typedef struct GiggleGitReadConfigPriv GiggleGitReadConfigPriv;
+typedef struct GiggleGitConfigReadPriv GiggleGitConfigReadPriv;
 
-struct GiggleGitReadConfigPriv {
+struct GiggleGitConfigReadPriv {
 	GHashTable *hash_table;
 };
 
-static void     git_read_config_finalize         (GObject           *object);
-static void     git_read_config_get_property     (GObject           *object,
+static void     git_config_read_finalize         (GObject           *object);
+static void     git_config_read_get_property     (GObject           *object,
 						  guint              param_id,
 						  GValue            *value,
 						  GParamSpec        *pspec);
-static void     git_read_config_set_property     (GObject           *object,
+static void     git_config_read_set_property     (GObject           *object,
 						  guint              param_id,
 						  const GValue      *value,
 						  GParamSpec        *pspec);
 
-static gboolean git_read_config_get_command_line (GiggleJob         *job,
+static gboolean git_config_read_get_command_line (GiggleJob         *job,
 						  gchar            **command_line);
-static void     git_read_config_handle_output    (GiggleJob         *job,
+static void     git_config_read_handle_output    (GiggleJob         *job,
 						  const gchar       *output_str,
 						  gsize              output_len);
 
 
-G_DEFINE_TYPE (GiggleGitReadConfig, giggle_git_read_config, GIGGLE_TYPE_JOB)
+G_DEFINE_TYPE (GiggleGitConfigRead, giggle_git_config_read, GIGGLE_TYPE_JOB)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_READ_CONFIG, GiggleGitReadConfigPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_GIT_CONFIG_READ, GiggleGitConfigReadPriv))
 
 
 static void
-giggle_git_read_config_class_init (GiggleGitReadConfigClass *class)
+giggle_git_config_read_class_init (GiggleGitConfigReadClass *class)
 {
 	GObjectClass   *object_class = G_OBJECT_CLASS (class);
 	GiggleJobClass *job_class    = GIGGLE_JOB_CLASS (class);
 
-	object_class->finalize     = git_read_config_finalize;
-	object_class->get_property = git_read_config_get_property;
-	object_class->set_property = git_read_config_set_property;
+	object_class->finalize     = git_config_read_finalize;
+	object_class->get_property = git_config_read_get_property;
+	object_class->set_property = git_config_read_set_property;
 
-	job_class->get_command_line = git_read_config_get_command_line;
-	job_class->handle_output    = git_read_config_handle_output;
+	job_class->get_command_line = git_config_read_get_command_line;
+	job_class->handle_output    = git_config_read_handle_output;
 
-	g_type_class_add_private (object_class, sizeof (GiggleGitReadConfigPriv));
+	g_type_class_add_private (object_class, sizeof (GiggleGitConfigReadPriv));
 }
 
 static void
-giggle_git_read_config_init (GiggleGitReadConfig *read_config)
+giggle_git_config_read_init (GiggleGitConfigRead *read_config)
 {
-	GiggleGitReadConfigPriv *priv;
+	GiggleGitConfigReadPriv *priv;
 
 	priv = GET_PRIV (read_config);
 
@@ -81,24 +81,24 @@ giggle_git_read_config_init (GiggleGitReadConfig *read_config)
 }
 
 static void
-git_read_config_finalize (GObject *object)
+git_config_read_finalize (GObject *object)
 {
-	GiggleGitReadConfigPriv *priv;
+	GiggleGitConfigReadPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	g_hash_table_unref (priv->hash_table);
 
-	G_OBJECT_CLASS (giggle_git_read_config_parent_class)->finalize (object);
+	G_OBJECT_CLASS (giggle_git_config_read_parent_class)->finalize (object);
 }
 
 static void
-git_read_config_get_property (GObject    *object,
+git_config_read_get_property (GObject    *object,
 			      guint       param_id,
 			      GValue     *value,
 			      GParamSpec *pspec)
 {
-	GiggleGitReadConfigPriv *priv;
+	GiggleGitConfigReadPriv *priv;
 
 	priv = GET_PRIV (object);
 	
@@ -110,12 +110,12 @@ git_read_config_get_property (GObject    *object,
 }
 
 static void
-git_read_config_set_property (GObject      *object,
+git_config_read_set_property (GObject      *object,
 			      guint         param_id,
 			      const GValue *value,
 			      GParamSpec   *pspec)
 {
-	GiggleGitReadConfigPriv *priv;
+	GiggleGitConfigReadPriv *priv;
 
 	priv = GET_PRIV (object);
 
@@ -127,7 +127,7 @@ git_read_config_set_property (GObject      *object,
 }
 
 static gboolean
-git_read_config_get_command_line (GiggleJob  *job,
+git_config_read_get_command_line (GiggleJob  *job,
 				  gchar     **command_line)
 {
 	*command_line = g_strdup_printf (GIT_COMMAND " repo-config --list");
@@ -135,11 +135,11 @@ git_read_config_get_command_line (GiggleJob  *job,
 }
 
 static void
-git_read_config_handle_output (GiggleJob   *job,
+git_config_read_handle_output (GiggleJob   *job,
 			       const gchar *output_str,
 			       gsize        output_len)
 {
-	GiggleGitReadConfigPriv  *priv;
+	GiggleGitConfigReadPriv  *priv;
 	gchar                   **lines, **line;
 	gint                      i;
 
@@ -156,17 +156,17 @@ git_read_config_handle_output (GiggleJob   *job,
 }
 
 GiggleJob *
-giggle_git_read_config_new (void)
+giggle_git_config_read_new (void)
 {
-	return g_object_new (GIGGLE_TYPE_GIT_READ_CONFIG, NULL);
+	return g_object_new (GIGGLE_TYPE_GIT_CONFIG_READ, NULL);
 }
 
 GHashTable *
-giggle_git_read_config_get_config (GiggleGitReadConfig *config)
+giggle_git_config_read_get_config (GiggleGitConfigRead *config)
 {
-	GiggleGitReadConfigPriv *priv;
+	GiggleGitConfigReadPriv *priv;
 
-	g_return_val_if_fail (GIGGLE_IS_GIT_READ_CONFIG (config), NULL);
+	g_return_val_if_fail (GIGGLE_IS_GIT_CONFIG_READ (config), NULL);
 
 	priv = GET_PRIV (config);
 	return priv->hash_table;

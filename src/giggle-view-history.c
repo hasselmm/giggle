@@ -33,7 +33,7 @@
 #include <libgiggle-git/giggle-git-diff.h>
 #include <libgiggle-git/giggle-git-refs.h>
 #include <libgiggle-git/giggle-git-revisions.h>
-#include <libgiggle-git/giggle-configuration.h>
+#include <libgiggle-git/giggle-git-config.h>
 
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
@@ -69,7 +69,7 @@ typedef struct {
 	GiggleGit               *git;
 	GiggleJob               *job;
 	GiggleJob               *diff_current_job;
-	GiggleConfiguration     *configuration;
+	GiggleGitConfig         *configuration;
 
 	guint                    selection_changed_idle;
 } GiggleViewHistoryPriv;
@@ -443,9 +443,9 @@ view_history_idle_cb (gpointer data)
 
 	priv = GET_PRIV (data);
 
-	giggle_configuration_bind (priv->configuration,
-				   CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION,
-				   G_OBJECT (priv->main_vpaned), "position");
+	giggle_git_config_bind (priv->configuration,
+				GIGGLE_GIT_CONFIG_FIELD_HISTORY_VIEW_VPANE_POSITION,
+				G_OBJECT (priv->main_vpaned), "position");
 
 	return FALSE;
 }
@@ -617,7 +617,7 @@ view_history_constructed (GObject *object)
 	g_signal_connect_swapped (priv->git, "changed",
 				  G_CALLBACK (view_history_git_changed), object);
 
-	priv->configuration = giggle_configuration_new ();
+	priv->configuration = giggle_git_config_new ();
 
 	gtk_widget_push_composite_child ();
 
