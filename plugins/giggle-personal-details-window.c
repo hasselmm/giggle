@@ -21,8 +21,7 @@
 #include "config.h"
 #include "giggle-personal-details-window.h"
 
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-configuration.h"
+#include <libgiggle-git/giggle-configuration.h>
 
 #include <glib/gi18n.h>
 #include <libebook/e-book.h>

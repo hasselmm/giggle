@@ -18,15 +18,16 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-
+#include "config.h"
 #include "giggle-branches-view.h"
-#include "libgiggle/giggle-git-refs.h"
-#include "libgiggle/giggle-ref.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-git.h"
+
+#include <libgiggle/giggle-ref.h>
+#include <libgiggle/giggle-job.h>
+
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-refs.h>
+
+#include <glib/gi18n.h>
 
 typedef struct GiggleBranchesViewPriv GiggleBranchesViewPriv;
 

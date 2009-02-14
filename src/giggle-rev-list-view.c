@@ -18,29 +18,29 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <string.h>
+#include "config.h"
+#include "giggle-rev-list-view.h"
 
 #include "giggle-diff-window.h"
 #include "giggle-graph-renderer.h"
 #include "giggle-input-dialog.h"
-#include "giggle-rev-list-view.h"
 
-#include "libgiggle/giggle-branch.h"
-#include "libgiggle/giggle-clipboard.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-marshal.h"
-#include "libgiggle/giggle-revision.h"
-#include "libgiggle/giggle-searchable.h"
-#include "libgiggle/giggle-tag.h"
+#include <libgiggle/giggle-branch.h>
+#include <libgiggle/giggle-clipboard.h>
+#include <libgiggle/giggle-job.h>
+#include <libgiggle/giggle-marshal.h>
+#include <libgiggle/giggle-revision.h>
+#include <libgiggle/giggle-searchable.h>
+#include <libgiggle/giggle-tag.h>
 
-#include "libgiggle/giggle-git-add-ref.h"
-#include "libgiggle/giggle-git-delete-ref.h"
-#include "libgiggle/giggle-git-diff.h"
-#include "libgiggle/giggle-git-log.h"
-#include "libgiggle/giggle-git.h"
+#include <libgiggle-git/giggle-git-add-ref.h>
+#include <libgiggle-git/giggle-git-delete-ref.h>
+#include <libgiggle-git/giggle-git-diff.h>
+#include <libgiggle-git/giggle-git-log.h>
+#include <libgiggle-git/giggle-git.h>
+
+#include <glib/gi18n.h>
+#include <string.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REV_LIST_VIEW, GiggleRevListViewPriv))
 

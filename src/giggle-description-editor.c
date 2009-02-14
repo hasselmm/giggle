@@ -18,12 +18,12 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-
+#include "config.h"
 #include "giggle-description-editor.h"
-#include "libgiggle/giggle-git.h"
+
+#include <libgiggle-git/giggle-git.h>
+
+#include <glib/gi18n.h>
 
 typedef struct GiggleDescriptionEditorPriv GiggleDescriptionEditorPriv;
 

@@ -26,15 +26,15 @@
 #include "giggle-view-history.h"
 #include "giggle-view-shell.h"
 
-#include "libgiggle/giggle-configuration.h"
-#include "libgiggle/giggle-history.h"
-#include "libgiggle/giggle-searchable.h"
+#include <libgiggle/giggle-history.h>
+#include <libgiggle/giggle-searchable.h>
 
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-git-blame.h"
-#include "libgiggle/giggle-git-cat-file.h"
-#include "libgiggle/giggle-git-revisions.h"
-#include "libgiggle/giggle-git-list-tree.h"
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-blame.h>
+#include <libgiggle-git/giggle-git-cat-file.h>
+#include <libgiggle-git/giggle-git-revisions.h>
+#include <libgiggle-git/giggle-git-list-tree.h>
+#include <libgiggle-git/giggle-configuration.h>
 
 #include <fnmatch.h>
 #include <gio/gio.h>

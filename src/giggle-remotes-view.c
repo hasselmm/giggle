@@ -25,7 +25,7 @@
 #include "giggle-remote-editor.h"
 #include "giggle-spaning-renderer.h"
 
-#include "libgiggle/giggle-git.h"
+#include <libgiggle-git/giggle-git.h>
 
 #include <glib/gi18n.h>
 

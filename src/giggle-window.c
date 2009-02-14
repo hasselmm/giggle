@@ -20,12 +20,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <string.h>
-#include <stdlib.h>
-
+#include "config.h"
 #include "giggle-window.h"
 
 #include "eggfindbar.h"
@@ -36,16 +31,20 @@
 #include "giggle-view-shell.h"
 #include "giggle-view-summary.h"
 
-#include "libgiggle/giggle-clipboard.h"
-#include "libgiggle/giggle-configuration.h"
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-history.h"
-#include "libgiggle/giggle-plugin-manager.h"
-#include "libgiggle/giggle-searchable.h"
+#include <libgiggle/giggle-clipboard.h>
+#include <libgiggle/giggle-history.h>
+#include <libgiggle/giggle-plugin-manager.h>
+#include <libgiggle/giggle-searchable.h>
+
+#include <libgiggle-git/giggle-configuration.h>
 
 #ifdef GDK_WINDOWING_QUARTZ
 #include "ige-mac-menu.h"
 #endif
+
+#include <glib/gi18n.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 

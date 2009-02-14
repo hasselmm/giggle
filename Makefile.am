@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = libgiggle plugins src data po pixmaps test
+SUBDIRS = data libgiggle libgiggle-git plugins src po pixmaps test
 
 INTLTOOL = \
 	intltool-extract.in \

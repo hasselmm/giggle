@@ -5,57 +5,48 @@ AM_CPPFLAGS = \
 	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
 
-lib_LTLIBRARIES = libgiggle.la \
-		  libgiggle-git.la
+lib_LTLIBRARIES = libgiggle.la
 
-dist_ENUMS_TEMPLATES= \
-	giggle-enums.c.in \
-	giggle-enums.h.in
-
-# h_files are the headers that include enums
-h_files = \
-	giggle-configuration.h \
-	giggle-git-list-files.h \
+libgiggle_h_files = \
+	giggle-author.h \
+	giggle-branch.h \
+	giggle-clipboard.h \
+	giggle-dispatcher.h \
+	giggle-error.h \
+	giggle-history.h \
+	giggle-job.h \
+	giggle-plugin-manager.h \
+	giggle-plugin.h \
+	giggle-ref.h \
+	giggle-remote-ref.h \
 	giggle-remote.h \
-	giggle-remote-branch.h
+	giggle-remote-branch.h \
+	giggle-revision.h \
+	giggle-searchable.h \
+	giggle-sysdeps.h \
+	giggle-tag.h \
+	$(NULL)
 
 libgiggle_la_SOURCES = \
 	$(BUILT_SOURCES) \
+	$(libgiggle_h_files) \
 	giggle-author.c \
-	giggle-author.h \
 	giggle-branch.c \
-	giggle-branch.h \
 	giggle-clipboard.c \
-	giggle-clipboard.h \
 	giggle-dispatcher.c \
-	giggle-dispatcher.h \
-	giggle-dummy.c \
-	giggle-dummy.h \
 	giggle-error.c \
-	giggle-error.h \
 	giggle-history.c \
-	giggle-history.h \
 	giggle-job.c \
-	giggle-job.h \
 	giggle-plugin.c \
-	giggle-plugin.h \
 	giggle-plugin-manager.c \
-	giggle-plugin-manager.h \
 	giggle-ref.c \
-	giggle-ref.h \
 	giggle-remote.c \
-	giggle-remote.h \
 	giggle-remote-branch.c \
 	giggle-revision.c \
-	giggle-revision.h \
 	giggle-searchable.c \
-	giggle-searchable.h \
 	giggle-sysdeps.c \
-	giggle-sysdeps.h \
 	giggle-tag.c \
-	giggle-tag.h \
 	giggle-remote-ref.c \
-	giggle-remote-ref.h \
 	$(NULL)
 
 libgiggle_la_LIBADD= \
@@ -66,85 +57,28 @@ libgiggle_la_LDFLAGS= \
 	-Wl,--as-needed -Wl,--no-undefined \
 	$(NULL)
 
-libgiggle_git_la_SOURCES = \
-        giggle-git.c \
-	giggle-git.h \
-	giggle-git-add.c \
-	giggle-git-add.h \
-	giggle-git-add-ref.c \
-	giggle-git-add-ref.h \
-	giggle-git-authors.c \
-	giggle-git-authors.h \
-	giggle-git-blame.c \
-	giggle-git-blame.h \
-	giggle-git-cat-file.c \
-	giggle-git-cat-file.h \
-	giggle-git-commit.c \
-	giggle-git-commit.h \
-	giggle-git-delete-ref.c \
-	giggle-git-delete-ref.h \
-	giggle-git-diff.c \
-	giggle-git-diff.h \
-	giggle-git-diff-tree.c \
-	giggle-git-diff-tree.h \
-	giggle-git-ignore.c \
-	giggle-git-ignore.h \
-	giggle-git-list-files.c \
-	giggle-git-list-files.h \
-	giggle-git-list-tree.c \
-	giggle-git-list-tree.h \
-	giggle-git-log.c \
-	giggle-git-log.h \
-	giggle-git-read-config.c \
-	giggle-git-read-config.h \
-	giggle-git-refs.c \
-	giggle-git-refs.h \
-	giggle-git-remote-list.c \
-	giggle-git-remote-list.h \
-	giggle-git-revisions.c \
-	giggle-git-revisions.h \
-	giggle-git-write-config.c \
-	giggle-git-write-config.h \
-	giggle-configuration.c \
-	giggle-configuration.h \
-	$(NULL)
-	 
-libgiggle_git_la_LIBADD = \
-	$(GIGGLE_LIBS) \
-	libgiggle.la
-libgiggle_git_la_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	-release $(PACKAGE_VERSION) \
-	-Wl,--as-needed -Wl,--no-undefined \
-	$(NULL)
+giggle-enums.h: giggle-enums.h.in $(libgiggle_h_files)
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template $^ ) > xgen-gtbh
+	( cmp -s xgen-gtbh $@ || (echo "Creating $@..."; cp xgen-gtbh $@ ))
+	( rm -f xgen-gtbh )
 
-giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
-	( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.h.in \
-	$(h_files) ) >> xgen-gtbh \
-	&& (cmp -s xgen-gtbh $@ || (echo "Creating $@..."; cp xgen-gtbh $@) ) \
-	&& rm -f xgen-gtbh
-
-giggle-enums.c: $(h_files) $(priv_h_files) Makefile giggle-enums.c.in
-	( cd $(srcdir) && $(GLIB_MKENUMS) --template giggle-enums.c.in \
-	$(h_files) ) > xgen-gtbc \
-	&& (cmp -s xgen-gtbc $@ || (echo "Creating $@..."; cp xgen-gtbc $@) ) \
-	&& rm -f xgen-gtbc
-
+giggle-enums.c: giggle-enums.c.in $(libgiggle_h_files)
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template $^ ) > xgen-gtbc
+	( cmp -s xgen-gtbc $@ || (echo "Creating $@..."; cp xgen-gtbc $@ ))
+	( rm -f xgen-gtbc )
 
 giggle-marshal.h: giggle-marshal.list
-	(cd $(srcdir) && \
-	$(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --header) > xgen-gmh \
-	&& (cmp -s xgen-gmh giggle-marshal.h || cp xgen-gmh giggle-marshal.h) \
-	&& rm -f xgen-gmh xgen-gmh~
+	( cd $(srcdir) && \
+	  $(GLIB_GENMARSHAL) --prefix=giggle_marshal $< --header ) > xgen-gmh
+	( cmp -s xgen-gmh $@ || (echo "Creating $@..."; cp xgen-gmh $@ ))
+	( rm -f xgen-gmh )
 
 giggle-marshal.c: giggle-marshal.list
-	(cd $(srcdir) && \
-	echo "#include \"giggle-marshal.h\"" > xgen-gmc \
-	&& $(GLIB_GENMARSHAL) --prefix=giggle_marshal giggle-marshal.list --body) >> xgen-gmc \
-	&& cp xgen-gmc giggle-marshal.c \
-	&& rm -f xgen-gmc xgen-gmc~
-
-marshal-main.c: giggle-marshal.c giggle-marshal.h
+	( cd $(srcdir) && \
+	  echo "#include \"giggle-marshal.h\"" && \
+	  $(GLIB_GENMARSHAL) --prefix=giggle_marshal $< --body ) > xgen-gmc
+	( cmp -s xgen-gmc $@ || (echo "Creating $@..."; cp xgen-gmc $@ ))
+	( rm -f xgen-gmc )
 
 BUILT_SOURCES = \
 	giggle-marshal.h \
@@ -157,6 +91,5 @@ CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST = \
 	giggle-marshal.list \
 	giggle-enums.c.in \
-	giggle-enums.h.in \
-	$(h_files)
+	giggle-enums.h.in
 

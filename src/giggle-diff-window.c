@@ -18,16 +18,17 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <string.h>
-
+#include "config.h"
 #include "giggle-diff-window.h"
 #include "giggle-diff-view.h"
-#include "libgiggle/giggle-git-commit.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-git.h"
+
+#include <libgiggle/giggle-job.h>
+
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-commit.h>
+
+#include <glib/gi18n.h>
+#include <string.h>
 
 typedef struct GiggleDiffWindowPriv GiggleDiffWindowPriv;
 

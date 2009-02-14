@@ -18,18 +18,17 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-
+#include "config.h"
 #include "giggle-diff-tree-view.h"
 
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-git-diff-tree.h"
+#include <libgiggle/giggle-clipboard.h>
+#include <libgiggle/giggle-job.h>
+#include <libgiggle/giggle-revision.h>
 
-#include "libgiggle/giggle-clipboard.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-revision.h"
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-diff-tree.h>
+
+#include <glib/gi18n.h>
 
 typedef struct GiggleDiffTreeViewPriv GiggleDiffTreeViewPriv;
 

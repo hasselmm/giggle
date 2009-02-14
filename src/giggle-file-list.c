@@ -18,26 +18,25 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <string.h>
-
+#include "config.h"
 #include "giggle-file-list.h"
-
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-git-ignore.h"
-#include "libgiggle/giggle-git-list-files.h"
-#include "libgiggle/giggle-git-add.h"
-#include "libgiggle/giggle-git-diff.h"
-#include "libgiggle/giggle-git-diff-tree.h"
-
-#include "libgiggle/giggle-clipboard.h"
-#include "libgiggle/giggle-revision.h"
-#include "libgiggle/giggle-enums.h"
 
 #include "giggle-diff-window.h"
 #include "giggle-helpers.h"
+
+#include <libgiggle/giggle-clipboard.h>
+#include <libgiggle/giggle-revision.h>
+
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-add.h>
+#include <libgiggle-git/giggle-git-diff-tree.h>
+#include <libgiggle-git/giggle-git-diff.h>
+#include <libgiggle-git/giggle-git-enums.h>
+#include <libgiggle-git/giggle-git-ignore.h>
+#include <libgiggle-git/giggle-git-list-files.h>
+
+#include <glib/gi18n.h>
+#include <string.h>
 
 typedef struct GiggleFileListPriv GiggleFileListPriv;
 

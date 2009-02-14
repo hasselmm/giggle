@@ -21,7 +21,7 @@
 #ifndef __GIGGLE_FILE_LIST_H__
 #define __GIGGLE_FILE_LIST_H__
 
-#include <glib-object.h>
+#include <gtk/gtk.h>
 
 #include "libgiggle/giggle-revision.h"
 

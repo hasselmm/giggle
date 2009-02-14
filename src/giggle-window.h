@@ -21,8 +21,8 @@
 #ifndef __GIGGLE_WINDOW_H__
 #define __GIGGLE_WINDOW_H__
 
-#include <gtk/gtkwindow.h>
-#include "libgiggle/giggle-git.h"
+#include <libgiggle-git/giggle-git.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 

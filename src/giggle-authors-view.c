@@ -18,15 +18,15 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include <config.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-
+#include "config.h"
 #include "giggle-authors-view.h"
-#include "libgiggle/giggle-git-authors.h"
-#include "libgiggle/giggle-author.h"
-#include "libgiggle/giggle-job.h"
-#include "libgiggle/giggle-git.h"
+
+#include <libgiggle/giggle-author.h>
+
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-authors.h>
+
+#include <glib/gi18n.h>
 
 typedef struct GiggleAuthorsViewPriv GiggleAuthorsViewPriv;
 

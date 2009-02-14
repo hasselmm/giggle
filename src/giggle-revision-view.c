@@ -22,10 +22,11 @@
 #include "giggle-revision-view.h"
 #include "giggle-avatar-image.h"
 
-#include "libgiggle/giggle-git.h"
-#include "libgiggle/giggle-git-log.h"
-#include "libgiggle/giggle-revision.h"
-#include "libgiggle/giggle-searchable.h"
+#include <libgiggle/giggle-revision.h>
+#include <libgiggle/giggle-searchable.h>
+
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-log.h>
 
 #include <glib/gi18n.h>
 #include <string.h>

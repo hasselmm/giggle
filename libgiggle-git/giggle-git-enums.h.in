@@ -1,0 +1,25 @@
+/*** BEGIN file-header ***/
+#ifndef GIGGLE_GIT_ENUMERATIONS_H
+#define GIGGLE_GIT_ENUMERATIONS_H
+
+#include <glib-object.h>
+
+G_BEGIN_DECLS
+
+/*** END file-header ***/
+
+/*** BEGIN file-production ***/
+/* enumerations from "@filename@" */
+/*** END file-production ***/
+
+/*** BEGIN file-tail ***/
+G_END_DECLS
+
+#endif /* !GIGGLE_GIT_ENUMERATIONS_H */
+/*** END file-tail ***/
+
+/*** BEGIN value-header ***/
+GType @enum_name@_get_type (void);
+#define GIGGLE_TYPE_@ENUMSHORT@ (@enum_name@_get_type())
+/*** END value-header ***/
+

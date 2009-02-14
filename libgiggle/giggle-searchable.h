@@ -30,14 +30,13 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_SEARCHABLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GIGGLE_TYPE_SEARCHABLE))
 #define GIGGLE_SEARCHABLE_GET_IFACE(obj)  (G_TYPE_INSTANCE_GET_INTERFACE ((obj), GIGGLE_TYPE_SEARCHABLE, GiggleSearchableIface))
 
-typedef enum GiggleSearchDirection   GiggleSearchDirection;
 typedef struct GiggleSearchableIface GiggleSearchableIface;
 typedef struct GiggleSearchable      GiggleSearchable; /* dummy */
 
-enum GiggleSearchDirection {
+typedef enum {
 	GIGGLE_SEARCH_DIRECTION_NEXT,
 	GIGGLE_SEARCH_DIRECTION_PREV
-};
+} GiggleSearchDirection;
 
 struct GiggleSearchableIface {
 	GTypeInterface iface;
