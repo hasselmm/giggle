@@ -25,8 +25,6 @@ libgiggle_la_SOURCES = \
 	giggle-author.h \
 	giggle-branch.c \
 	giggle-branch.h \
-	giggle-configuration.c \
-	giggle-configuration.h \
 	giggle-clipboard.c \
 	giggle-clipboard.h \
 	giggle-dispatcher.c \
@@ -105,11 +103,14 @@ libgiggle_git_la_SOURCES = \
 	giggle-git-revisions.c \
 	giggle-git-revisions.h \
 	giggle-git-write-config.c \
-	giggle-git-write-config.h
+	giggle-git-write-config.h \
+	giggle-configuration.c \
+	giggle-configuration.h
 	 
-libgiggle_git_la_LIBADD= \
-	$(GIGGLE_LIBS)
-libgiggle_git_la_LDFLAGS= \
+libgiggle_git_la_LIBADD = \
+	$(GIGGLE_LIBS) \
+	libgiggle.la
+libgiggle_git_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-release $(PACKAGE_VERSION) \
 	$(NULL)
