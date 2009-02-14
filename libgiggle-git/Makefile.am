@@ -1,3 +1,5 @@
+libgiggle_gitdir = $(pkgincludedir)/libgiggle-git
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
@@ -31,8 +33,8 @@ libgiggle_git_h_files =  \
 	$(NULL)
 
 libgiggle_git_la_SOURCES = \
-	$(BUILT_SOURCES) \
 	$(libgiggle_git_h_files) \
+	$(BUILT_SOURCES) \
         giggle-git.c \
 	giggle-git-add.c \
 	giggle-git-add-ref.c \
@@ -55,6 +57,11 @@ libgiggle_git_la_SOURCES = \
 	giggle-configuration.c \
 	$(NULL)
 	 
+libgiggle_git_HEADERS = \
+	$(libgiggle_git_h_files) \
+	giggle-git-enums.h \
+	$(NULL)
+
 libgiggle_git_la_LIBADD = \
 	$(GIGGLE_LIBS) ../libgiggle/libgiggle.la
 libgiggle_git_la_LDFLAGS = \

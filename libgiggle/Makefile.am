@@ -1,3 +1,5 @@
+libgiggledir = $(pkgincludedir)/libgiggle
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
@@ -49,9 +51,15 @@ libgiggle_la_SOURCES = \
 	giggle-remote-ref.c \
 	$(NULL)
 
-libgiggle_la_LIBADD= \
+libgiggle_HEADERS = \
+	$(libgiggle_git_h_files) \
+	giggle-enums.h \
+	giggle-marshal.h \
+	$(NULL)
+
+libgiggle_la_LIBADD = \
 	$(GIGGLE_LIBS)
-libgiggle_la_LDFLAGS= \
+libgiggle_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-release $(PACKAGE_VERSION) \
 	-Wl,--as-needed -Wl,--no-undefined \
