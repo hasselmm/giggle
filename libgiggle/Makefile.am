@@ -63,6 +63,7 @@ libgiggle_la_LIBADD= \
 libgiggle_la_LDFLAGS= \
 	$(AM_LDFLAGS) \
 	-release $(PACKAGE_VERSION) \
+	-Wl,--as-needed -Wl,--no-undefined \
 	$(NULL)
 
 libgiggle_git_la_SOURCES = \
@@ -105,7 +106,8 @@ libgiggle_git_la_SOURCES = \
 	giggle-git-write-config.c \
 	giggle-git-write-config.h \
 	giggle-configuration.c \
-	giggle-configuration.h
+	giggle-configuration.h \
+	$(NULL)
 	 
 libgiggle_git_la_LIBADD = \
 	$(GIGGLE_LIBS) \
@@ -113,6 +115,7 @@ libgiggle_git_la_LIBADD = \
 libgiggle_git_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-release $(PACKAGE_VERSION) \
+	-Wl,--as-needed -Wl,--no-undefined \
 	$(NULL)
 
 giggle-enums.h: $(h_files) $(priv_h_files) Makefile giggle-enums.h.in
