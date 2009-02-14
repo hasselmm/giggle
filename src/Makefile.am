@@ -8,7 +8,7 @@ AM_CPPFLAGS = \
 
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
-	-Wl,--export-dynamic
+	-Wl,--export-dynamic -rpath '$(libdir)'
 
 bin_PROGRAMS = giggle
 
