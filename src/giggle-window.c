@@ -1589,7 +1589,8 @@ giggle_window_init (GiggleWindow *window)
 	priv->content_vbox = gtk_vbox_new (FALSE, 0);
 	window_create_ui_manager (window);
 
-	priv->view_shell = giggle_view_shell_new_with_ui (priv->ui_manager);
+	priv->view_shell = giggle_view_shell_new_with_ui (priv->ui_manager,
+							  "WindowViewShellActions");
 	priv->history_view = giggle_view_history_new (priv->ui_manager);
 	priv->file_view = giggle_view_file_new ();
 

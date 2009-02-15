@@ -580,7 +580,8 @@ view_history_setup_revision_pane (GObject *object)
 
 	toolbar = gtk_ui_manager_get_widget (priv->ui_manager, "/ViewHistoryToolbar");
 
-	priv->revision_shell = giggle_view_shell_new_with_ui (priv->ui_manager);
+	priv->revision_shell = giggle_view_shell_new_with_ui (priv->ui_manager,
+							      "ViewHistoryShellActions");
 	giggle_view_shell_add_placeholder (GIGGLE_VIEW_SHELL (priv->revision_shell),
 					   "/ViewHistoryToolbar/ViewShell");
 	gtk_container_set_border_width (GTK_CONTAINER (priv->revision_shell), 6);
