@@ -3,7 +3,7 @@
     <property name="description" translatable="yes">Edit personal details</property>
 
     <child>
-      <object class="GtkActionGroup" id="ActionGroup">
+      <object class="GtkActionGroup" id="GigglePlugin-PersonalDetails">
         <child>
           <object class="GtkAction" id="PersonalDetails">
             <property name="label"   translatable="yes">Personal Details</property>

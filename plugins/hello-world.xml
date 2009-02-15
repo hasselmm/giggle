@@ -3,7 +3,7 @@
     <property name="description" translatable="yes">Demonstration of Giggle's Plugin System</property>
 
     <child>
-      <object class="GtkActionGroup" id="ActionGroup">
+      <object class="GtkActionGroup" id="GigglePlugin-HelloWorld">
         <child>
           <object class="GtkAction" id="HelloWorld">
             <property name="label"   translatable="yes">Hello World</property>
