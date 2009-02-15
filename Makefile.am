@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = data pixmaps help libgiggle libgiggle-git plugins src po test
+SUBDIRS = data libgiggle libgiggle-git plugins src pixmaps help po test
 
 EXTRA_DIST = \
 	gnome-doc-utils.make \
