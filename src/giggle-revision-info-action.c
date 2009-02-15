@@ -42,32 +42,47 @@ G_DEFINE_TYPE (GiggleRevisionInfoAction, giggle_revision_info_action, GTK_TYPE_A
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_INFO_ACTION, GiggleRevisionInfoActionPriv))
 
 static void
+notify_label_cb (GtkAction  *action,
+		 GParamSpec *pspec,
+		 GtkWidget  *widget)
+{
+	GtkWidget *label;
+	char      *markup;
+
+	g_object_get (action, "label", &markup, NULL);
+
+	label = giggle_revision_info_get_label (GIGGLE_REVISION_INFO (widget));
+	gtk_label_set_markup (GTK_LABEL (label), markup);
+
+	g_free (markup);
+}
+
+static void
 revision_info_action_connect_proxy (GtkAction *action,
 			            GtkWidget *widget)
 {
 	GiggleRevisionInfoActionPriv *priv;
 	GtkWidget		     *child;
-	GtkWidget		     *label;
-	char			     *markup;
 
 	priv = GET_PRIV (action);
 
 	GTK_ACTION_CLASS (giggle_revision_info_action_parent_class)->connect_proxy (action, widget);
-	g_object_get (action, "label", &markup, NULL);
 
 	if (GTK_IS_TOOL_ITEM (widget)) {
 		child = gtk_bin_get_child (GTK_BIN (widget));
 		child = gtk_bin_get_child (GTK_BIN (child));
 
-		label = giggle_revision_info_get_label (GIGGLE_REVISION_INFO (child));
-
-		gtk_tool_item_set_expand (GTK_TOOL_ITEM (widget), priv->expand);
 		giggle_revision_info_set_revision (GIGGLE_REVISION_INFO (child),
 						   priv->revision);
-		gtk_label_set_markup (GTK_LABEL (label), markup);
-	}
 
-	g_free (markup);
+		gtk_tool_item_set_expand (GTK_TOOL_ITEM (widget), priv->expand);
+
+		notify_label_cb (action, NULL, child);
+
+		g_signal_connect
+			(action, "notify::label",
+			 G_CALLBACK (notify_label_cb), child);
+	}
 }
 
 static void
