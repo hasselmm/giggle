@@ -751,7 +751,9 @@ revision_log_matches (GiggleRevListView *list,
 			    data);
 
 	/* wait here */
+	gdk_threads_leave ();
 	g_main_loop_run (data->main_loop);
+	gdk_threads_enter ();
 
 	/* At this point the match job has already returned */
 	g_main_loop_unref (data->main_loop);
@@ -827,7 +829,9 @@ revision_diff_matches (GiggleRevListView *list,
 			    data);
 
 	/* wait here */
+	gdk_threads_leave ();
 	g_main_loop_run (data->main_loop);
+	gdk_threads_enter ();
 
 	/* At this point the match job has already returned */
 	g_main_loop_unref (data->main_loop);
