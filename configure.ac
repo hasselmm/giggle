@@ -7,7 +7,7 @@ AC_INIT([giggle],[0.4.90],
 AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([-Wall])
+AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability])
 AM_CONFIG_HEADER([config.h])
 
 AM_DISABLE_STATIC
