@@ -1,16 +1,19 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = data libgiggle libgiggle-git plugins src po pixmaps test
+SUBDIRS = data pixmaps help libgiggle libgiggle-git plugins src po test
 
-INTLTOOL = \
+EXTRA_DIST = \
+	gnome-doc-utils.make \
 	intltool-extract.in \
 	intltool-merge.in \
 	intltool-update.in
 
-EXTRA_DIST = \
-	$(INTLTOOL)
-
 DISTCLEANFILES = \
+	gnome-doc-utils.make \
 	intltool-extract \
 	intltool-merge \
 	intltool-update
+
+DISTCHECK_CONFIGURE_FLAGS = \
+	--disable-scrollkeeper
+

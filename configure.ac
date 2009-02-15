@@ -7,7 +7,7 @@ AC_INIT([giggle],[0.4.90],
 AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([-Wall -Werror])
+AM_INIT_AUTOMAKE([-Wall])
 AM_CONFIG_HEADER([config.h])
 
 AM_DISABLE_STATIC
@@ -92,6 +92,10 @@ IT_PROG_INTLTOOL([0.35.0])
 
 AC_SUBST([CONFIG_STATUS_DEPENDENCIES],['$(top_srcdir)/po/LINGUAS'])
 
+dnl  -------------
+dnl | User Manual |---------------------------------------
+dnl  -------------
+GNOME_DOC_INIT
 
 dnl  -----------------------
 dnl | GTK+ platform check   |----------------------------------
@@ -137,17 +141,20 @@ dnl correct flags to aclocal.
 ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
 AC_SUBST(ACLOCAL_AMFLAGS)
 
-AC_OUTPUT([
-        Makefile 
+AC_CONFIG_FILES([
+        Makefile
         data/Makefile
+        help/Makefile
+        pixmaps/Makefile
         libgiggle/Makefile
         libgiggle-git/Makefile
         plugins/Makefile
         src/Makefile
-        pixmaps/Makefile
-        po/Makefile.in
         test/Makefile
+        po/Makefile.in
 ])
+
+AC_OUTPUT
 
 echo
 echo "Prefix:                    $prefix"
