@@ -888,6 +888,13 @@ window_visit_uri (GiggleWindow *window,
 }
 
 static void
+window_action_help_index_cb (GtkAction    *action,
+			     GiggleWindow *window)
+{
+	window_visit_uri (window, "ghelp:" PACKAGE);
+}
+
+static void
 window_action_homepage_cb (GtkAction    *action,
 			   GiggleWindow *window)
 {
@@ -1040,6 +1047,10 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_history_go_forward)
 		},
 
+		{ "HelpIndex", GTK_STOCK_INDEX, NULL,
+		  NULL, N_("Show user's guide for Giggle"),
+		  G_CALLBACK (window_action_help_index_cb)
+		},
 		{ "Homepage", GTK_STOCK_HOME, N_("Visit _Homepage"),
 		  NULL, N_("Visit the homepage of Giggle"),
 		  G_CALLBACK (window_action_homepage_cb)
@@ -1116,6 +1127,8 @@ window_create_ui_manager (GiggleWindow *window)
 		"      <menuitem action='HistoryGoForward'/>"
 		"    </menu>"
 		"    <menu action='HelpMenu'>"
+		"      <menuitem action='HelpIndex'/>"
+		"      <separator/>"
 		"      <menuitem action='Homepage'/>"
 		"      <menuitem action='BugReport'/>"
 		"      <separator/>"
