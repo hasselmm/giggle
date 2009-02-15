@@ -211,7 +211,7 @@ personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
 	if (!name || !*name)
 		name = g_get_real_name ();
 	if (!email || !*email)
-		email = g_get_env ("EMAIL");
+		email = g_getenv ("EMAIL");
 
 	if (name)
 		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), name);
