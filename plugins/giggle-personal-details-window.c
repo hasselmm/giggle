@@ -24,8 +24,11 @@
 #include <libgiggle-git/giggle-git-config.h>
 
 #include <glib/gi18n.h>
-#include <libebook/e-book.h>
 #include <string.h>
+
+#ifdef ENABLE_EDS
+#include <libebook/e-book.h>
+#endif /* ENABLE_EDS */
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_PERSONAL_DETAILS_WINDOW, GigglePersonalDetailsWindowPriv))
 
@@ -118,6 +121,8 @@ giggle_personal_details_window_class_init (GigglePersonalDetailsWindowClass *cla
 				  sizeof (GigglePersonalDetailsWindowPriv));
 }
 
+#ifdef ENABLE_EDS
+
 static GtkEntryCompletion *
 create_email_completion (EContact *contact)
 {
@@ -146,6 +151,8 @@ create_email_completion (EContact *contact)
 	return completion;
 }
 
+#endif /* ENABLE_EDS */
+
 static void
 personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
 					   gboolean         success,
@@ -153,10 +160,13 @@ personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
 {
 	GigglePersonalDetailsWindow     *window = user_data;
 	GigglePersonalDetailsWindowPriv *priv = GET_PRIV (window);
+	const char			*name, *email;
+
+#ifdef ENABLE_EDS
 	EContact 			*contact = NULL;
 	EBook				*book = NULL;
 	GError   			*error = NULL;
-	const char			*value;
+#endif /* ENABLE_EDS */
 
 	gtk_widget_set_sensitive (GTK_WIDGET (window), TRUE);
 
@@ -177,27 +187,33 @@ personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 		g_object_unref (parent);
+
 		return;
 	}
+
+	name = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_NAME);
+	email = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_EMAIL);
+
+#ifdef ENABLE_EDS
 
 	if (!e_book_get_self (&contact, &book, &error)) {
 		g_warning ("%s: Cannot open retreive self-contact: %s",
 			   G_STRFUNC, error->message);
 	}
 
-	value = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_NAME);
+	if ((!name || !*name) && contact)
+		name = e_contact_get_const (contact, E_CONTACT_FULL_NAME);
+	if ((!email || !*email) && contact)
+		email = e_contact_get_const (contact, E_CONTACT_EMAIL_1);
 
-	if ((!value || !*value) && contact)
-		value = e_contact_get_const (contact, E_CONTACT_FULL_NAME);
-	if (value)
-		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), value);
+#endif /* ENABLE_EDS */
 
-	value = giggle_git_config_get_field (configuration, GIGGLE_GIT_CONFIG_FIELD_EMAIL);
+	if (name)
+		gtk_entry_set_text (GTK_ENTRY (priv->name_entry), name);
+	if (email)
+		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), email);
 
-	if ((!value || !*value) && contact)
-		value = e_contact_get_const (contact, E_CONTACT_EMAIL_1);
-	if (value)
-		gtk_entry_set_text (GTK_ENTRY (priv->email_entry), value);
+#ifdef ENABLE_EDS
 
 	if (contact) {
 		GtkEntryCompletion *completion = create_email_completion (contact);
@@ -209,6 +225,8 @@ personal_details_configuration_updated_cb (GiggleGitConfig *configuration,
 		g_object_unref (contact);
 	if (book)
 		g_object_unref (book);
+
+#endif /* ENABLE_EDS */
 }
 
 static void

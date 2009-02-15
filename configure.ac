@@ -38,9 +38,16 @@ PKG_CHECK_MODULES(GIGGLE, [
         libglade-2.0      >  2.4
 ])
 
-PKG_CHECK_MODULES(EBOOK, [
-        libebook-1.2
-])
+AC_ARG_ENABLE([evolution-data-server],
+              [AS_HELP_STRING([--disable-evolution-data-server],
+                              [disable features using Evolution Data Server])],,
+              [enable_evolution_data_server=yes])
+
+if test "$enable_evolution_data_server" = "yes"
+then
+  PKG_CHECK_MODULES(EBOOK, [libebook-1.2])
+  AC_DEFINE(ENABLE_EDS, 1, [Use features from libebook])
+fi
 
 dnl  ----------------------
 dnl | library requirements |-----------------------------------
@@ -143,6 +150,7 @@ AC_OUTPUT([
 ])
 
 echo
-echo "Prefix                 : $prefix"
-echo "GIT command path       : $GIT_COMMAND"
+echo "Prefix:                    $prefix"
+echo "GIT command path:          $GIT_COMMAND"
+echo "Use Evolution Data Server: $enable_evolution_data_server"
 echo
