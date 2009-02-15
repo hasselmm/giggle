@@ -1,6 +1,6 @@
 LDADD = \
 	../libgiggle/libgiggle.la \
-	../libgiggle/libgiggle-git.la \
+	../libgiggle-git/libgiggle-git.la \
 	$(GIGGLE_LIBS)
 
 AM_CPPFLAGS = \

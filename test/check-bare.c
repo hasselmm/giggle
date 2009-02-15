@@ -23,8 +23,8 @@
  * if advised of the possibility of such damage.
  */
 
-#include <libgiggle/giggle-git.h>
-#include <libgiggle/giggle-git-refs.h>
+#include <libgiggle-git/giggle-git.h>
+#include <libgiggle-git/giggle-git-refs.h>
 #include <libgiggle/giggle-ref.h>
 
 #include <string.h>
