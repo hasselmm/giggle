@@ -52,12 +52,12 @@ GType              giggle_revision_get_type          (void);
 GiggleRevision *   giggle_revision_new               (const gchar *sha);
 
 const gchar *      giggle_revision_get_sha           (GiggleRevision   *revision);
-const gchar *      giggle_revision_get_author        (GiggleRevision   *revision);
+GiggleAuthor *     giggle_revision_get_author        (GiggleRevision   *revision);
 void               giggle_revision_set_author        (GiggleRevision   *revision,
-						      const char       *author);
-const gchar *      giggle_revision_get_email         (GiggleRevision   *revision);
-void               giggle_revision_set_email         (GiggleRevision   *revision,
-						      const char       *email);
+						      GiggleAuthor     *author);
+GiggleAuthor *     giggle_revision_get_committer     (GiggleRevision   *revision);
+void               giggle_revision_set_committer     (GiggleRevision   *revision,
+						      GiggleAuthor     *committer);
 const struct tm *  giggle_revision_get_date          (GiggleRevision   *revision);
 void               giggle_revision_set_date          (GiggleRevision   *revision,
 						      const struct tm  *date);

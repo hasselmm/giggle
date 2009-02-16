@@ -40,6 +40,7 @@ struct GiggleRevisionViewPriv {
 	GtkWidget      *branches;
 	GtkWidget      *avatar;
 	GtkWidget      *author;
+	GtkWidget      *committer;
 	GtkWidget      *date;
 	GtkWidget      *sha;
 	GtkWidget      *log;
@@ -195,6 +196,10 @@ giggle_revision_view_init (GiggleRevisionView *view)
 	priv->author = gtk_link_button_new ("");
 	gtk_button_set_alignment (GTK_BUTTON (priv->author), 0.0, 0.5);
 	revision_view_attach_info (priv->table, _("Author:"), priv->author, row++);
+
+	priv->committer = gtk_link_button_new ("");
+	gtk_button_set_alignment (GTK_BUTTON (priv->committer), 0.0, 0.5);
+	revision_view_attach_info (priv->table, _("Committer:"), priv->committer, row++);
 
 	priv->date     = revision_view_create_info (priv->table, _("Date:"),     row++);
 	priv->sha      = revision_view_create_info (priv->table, _("SHA:"),      row++);
@@ -413,16 +418,41 @@ revision_view_update_branches_label (GiggleRevisionView *view)
 }
 
 static void
+update_autor_button (GtkWidget    *button,
+		     GtkWidget    *image,
+		     GiggleAuthor *author)
+{
+	const char *email = NULL;
+	const char *name = NULL;
+	char       *uri = NULL;
+
+	if (author) {
+		email = giggle_author_get_email (author);
+		name = giggle_author_get_name (author);
+	}
+
+	if (name && email)
+		uri = g_strdup_printf ("mailto:%s <%s>", name, email);
+
+	gtk_button_set_label (GTK_BUTTON (button), name);
+	gtk_link_button_set_uri (GTK_LINK_BUTTON (button), uri ? uri : "");
+
+	if (image && email)
+		giggle_avatar_image_set_gravatar_id (GIGGLE_AVATAR_IMAGE (image), email);
+
+	g_free (uri);
+}
+
+static void
 revision_view_update (GiggleRevisionView *view)
 {
 	GiggleRevisionViewPriv *priv;
 	GtkTextBuffer          *buffer;
 	const char             *sha = NULL;
-	const char             *author = NULL;
-	const char             *email = NULL;
-	const struct tm        *date;
+	GiggleAuthor           *author = NULL;
+	GiggleAuthor           *committer = NULL;
 	char                    str[256];
-	char                   *uri = NULL;
+	const struct tm        *date;
 
 	priv = GET_PRIV (view);
 
@@ -430,13 +460,10 @@ revision_view_update (GiggleRevisionView *view)
 	gtk_text_buffer_set_text (buffer, "", -1);
 
 	if (priv->revision) {
-		sha    = giggle_revision_get_sha    (priv->revision);
-		date   = giggle_revision_get_date   (priv->revision);
-		author = giggle_revision_get_author (priv->revision);
-		email  = giggle_revision_get_email  (priv->revision);
-
-		if (email)
-			uri = g_strdup_printf ("mailto:%s <%s>", author, email);
+		sha       = giggle_revision_get_sha       (priv->revision);
+		date      = giggle_revision_get_date      (priv->revision);
+		author    = giggle_revision_get_author    (priv->revision);
+		committer = giggle_revision_get_committer (priv->revision);
 
 		if (date) {
 			strftime (str, sizeof (str), "%c", date);
@@ -452,19 +479,15 @@ revision_view_update (GiggleRevisionView *view)
 
 		priv->job = giggle_git_log_new (priv->revision);
 
-		giggle_git_run_job (priv->git,
-				    priv->job,
-				    revision_view_update_log_cb,
-				    view);
+		giggle_git_run_job (priv->git, priv->job,
+				    revision_view_update_log_cb, view);
 	} else {
 		gtk_label_set_text (GTK_LABEL (priv->date), NULL);
 	}
 
+	update_autor_button (priv->author, priv->avatar, author);
+	update_autor_button (priv->committer, NULL, committer);
 	gtk_label_set_text (GTK_LABEL (priv->sha), sha);
-	gtk_button_set_label (GTK_BUTTON (priv->author), author);
-	gtk_link_button_set_uri (GTK_LINK_BUTTON (priv->author), uri ? uri : "");
-	giggle_avatar_image_set_gravatar_id (GIGGLE_AVATAR_IMAGE (priv->avatar), email);
-
 	revision_view_update_branches_label (view);
 
 	if (priv->revision) {
@@ -472,8 +495,6 @@ revision_view_update (GiggleRevisionView *view)
 	} else {
 		gtk_widget_hide (priv->table);
 	}
-
-	g_free (uri);
 }
 
 GtkWidget *

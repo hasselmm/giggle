@@ -151,28 +151,33 @@ static void
 git_revisions_get_committer_info (GiggleGitRevisionsPriv  *priv,
 				  GiggleRevision          *revision,
 				  const gchar             *line,
-				  gchar                  **author,
-				  gchar                  **email,
+				  GiggleAuthor           **author,
 				  struct tm              **tm)
 {
-	GMatchInfo *match;
-	char       *tstamp;
+	GMatchInfo *match = NULL;
+	char       *address = NULL;
+	char       *timestamp = NULL;
 
 	if (!priv->regex_committer) {
 		priv->regex_committer = g_regex_new
-			("^([^>]*)\\s+<([^>]+?)>\\s+(\\d+ [+-]\\d+)\\b",
+			("^([^<]*\\s+<[^>]+>)\\s+(\\d+ [+-]\\d+)\\b",
 			 G_REGEX_OPTIMIZE, 0, NULL);
 	}
 
 	if (g_regex_match (priv->regex_committer, line, 0, &match)) {
-		*author = g_match_info_fetch (match, 1);
-		*email  = g_match_info_fetch (match, 2);
-		tstamp  = g_match_info_fetch (match, 3);
-		*tm     = git_revisions_get_time (tstamp);
-		g_free (tstamp);
+		address   = g_match_info_fetch (match, 1);
+		timestamp = g_match_info_fetch (match, 2);
 	}
 
 	g_match_info_free (match);
+
+	if (author && address)
+		*author = giggle_author_new_from_string (address);
+	if (tm && timestamp)
+		*tm = git_revisions_get_time (timestamp);
+
+	g_free (timestamp);
+	g_free (address);
 }
 
 static void
@@ -180,11 +185,11 @@ git_revisions_parse_revision_info (GiggleGitRevisionsPriv  *priv,
 				   GiggleRevision          *revision,
 				   gchar                  **lines)
 {
-	gint       i = 0;
-	struct tm *tm = NULL;
-	gchar     *author = NULL;
-	gchar     *email = NULL;
-	gchar     *short_log = NULL;
+	gint          i = 0;
+	struct tm    *date = NULL;
+	GiggleAuthor *author = NULL;
+	GiggleAuthor *committer = NULL;
+	gchar        *short_log = NULL;
 
 	while (lines[i]) {
 		gchar* converted = NULL;
@@ -223,7 +228,11 @@ git_revisions_parse_revision_info (GiggleGitRevisionsPriv  *priv,
 		if (g_str_has_prefix (converted, "author ")) {
 			git_revisions_get_committer_info (priv, revision,
 							  converted + strlen ("author "),
-							  &author, &email, &tm);
+							  &author, &date);
+		} else if (g_str_has_prefix (converted, "committer ")) {
+			git_revisions_get_committer_info (priv, revision,
+							  converted + strlen ("committer "),
+							  &committer, NULL);
 		} else if (!short_log && g_str_has_prefix (converted, " ")) {
 			g_strstrip (converted);
 			short_log = g_strdup (converted);
@@ -234,14 +243,24 @@ git_revisions_parse_revision_info (GiggleGitRevisionsPriv  *priv,
 		i++;
 	}
 
-	giggle_revision_set_email     (revision, email);
-	giggle_revision_set_author    (revision, author);
-	giggle_revision_set_short_log (revision, short_log);
-	giggle_revision_set_date      (revision, tm);
+	if (author) {
+		giggle_revision_set_author (revision, author);
+		g_object_unref (author);
+	}
 
-	g_free (email);
-	g_free (author);
-	g_free (short_log);
+	if (committer) {
+		giggle_revision_set_committer (revision, committer);
+		g_object_unref (committer);
+	}
+
+	if (short_log) {
+		giggle_revision_set_short_log (revision, short_log);
+		g_free (short_log);
+	}
+
+	if (date)
+		giggle_revision_set_date (revision, date);
+
 }
 
 static GiggleRevision*

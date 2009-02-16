@@ -1459,25 +1459,21 @@ rev_list_view_cell_data_author_func (GtkCellLayout   *layout,
 				     GtkTreeIter     *iter,
 				     gpointer         data)
 {
-	GiggleRevListViewPriv *priv;
-	GiggleRevision         *revision;
-	const gchar            *author = NULL;
+	GiggleAuthor   *author = NULL;
+	const char     *name = NULL;
+	GiggleRevision *revision;
 
-	priv = GET_PRIV (data);
+	gtk_tree_model_get (model, iter, COL_OBJECT, &revision, -1);
 
-	gtk_tree_model_get (model, iter,
-			    COL_OBJECT, &revision,
-			    -1);
-
-	if (revision) {
+	if (revision)
 		author = giggle_revision_get_author (revision);
-	}
+	if (author)
+		name = giggle_author_get_name (author);
 
-	g_object_set (cell, "text", author, NULL);
+	g_object_set (cell, "text", name, NULL);
 
-	if (revision) {
+	if (revision)
 		g_object_unref (revision);
-	}
 }
 
 static gchar *

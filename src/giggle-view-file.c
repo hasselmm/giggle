@@ -969,6 +969,11 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 	gtk_text_iter_backward_chars (&iter, gtk_text_iter_get_line_offset (&iter));
 
 	for (l = gtk_text_iter_get_marks (&iter); l; l = l->next) {
+		const char   *committer_name = NULL;
+		const char   *author_name = NULL;
+		GiggleAuthor *committer = NULL;
+		GiggleAuthor *author = NULL;
+
 		revision = g_object_get_data (l->data, "giggle-revision");
 
 		if (!revision)
@@ -981,11 +986,20 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 			*date = '\0';
 		}
 
+		author = giggle_revision_get_author (revision);
+		committer = giggle_revision_get_committer (revision);
+
+		if (author)
+			author_name = giggle_author_get_name (author);
+		if (committer)
+			committer_name = giggle_author_get_name (committer);
+
 		markup = g_markup_printf_escaped
-			("<b>%s</b> %s\n<b>%s</b> %s\n<b>%s</b> %s\n%s",
-			 _("Author:"),   giggle_revision_get_author (revision),
-			 _("Date:"),     date,
-			 _("SHA:"),      giggle_revision_get_sha (revision),
+			("<b>%s</b> %s\n<b>%s</b> %s\n<b>%s</b> %s\n<b>%s</b> %s\n%s",
+			 _("Author:"),    author_name,
+			 _("Committer:"), committer_name,
+			 _("Date:"),      date,
+			 _("SHA:"),       giggle_revision_get_sha (revision),
 			 giggle_revision_get_short_log (revision));
 
 		gtk_text_view_get_line_yrange (GTK_TEXT_VIEW (widget),

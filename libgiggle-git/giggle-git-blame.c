@@ -167,9 +167,11 @@ git_blame_handle_output (GiggleJob   *job,
 	GiggleGitBlamePriv  *priv;
 	const char          *start, *end;
 	GiggleGitBlameChunk *chunk = NULL;
+	GiggleAuthor        *author = NULL;
+	GiggleAuthor        *committer = NULL;
 	char                 sha[41];
-	time_t		     time;
-	int		     i;
+	time_t               time;
+	int                  i;
 
 	priv = GET_PRIV (job);
 
@@ -198,9 +200,17 @@ git_blame_handle_output (GiggleJob   *job,
 						     g_strdup (sha), chunk->revision);
 			}
 		} else if (g_str_has_prefix (start, "author ")) {
-			char *author = g_strndup (start + 7, end - start - 7);
+			char *name = g_strndup (start + 7, end - start - 7);
+			author = giggle_author_new_from_name (name, NULL);
 			giggle_revision_set_author (chunk->revision, author);
-			g_free (author);
+			g_object_unref (author);
+			g_free (name);
+		} else if (g_str_has_prefix (start, "committer ")) {
+			char *name = g_strndup (start + 10, end - start - 10);
+			committer = giggle_author_new_from_name (name, NULL);
+			giggle_revision_set_committer (chunk->revision, author);
+			g_object_unref (committer);
+			g_free (name);
 		} else if (1 == sscanf (start, "author-time %d\n", &i)) {
 			struct tm *date = g_new (struct tm, 1); time = i;
 			giggle_revision_set_date (chunk->revision, gmtime_r (&time, date));
@@ -209,6 +219,8 @@ git_blame_handle_output (GiggleJob   *job,
 			giggle_revision_set_short_log (chunk->revision, summary);
 			g_free (summary);
 		} else if (g_str_has_prefix (start, "filename ")) {
+			committer = NULL;
+			author = NULL;
 			chunk = NULL;
 		}
 	}

@@ -29,17 +29,17 @@ enum {
 	PROP_0,
 	PROP_SHA,
 	PROP_AUTHOR,
-	PROP_EMAIL,
+	PROP_COMMITTER,
 	PROP_DATE,
 	PROP_SHORT_LOG
 };
 
 typedef struct {
-	gchar              *sha;
-	gchar              *author;
-	gchar              *email;
+	char               *sha;
 	struct tm          *date;
-	gchar              *short_log;
+	GiggleAuthor       *author;
+	GiggleAuthor       *committer;
+	char               *short_log;
 
 	GList              *descendent_branches;
 
@@ -74,13 +74,17 @@ revision_set_property (GObject      *object,
 		break;
 
 	case PROP_AUTHOR:
-		g_free (priv->author);
-		priv->author = g_value_dup_string (value);
+		if (priv->author)
+			g_object_unref (priv->author);
+
+		priv->author = g_value_dup_object (value);
 		break;
 
-	case PROP_EMAIL:
-		g_free (priv->email);
-		priv->email = g_value_dup_string (value);
+	case PROP_COMMITTER:
+		if (priv->committer)
+			g_object_unref (priv->committer);
+
+		priv->committer = g_value_dup_object (value);
 		break;
 
 	case PROP_DATE:
@@ -113,18 +117,23 @@ revision_get_property (GObject    *object,
 	case PROP_SHA:
 		g_value_set_string (value, priv->sha);
 		break;
+
 	case PROP_AUTHOR:
-		g_value_set_string (value, priv->author);
+		g_value_set_object (value, priv->author);
 		break;
-	case PROP_EMAIL:
-		g_value_set_string (value, priv->email);
+
+	case PROP_COMMITTER:
+		g_value_set_object (value, priv->committer);
 		break;
+
 	case PROP_DATE:
 		g_value_set_pointer (value, priv->date);
 		break;
+
 	case PROP_SHORT_LOG:
 		g_value_set_string (value, priv->short_log);
 		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -141,10 +150,12 @@ revision_finalize (GObject *object)
 	priv = GET_PRIV (revision);
 
 	g_free (priv->sha);
-	g_free (priv->author);
-	g_free (priv->email);
 	g_free (priv->short_log);
 
+	if (priv->author)
+		g_object_unref (priv->author);
+	if (priv->committer)
+		g_object_unref (priv->committer);
 	if (priv->date)
 		g_free (priv->date);
 
@@ -185,17 +196,17 @@ giggle_revision_class_init (GiggleRevisionClass *class)
 
 	g_object_class_install_property
 		(object_class, PROP_AUTHOR,
-		 g_param_spec_string ("author", "Author",
+		 g_param_spec_object ("author", "Author",
 				      "Author of the revision",
-				      NULL,
+				      GIGGLE_TYPE_AUTHOR,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property
-		(object_class, PROP_EMAIL,
-		 g_param_spec_string ("email", "Email",
-				      "Email address for author of the revision",
-				      NULL,
+		(object_class, PROP_COMMITTER,
+		 g_param_spec_object ("committer", "Committer",
+				      "Committer of the revision",
+				      GIGGLE_TYPE_AUTHOR,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 
@@ -235,7 +246,7 @@ giggle_revision_get_sha (GiggleRevision *revision)
 	return GET_PRIV (revision)->sha;
 }
 
-const gchar *
+GiggleAuthor *
 giggle_revision_get_author (GiggleRevision *revision)
 {
 	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
@@ -244,25 +255,27 @@ giggle_revision_get_author (GiggleRevision *revision)
 
 void
 giggle_revision_set_author (GiggleRevision *revision,
-			    const char     *author)
+			    GiggleAuthor   *author)
 {
 	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (GIGGLE_IS_AUTHOR (author) | !author);
 	g_object_set (revision, "author", author, NULL);
 }
 
-const gchar *
-giggle_revision_get_email (GiggleRevision *revision)
+GiggleAuthor *
+giggle_revision_get_committer (GiggleRevision *revision)
 {
 	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
-	return GET_PRIV (revision)->email;
+	return GET_PRIV (revision)->committer;
 }
 
 void
-giggle_revision_set_email (GiggleRevision *revision,
-			   const char     *email)
+giggle_revision_set_committer (GiggleRevision *revision,
+			       GiggleAuthor   *committer)
 {
 	g_return_if_fail (GIGGLE_IS_REVISION (revision));
-	g_object_set (revision, "email", email, NULL);
+	g_return_if_fail (GIGGLE_IS_AUTHOR (committer) | !committer);
+	g_object_set (revision, "committer", committer, NULL);
 }
 
 const struct tm *
