@@ -234,9 +234,12 @@ git_revisions_parse_revision_info (GiggleGitRevisionsPriv  *priv,
 		i++;
 	}
 
-	g_object_set (revision,"author", author, "email", email,
-		      "date", tm, "short-log", short_log, NULL);
+	giggle_revision_set_email     (revision, email);
+	giggle_revision_set_author    (revision, author);
+	giggle_revision_set_short_log (revision, short_log);
+	giggle_revision_set_date      (revision, tm);
 
+	g_free (email);
 	g_free (author);
 	g_free (short_log);
 }

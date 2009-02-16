@@ -38,18 +38,14 @@ main (int argc, char **argv)
 	giggle_git_set_directory (git, "/home/micke/Source/giggle", NULL);
 
 	rev1 = giggle_revision_new ("4c7b72b6dc089db58d25d2a2a07de6a4d15f3560");
-        g_object_set (rev1,
-                      "author", "Richard Hult <richard@imendio.com>",
-                      "short-log", "Make the patch view use a monospace font",
-                      "date", "2007-01-12",
-                      NULL);
+	giggle_revision_set_author (rev1, "Richard Hult <richard@imendio.com>");
+	giggle_revision_set_short_log (rev1, "Make the patch view use a monospace font");
+	giggle_revision_set_date (rev1, "2007-01-12");
 
 	rev2 = giggle_revision_new ("883a8b6ed7f068d01e70e3e516164f497f9babd9");
-	g_object_set (rev2,
-                      "author", "Richard Hult <richard@imendio.com>",
-                      "short-log", "Make the patch view use a monospace font",
-                      "date", "2007-01-12",
-                      NULL);
+	giggle_revision_set_author (rev2, "Richard Hult <richard@imendio.com>");
+	giggle_revision_set_short_log (rev2, "Make the patch view use a monospace font");
+	giggle_revision_set_date (rev2, "2007-01-12");
 
 	diff = giggle_git_diff_new ();
 	giggle_git_diff_set_revisions (GIGGLE_GIT_DIFF (diff), rev1, rev2);

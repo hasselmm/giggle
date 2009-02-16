@@ -242,11 +242,27 @@ giggle_revision_get_author (GiggleRevision *revision)
 	return GET_PRIV (revision)->author;
 }
 
+void
+giggle_revision_set_author (GiggleRevision *revision,
+			    const char     *author)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_object_set (revision, "author", author, NULL);
+}
+
 const gchar *
 giggle_revision_get_email (GiggleRevision *revision)
 {
 	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
 	return GET_PRIV (revision)->email;
+}
+
+void
+giggle_revision_set_email (GiggleRevision *revision,
+			   const char     *email)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_object_set (revision, "email", email, NULL);
 }
 
 const struct tm *
@@ -256,11 +272,28 @@ giggle_revision_get_date (GiggleRevision *revision)
 	return GET_PRIV (revision)->date;
 }
 
+void
+giggle_revision_set_date (GiggleRevision  *revision,
+			  const struct tm *date)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_return_if_fail (NULL != date);
+	g_object_set (revision, "date", date, NULL);
+}
+
 const gchar *
 giggle_revision_get_short_log (GiggleRevision *revision)
 {
 	g_return_val_if_fail (GIGGLE_IS_REVISION (revision), NULL);
 	return GET_PRIV (revision)->short_log;
+}
+
+void
+giggle_revision_set_short_log (GiggleRevision *revision,
+			       const char     *short_log)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION (revision));
+	g_object_set (revision, "short-log", short_log, NULL);
 }
 
 static void

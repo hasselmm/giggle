@@ -199,16 +199,14 @@ git_blame_handle_output (GiggleJob   *job,
 			}
 		} else if (g_str_has_prefix (start, "author ")) {
 			char *author = g_strndup (start + 7, end - start - 7);
-			g_object_set (chunk->revision, "author", author, NULL);
+			giggle_revision_set_author (chunk->revision, author);
 			g_free (author);
 		} else if (1 == sscanf (start, "author-time %d\n", &i)) {
-			struct tm *date = g_new (struct tm, 1);
-
-			time = i;
-			g_object_set (chunk->revision, "date", gmtime_r (&time, date), NULL);
+			struct tm *date = g_new (struct tm, 1); time = i;
+			giggle_revision_set_date (chunk->revision, gmtime_r (&time, date));
 		} else if (g_str_has_prefix (start, "summary ")) {
 			char *summary = g_strndup (start + 8, end - start - 8);
-			g_object_set (chunk->revision, "short-log", summary, NULL);
+			giggle_revision_set_short_log (chunk->revision, summary);
 			g_free (summary);
 		} else if (g_str_has_prefix (start, "filename ")) {
 			chunk = NULL;

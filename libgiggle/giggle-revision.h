@@ -53,9 +53,17 @@ GiggleRevision *   giggle_revision_new               (const gchar *sha);
 
 const gchar *      giggle_revision_get_sha           (GiggleRevision   *revision);
 const gchar *      giggle_revision_get_author        (GiggleRevision   *revision);
+void               giggle_revision_set_author        (GiggleRevision   *revision,
+						      const char       *author);
 const gchar *      giggle_revision_get_email         (GiggleRevision   *revision);
+void               giggle_revision_set_email         (GiggleRevision   *revision,
+						      const char       *email);
 const struct tm *  giggle_revision_get_date          (GiggleRevision   *revision);
+void               giggle_revision_set_date          (GiggleRevision   *revision,
+						      const struct tm  *date);
 const gchar *      giggle_revision_get_short_log     (GiggleRevision   *revision);
+void               giggle_revision_set_short_log     (GiggleRevision   *revision,
+						      const char       *short_log);
 
 GList *            giggle_revision_get_children      (GiggleRevision   *revision);
 GList *            giggle_revision_get_parents       (GiggleRevision   *revision);
