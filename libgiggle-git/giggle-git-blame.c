@@ -183,7 +183,7 @@ git_blame_handle_output (GiggleJob   *job,
 			chunk = g_slice_new0 (GiggleGitBlameChunk);
 			g_ptr_array_add (priv->chunks, chunk);
 
-			g_warn_if_fail (3 == sscanf
+			g_warn_if_fail (4 == sscanf
 				(start, "%40s %d %d %d", sha,
 				 &chunk->source_line, &chunk->result_line,
 				 &chunk->num_lines));
