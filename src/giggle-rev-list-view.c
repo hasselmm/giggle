@@ -1267,8 +1267,8 @@ rev_list_view_create_patch_callback (GiggleGit *git,
 		g_free (primary_str);
 	}
 
-	gtk_dialog_run (GTK_DIALOG (dialog));
-	gtk_widget_destroy (dialog);
+	g_signal_connect (dialog, "response", G_CALLBACK (gtk_widget_destroy), NULL);
+	gtk_widget_show (dialog);
 	
 	g_object_unref (priv->job);
 	priv->job = NULL;
