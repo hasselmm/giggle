@@ -180,12 +180,13 @@ git_blame_handle_output (GiggleJob   *job,
 			break;
 
 		if (!chunk) {
-			chunk = g_slice_new (GiggleGitBlameChunk);
+			chunk = g_slice_new0 (GiggleGitBlameChunk);
 			g_ptr_array_add (priv->chunks, chunk);
 
-			sscanf (start, "%40s %d %d %d", sha,
-				&chunk->source_line, &chunk->result_line,
-				&chunk->num_lines);
+			g_warn_if_fail (3 == sscanf
+				(start, "%40s %d %d %d", sha,
+				 &chunk->source_line, &chunk->result_line,
+				 &chunk->num_lines));
 
 			chunk->revision = g_hash_table_lookup (priv->revision_cache, sha);
 
