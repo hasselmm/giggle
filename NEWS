@@ -1,17 +1,58 @@
+Giggle 0.4.91, 2009-02-16
+=========================
+
+This is a development release leading up to Giggle 0.5.
+Focus was fixing build issues found in the last release.
+
+Notes:
+
+ * This is unstable development release. While it has had a bit of testing,
+   there are plenty of bugs and regressions remaining to be found.
+   This release should not be used in production.
+
+ * Bugs should be reported to http://bugzilla.gnome.org/.
+
+Bugs fixed:
+
+ * 570313 - Create Patch freezes GUI
+ * 566188 - Linking dynamic libraries with -no-undefined impossible, circular dependency
+ * 566303 - Extract git logic to a library to be used by other programs
+ * 570172 - GiggleRevisionInfoAction breaks with GTK+ 2.15 SVN
+ * 571634 - Error while loading shared libraries
+ * 571690 - warning about inserting an action group that already exists
+ * 571786 - Make plugins optional
+ * 571811 - Giggle freezes when searching in history view
+ * Require glib and gio 2.18
+ * Add missing includes
+ * Use proper regex to parse 'author' lines
+ * Add $(datadir)/icons to icon search path
+
+Other changes:
+
+ * Add --as-needed and --no-undefined to linker flags to avoid cyclic dependencies
+ * Move libgiggle-git into separate folder.
+ * Use consistent names for git-config related classes.
+ * Resort to passwd file/EMAIL variable for personal details
+
+Contributors:
+
+ * Federico Mena Quintero
+ * Łukasz Jernaś
+ * Mathias Hasselmann
+
 Giggle 0.4.90, 2009-02-12
--------------------------
+=========================
 
 This is a development release leading up to Giggle 0.5,
 the first release since since more than a year.
 
 Notes:
 
- * This is unstable development release. While it has had
-   a bit of testing, there are plenty of bugs and regressions
-   remaining to be found. This release should not be used
-   in production.
+ * This is unstable development release. While it has had a bit of testing,
+   there are plenty of bugs and regressions remaining to be found.
+   This release should not be used in production.
 
- * Bugs should be reported to http://bugzilla.gnome.org.
+ * Bugs should be reported to http://bugzilla.gnome.org/.
 
 Most Important Changes:
 
@@ -21,8 +62,10 @@ Most Important Changes:
  * There are the basics of a plugin system now.
  * The revision view shows avatars retreived from Gravatar.
 
+Bugs closed since the last release:
+
 Giggle 0.4, 2007-12-07
-----------------------
+======================
 
 Bugs closed since the last release:
 
@@ -48,7 +91,7 @@ New Feature
 
 
 Giggle 0.3, 2007-05-09
-----------------------
+======================
 
 Bugs closed since the last release:
 
@@ -79,7 +122,7 @@ Downloads:
 
 
 Giggle 0.2, 2007-03-29
-----------------------
+======================
 
 Giggle is a graphical frontend for the git directory tracker (think of gitk on GTK+).
 
