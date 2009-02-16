@@ -21,6 +21,7 @@
 #include "config.h"
 #include "giggle-git-diff-tree.h"
 
+#include <stdio.h>
 #include <string.h>
 
 typedef struct GiggleGitDiffTreePriv GiggleGitDiffTreePriv;

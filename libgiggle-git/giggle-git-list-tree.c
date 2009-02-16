@@ -21,6 +21,7 @@
 #include "config.h"
 #include "giggle-git-list-tree.h"
 
+#include <stdio.h>
 #include <string.h>
 
 typedef struct GiggleGitListTreeItem GiggleGitListTreeItem;

@@ -21,12 +21,9 @@
 #ifndef __GIGGLE_REVISION_H__
 #define __GIGGLE_REVISION_H__
 
-#include <glib-object.h>
-#include <gdk/gdk.h>
-#include <gtk/gtktreemodel.h>
-
-#include "giggle-ref.h"
+#include "giggle-author.h"
 #include "giggle-branch.h"
+#include "giggle-ref.h"
 
 G_BEGIN_DECLS
 

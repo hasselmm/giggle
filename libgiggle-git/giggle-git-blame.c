@@ -21,6 +21,7 @@
 #include "config.h"
 #include "giggle-git-blame.h"
 
+#include <stdio.h>
 #include <string.h>
 
 typedef struct GiggleGitBlamePriv GiggleGitBlamePriv;
