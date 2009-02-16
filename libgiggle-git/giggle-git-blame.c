@@ -150,7 +150,7 @@ git_blame_get_command_line (GiggleJob *job, gchar **command_line)
 
 	file = g_shell_quote (priv->file);
 
-	*command_line = g_strconcat (GIT_COMMAND " blame --incremental",
+	*command_line = g_strconcat (GIT_COMMAND " blame --incremental ",
 				     sha, " ", file, NULL);
 
 	g_free (file);
