@@ -45,15 +45,35 @@ struct GiggleRevisionInfoClass {
 	GtkVBoxClass parent_class;
 };
 
-GType			giggle_revision_info_get_type     (void);
-GtkWidget *		giggle_revision_info_new          (void);
+GType
+giggle_revision_info_get_type         (void) G_GNUC_CONST;
 
-void			giggle_revision_info_set_revision (GiggleRevisionInfo *info,
-							   GiggleRevision     *revision);
+GtkWidget *
+giggle_revision_info_new              (void);
 
-GiggleRevision *	giggle_revision_info_get_revision (GiggleRevisionInfo *info);
+void
+giggle_revision_info_set_revision     (GiggleRevisionInfo *info,
+                                       GiggleRevision     *revision);
 
-GtkWidget *		giggle_revision_info_get_label    (GiggleRevisionInfo *info);
+GiggleRevision *
+giggle_revision_info_get_revision     (GiggleRevisionInfo *info);
+
+void
+giggle_revision_info_set_label        (GiggleRevisionInfo *info,
+                                       const char         *label);
+
+const char *
+giggle_revision_info_get_label        (GiggleRevisionInfo *info);
+
+void
+giggle_revision_info_set_use_markup   (GiggleRevisionInfo *info,
+                                       gboolean            use_markup);
+
+gboolean
+giggle_revision_info_get_use_markup   (GiggleRevisionInfo *info);
+
+GtkWidget *
+giggle_revision_info_get_label_widget (GiggleRevisionInfo *info);
 
 G_END_DECLS
 

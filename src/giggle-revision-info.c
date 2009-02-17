@@ -23,36 +23,34 @@
 
 #include "giggle-revision-info.h"
 
-typedef struct GiggleRevisionInfoPriv GiggleRevisionInfoPriv;
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_INFO, GiggleRevisionInfoPriv))
 
-struct GiggleRevisionInfoPriv {
+enum {
+	PROP_0,
+	PROP_REVISION,
+	PROP_LABEL,
+	PROP_USE_MARKUP,
+};
+
+typedef struct {
 	GiggleRevision *revision;
 
 	GtkWidget      *label;
 	GtkWidget      *sha1;
 	GtkWidget      *date;
 	GtkWidget      *summary;
-};
 
-enum {
-	PROP_0,
-	PROP_REVISION,
-};
+	unsigned        use_markup : 1;
+} GiggleRevisionInfoPriv;
 
 G_DEFINE_TYPE (GiggleRevisionInfo, giggle_revision_info, GTK_TYPE_VBOX)
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_INFO, GiggleRevisionInfoPriv))
-
 static void
-revision_info_real_set_revision (GiggleRevisionInfo *info,
-				 GiggleRevision     *revision)
+revision_info_set_revision (GiggleRevisionInfoPriv *priv,
+			    GiggleRevision         *revision)
 {
-	GiggleRevisionInfoPriv *priv;
-	char			date[256] = "";
-	const struct tm        *tm = NULL;
-
-
-	priv = GET_PRIV (info);
+	char             date[256] = "";
+	const struct tm *tm = NULL;
 
 	if (priv->revision) {
 		g_object_unref (priv->revision);
@@ -89,10 +87,27 @@ revision_info_real_set_revision (GiggleRevisionInfo *info,
 }
 
 static void
+revision_info_set_label (GiggleRevisionInfoPriv *priv,
+			 const char             *label)
+{
+	if (priv->use_markup) {
+		gtk_label_set_markup (GTK_LABEL (priv->label), label);
+	} else {
+		gtk_label_set_text (GTK_LABEL (priv->label), label);
+	}
+}
+
+static const char *
+revision_info_get_label (GiggleRevisionInfoPriv *priv)
+{
+	return gtk_label_get_text (GTK_LABEL (priv->label));
+}
+
+static void
 revision_info_get_property (GObject    *object,
-			   guint       param_id,
-			   GValue     *value,
-			   GParamSpec *pspec)
+			    guint       param_id,
+			    GValue     *value,
+			    GParamSpec *pspec)
 {
 	GiggleRevisionInfoPriv *priv;
 
@@ -103,6 +118,14 @@ revision_info_get_property (GObject    *object,
 		g_value_set_object (value, priv->revision);
 		break;
 
+	case PROP_LABEL:
+		g_value_set_string (value, revision_info_get_label (priv));
+		break;
+
+	case PROP_USE_MARKUP:
+		g_value_set_boolean (value, priv->use_markup);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -111,14 +134,24 @@ revision_info_get_property (GObject    *object,
 
 static void
 revision_info_set_property (GObject      *object,
-			   guint         param_id,
-			   const GValue *value,
-			   GParamSpec   *pspec)
+			    guint         param_id,
+			    const GValue *value,
+			    GParamSpec   *pspec)
 {
+	GiggleRevisionInfoPriv *priv = GET_PRIV (object);
+
 	switch (param_id) {
 	case PROP_REVISION:
-		revision_info_real_set_revision (GIGGLE_REVISION_INFO (object),
-						 g_value_get_object (value));
+		revision_info_set_revision (priv, g_value_get_object (value));
+		break;
+
+	case PROP_LABEL:
+		revision_info_set_label (priv, g_value_get_string (value));
+		break;
+
+	case PROP_USE_MARKUP:
+		priv->use_markup = g_value_get_boolean (value);
+		gtk_label_set_use_markup (GTK_LABEL (priv->label), priv->use_markup);
 		break;
 
 	default:
@@ -151,13 +184,24 @@ giggle_revision_info_class_init (GiggleRevisionInfoClass *class)
 	object_class->set_property = revision_info_set_property;
 	object_class->dispose      = revision_info_dispose;
 
-	g_object_class_install_property (object_class,
-					 PROP_REVISION,
-					 g_param_spec_object ("revision",
-							      "Revision",
-							      "The git revsion to show",
-							      GIGGLE_TYPE_REVISION,
-							      G_PARAM_READWRITE));
+	g_object_class_install_property
+		(object_class, PROP_REVISION,
+		 g_param_spec_object ("revision", "Revision",
+				      "The git revsion to show", GIGGLE_TYPE_REVISION,
+				      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property
+		(object_class, PROP_LABEL,
+		 g_param_spec_string ("label", "Label",
+				      "Additional label to show", NULL,
+				      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property
+		(object_class, PROP_USE_MARKUP,
+		 g_param_spec_boolean ("use-markup", "Use Markup",
+				       "Wheither to use markup in the label", TRUE,
+				       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS |
+				       G_PARAM_CONSTRUCT));
 
 	g_type_class_add_private (class, sizeof (GiggleRevisionInfoPriv));
 }
@@ -224,8 +268,38 @@ giggle_revision_info_get_revision (GiggleRevisionInfo *info)
 	return GET_PRIV (info)->revision;
 }
 
-GtkWidget *
+void
+giggle_revision_info_set_label (GiggleRevisionInfo *info,
+				const char         *label)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION_INFO (info));
+	g_object_set (info, "label", label, NULL);
+}
+
+const char *
 giggle_revision_info_get_label (GiggleRevisionInfo *info)
+{
+	g_return_val_if_fail (GIGGLE_IS_REVISION_INFO (info), NULL);
+	return revision_info_get_label (GET_PRIV (info));
+}
+
+void
+giggle_revision_info_set_use_markup (GiggleRevisionInfo *info,
+				     gboolean            use_markup)
+{
+	g_return_if_fail (GIGGLE_IS_REVISION_INFO (info));
+	g_object_set (info, "use-markup", use_markup, NULL);
+}
+
+gboolean
+giggle_revision_info_get_use_markup (GiggleRevisionInfo *info)
+{
+	g_return_val_if_fail (GIGGLE_IS_REVISION_INFO (info), FALSE);
+	return GET_PRIV (info)->use_markup;
+}
+
+GtkWidget *
+giggle_revision_info_get_label_widget (GiggleRevisionInfo *info)
 {
 	g_return_val_if_fail (GIGGLE_IS_REVISION_INFO (info), NULL);
 	return GET_PRIV (info)->label;
