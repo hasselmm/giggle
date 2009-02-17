@@ -66,6 +66,7 @@ typedef struct {
 	GtkWidget           *goto_entry;
 	GtkWidget           *hpaned;
 	GtkWidget           *vpaned;
+	GtkWidget           *window;
 
 	GtkActionGroup      *action_group;
 
@@ -148,9 +149,7 @@ view_file_set_property (GObject      *object,
 static void
 view_file_finalize (GObject *object)
 {
-	GiggleViewFilePriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewFilePriv *priv = GET_PRIV (object);
 
 	g_free (priv->current_file);
 
@@ -158,11 +157,26 @@ view_file_finalize (GObject *object)
 }
 
 static void
+view_file_set_focus_cb (GtkWindow      *window,
+			GtkWidget      *widget,
+			GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv = GET_PRIV (view);
+	GtkAction          *action;
+
+	action = gtk_action_group_get_action (priv->action_group, "ViewFileShowChangeSet");
+
+	gtk_action_set_sensitive (action, GTK_WIDGET_HAS_FOCUS (priv->source_view) |
+					  GTK_WIDGET_HAS_FOCUS (priv->revision_list));
+
+	action = gtk_action_group_get_action (priv->action_group, "ViewFileSelectRevision");
+	gtk_action_set_sensitive (action, GTK_WIDGET_HAS_FOCUS (priv->source_view));
+}
+
+static void
 view_file_dispose (GObject *object)
 {
-	GiggleViewFilePriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewFilePriv *priv = GET_PRIV (object);
 
 	if (priv->configuration) {
 		g_object_unref (priv->configuration);
@@ -177,6 +191,12 @@ view_file_dispose (GObject *object)
 	if (priv->action_group) {
 		g_object_unref (priv->action_group);
 		priv->action_group = NULL;
+	}
+
+	if (priv->window) {
+		g_signal_handlers_disconnect_by_func (priv->window,
+						      view_file_set_focus_cb, object);
+		priv->window = NULL;
 	}
 
 	G_OBJECT_CLASS (giggle_view_file_parent_class)->dispose (object);
@@ -198,6 +218,95 @@ view_file_goto_line_cb (GtkAction      *action,
 }
 
 static void
+view_file_revision_list_revision_activated_cb (GiggleRevListView *list,
+					       GiggleRevision    *revision,
+					       GiggleViewFile    *view)
+{
+	GiggleView *history_view = NULL;
+	GtkWidget  *shell;
+
+	shell = gtk_widget_get_ancestor (GTK_WIDGET (view), GIGGLE_TYPE_VIEW_SHELL);
+
+	if (shell)
+		history_view = giggle_view_shell_find_view (GIGGLE_VIEW_SHELL (shell),
+							    GIGGLE_TYPE_VIEW_HISTORY);
+
+	if (history_view) {
+		giggle_view_history_select (GIGGLE_VIEW_HISTORY (history_view), revision);
+		giggle_view_shell_select (GIGGLE_VIEW_SHELL (shell), history_view);
+	}
+}
+
+static GiggleRevision *
+source_view_get_revision_at_iter (GtkTextIter *iter)
+{
+	GiggleRevision *revision = NULL;
+	GSList         *l;
+
+	for (l = gtk_text_iter_get_marks (iter); l; l = l->next) {
+		revision = g_object_get_data (l->data, "giggle-revision");
+
+		if (revision)
+			break;
+	}
+
+	return revision;
+}
+
+static GiggleRevision *
+source_view_get_revision_at_insert (GtkTextView *view)
+{
+	GtkTextBuffer *buffer;
+	GtkTextMark   *insert;
+	GtkTextIter    iter;
+
+	buffer = gtk_text_view_get_buffer (view);
+	insert = gtk_text_buffer_get_insert (buffer);
+	gtk_text_buffer_get_iter_at_mark (buffer, &iter, insert);
+
+	return source_view_get_revision_at_iter (&iter);
+}
+
+static void
+view_file_show_changeset_cb (GtkAction      *action,
+			     GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv = GET_PRIV (view);
+	GiggleRevision     *revision = NULL;
+
+	if (GTK_WIDGET_HAS_FOCUS (priv->revision_list)) {
+		revision = priv->current_revision;
+	} else if (GTK_WIDGET_HAS_FOCUS (priv->source_view)) {
+		revision = source_view_get_revision_at_insert (GTK_TEXT_VIEW (priv->source_view));
+	}
+
+	if (revision) {
+		view_file_revision_list_revision_activated_cb
+			(GIGGLE_REV_LIST_VIEW (priv->revision_list),
+			 revision, view);
+	}
+}
+
+static void
+view_file_select_revision_cb (GtkAction      *action,
+			      GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv = GET_PRIV (view);
+	GiggleRevision     *revision = NULL;
+	GList              *selection;
+
+	if (GTK_WIDGET_HAS_FOCUS (priv->source_view))
+		revision = source_view_get_revision_at_insert (GTK_TEXT_VIEW (priv->source_view));
+
+	if (revision) {
+		selection = g_list_prepend (NULL, revision);
+		giggle_rev_list_view_set_selection (GIGGLE_REV_LIST_VIEW (priv->revision_list),
+						    selection);
+		g_list_free (selection);
+	}
+}
+
+static void
 view_file_add_ui (GiggleView   *view,
 		  GtkUIManager *manager)
 {
@@ -207,6 +316,9 @@ view_file_add_ui (GiggleView   *view,
 		"    <menu action='GoMenu'>"
 		"      <separator />"
 		"      <menuitem action='ViewFileGotoLine' />"
+		"      <separator />"
+		"      <menuitem action='ViewFileShowChangeSet' />"
+		"      <menuitem action='ViewFileSelectRevision' />"
 		"    </menu>"
 		"  </menubar>"
 		"</ui>";
@@ -217,11 +329,19 @@ view_file_add_ui (GiggleView   *view,
 		  N_("Highlight specified line number"),
 		  G_CALLBACK (view_file_goto_line_cb)
 		},
+		{ "ViewFileShowChangeSet", NULL,
+		  N_("Show _Changes"), NULL,
+		  N_("Show changes for selected revision"),
+		  G_CALLBACK (view_file_show_changeset_cb)
+		},
+		{ "ViewFileSelectRevision", NULL,
+		  N_("Select _Revision"), NULL,
+		  N_("Select revision of selected line"),
+		  G_CALLBACK (view_file_select_revision_cb)
+		},
 	};
 
-	GiggleViewFilePriv *priv;
-
-	priv = GET_PRIV (view);
+	GiggleViewFilePriv *priv = GET_PRIV (view);
 
 	if (!priv->action_group) {
 		priv->action_group = gtk_action_group_new (giggle_view_get_name (view));
@@ -235,17 +355,29 @@ view_file_add_ui (GiggleView   *view,
 	}
 
 	gtk_action_group_set_visible (priv->action_group, TRUE);
+
+	priv->window = gtk_widget_get_ancestor (GTK_WIDGET (view), GTK_TYPE_WINDOW);
+
+	if (priv->window)
+		g_signal_connect_after (priv->window, "set-focus",
+					G_CALLBACK (view_file_set_focus_cb), view);
+
+	view_file_set_focus_cb (NULL, NULL, GIGGLE_VIEW_FILE (view));
 }
 
 static void
 view_file_remove_ui (GiggleView *view)
 {
-	GiggleViewFilePriv *priv;
-
-	priv = GET_PRIV (view);
+	GiggleViewFilePriv *priv = GET_PRIV (view);
 
 	if (priv->action_group)
 		gtk_action_group_set_visible (priv->action_group, FALSE);
+
+	if (priv->window) {
+		g_signal_handlers_disconnect_by_func (priv->window,
+						      view_file_set_focus_cb, view);
+		priv->window = NULL;
+	}
 }
 
 static inline guint8
@@ -840,26 +972,6 @@ view_file_revision_list_selection_changed_cb (GiggleRevListView *list,
 	giggle_history_changed (GIGGLE_HISTORY (view));
 }
 
-static void
-view_file_revision_list_revision_activated_cb (GiggleRevListView *list,
-					       GiggleRevision    *revision,
-					       GiggleViewFile    *view)
-{
-	GiggleView *history_view = NULL;
-	GtkWidget  *shell;
-
-	shell = gtk_widget_get_ancestor (GTK_WIDGET (view), GIGGLE_TYPE_VIEW_SHELL);
-
-	if (shell)
-		history_view = giggle_view_shell_find_view (GIGGLE_VIEW_SHELL (shell),
-							    GIGGLE_TYPE_VIEW_HISTORY);
-
-	if (history_view) {
-		giggle_view_history_select (GIGGLE_VIEW_HISTORY (history_view), revision);
-		giggle_view_shell_select (GIGGLE_VIEW_SHELL (shell), history_view);
-	}
-}
-
 static gboolean
 is_numeric (const char *text)
 {
@@ -1001,23 +1113,19 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 	GiggleRevision  *revision;
 	GdkRectangle     bounds;
 	GtkTextIter      iter;
-	GSList          *l;
 
 	gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW (widget),
 					       GTK_TEXT_WINDOW_WIDGET, x, y, &x, &y);
 	gtk_text_view_get_iter_at_location (GTK_TEXT_VIEW (widget), &iter, x, y);
 	gtk_text_iter_backward_chars (&iter, gtk_text_iter_get_line_offset (&iter));
 
-	for (l = gtk_text_iter_get_marks (&iter); l; l = l->next) {
+	revision = source_view_get_revision_at_iter (&iter);
+
+	if (revision) {
 		const char   *committer_name = NULL;
 		const char   *author_name = NULL;
 		GiggleAuthor *committer = NULL;
 		GiggleAuthor *author = NULL;
-
-		revision = g_object_get_data (l->data, "giggle-revision");
-
-		if (!revision)
-			continue;
 
 		if (giggle_revision_get_date (revision)) {
 			strftime (date, sizeof date, "%c",
@@ -1058,7 +1166,6 @@ source_view_query_tooltip_cb (GtkWidget  *widget,
 
 		return TRUE;
 	}
-
 
 	return FALSE;
 }
