@@ -53,6 +53,11 @@
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_VIEW_FILE, GiggleViewFilePriv))
 
+#define CHUNK_NAME(state, suffix) \
+	(GTK_STATE_SELECTED == (state) \
+		? "giggle-chunk-selected-" suffix \
+		: "giggle-chunk-"          suffix)
+
 typedef struct {
 	GtkWidget           *file_list;
 	GtkWidget           *revision_list;
@@ -243,22 +248,219 @@ view_file_remove_ui (GiggleView *view)
 		gtk_action_group_set_visible (priv->action_group, FALSE);
 }
 
+static inline guint8
+convert_color_channel (guint  src,
+                       guint8 alpha)
+{
+	return (alpha ? ((src << 8) - src) / alpha : 0);
+}
+
+static GdkPixbuf *
+create_pixbuf_from_image (cairo_surface_t *image)
+{
+	int           width, height, stride, x, y;
+	const guint8 *source, *s, *rs;
+	guchar       *target, *t, *rt;
+
+	width  = cairo_image_surface_get_width  (image);
+	height = cairo_image_surface_get_height (image);
+	stride = cairo_image_surface_get_stride (image);
+	source = cairo_image_surface_get_data   (image);
+
+	target = g_new (guchar, stride * height);
+
+	for (y = 0, s = source, t = target; y < height; ++y, s += stride, t += stride) {
+		for (x = 0, rs = s, rt = t; x < width; ++x, rs += 4, rt += 4) {
+			rt[0] = convert_color_channel (rs[2], rs[3]);
+			rt[1] = convert_color_channel (rs[1], rs[3]);
+			rt[2] = convert_color_channel (rs[0], rs[3]);
+			rt[3] =                               rs[3];
+		}
+	}
+
+	return gdk_pixbuf_new_from_data (target, GDK_COLORSPACE_RGB,
+			                 TRUE, 8, width, height, stride,
+					 (GdkPixbufDestroyNotify) g_free, NULL);
+}
+
+static GdkPixbuf *
+render_category_icon (GiggleViewFilePriv *priv,
+		      const char         *name)
+{
+	double           r, g, b;
+	double           x0, y0, x1, y1;
+	int              width, height;
+	double           alpha = 0.4;
+	gboolean         start = FALSE;
+	gboolean         end = FALSE;
+	GdkPixbuf       *pixbuf;
+	cairo_pattern_t *gradient;
+	cairo_surface_t *image;
+	cairo_t         *canvas;
+
+	if (!g_str_has_prefix (name, "giggle-chunk-"))
+		return NULL;
+
+	if (strstr (name, "-selected"))
+		alpha = 1.0;
+	if (strstr (name, "-start"))
+		start = TRUE;
+	if (strstr (name, "-end"))
+		end = TRUE;
+
+	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height); //--height; /* FIXME */
+
+	image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+	gradient = cairo_pattern_create_linear (0, 0, 0, height - 1);
+	canvas = cairo_create (image);
+
+	x0 = 2;
+	y0 = 0;
+	x1 = width - 3;
+	y1 = height - 1;
+
+	r = priv->source_view->style->base[GTK_STATE_SELECTED].red   / 65535.0;
+	g = priv->source_view->style->base[GTK_STATE_SELECTED].green / 65535.0;
+	b = priv->source_view->style->base[GTK_STATE_SELECTED].blue  / 65535.0;
+
+	if (start) {
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.00 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.1, r, g, b, 0.15 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.4, r, g, b, 0.45 * alpha);
+
+		cairo_move_to  (canvas, x0,     y0 + 9);
+		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (canvas, x1 - 8, y0 + 1);
+		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
+	} else {
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.30 * alpha);
+
+		cairo_move_to (canvas, x0, y0);
+		cairo_line_to (canvas, x1, y0);
+	}
+
+	if (end) {
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.00 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.9, r, g, b, 0.15 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.6, r, g, b, 0.30 * alpha);
+
+		cairo_line_to  (canvas, x1,     y1 - 9);
+		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (canvas, x0 + 8, y1 - 1);
+		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
+	} else {
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.30 * alpha);
+
+		cairo_line_to (canvas, x1, y1);
+		cairo_line_to (canvas, x0, y1);
+	}
+
+	cairo_set_source (canvas, gradient);
+	cairo_fill (canvas);
+
+	x0 += 0.5;
+	y0 += 0.5;
+	x1 += 0.5;
+	y1 += 0.5;
+
+	if (start) {
+		if (end) {
+			cairo_move_to  (canvas, x0, y0 + 9);
+		} else {
+			cairo_move_to  (canvas, x0, y1);
+			cairo_line_to  (canvas, x0, y0 + 8);
+		}
+
+		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (canvas, x1 - 8, y0 + 1);
+		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
+	} else {
+		cairo_move_to (canvas, x1, y0);
+	}
+
+	if (end) {
+		cairo_line_to  (canvas, x1,     y1 - 9);
+		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (canvas, x0 + 8, y1 - 1);
+		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
+	} else {
+		cairo_line_to (canvas, x1, y1 + 1);
+		cairo_move_to (canvas, x0, y1);
+	}
+
+	if (!start)
+		cairo_line_to (canvas, x0, y0);
+
+	cairo_set_line_width (canvas, 1);
+	cairo_set_source_rgba (canvas, r, g, b, 0.9 * alpha);
+	cairo_stroke (canvas);
+
+	pixbuf = create_pixbuf_from_image (image);
+
+	cairo_pattern_destroy (gradient);
+	cairo_surface_destroy (image);
+	cairo_destroy (canvas);
+
+	return pixbuf;
+}
+
+static void
+create_category (GiggleViewFilePriv *priv,
+		 const char         *name)
+{
+	GdkPixbuf *pixbuf;
+
+	pixbuf = gtk_widget_render_icon (priv->source_view, name,
+					 GTK_ICON_SIZE_MENU, NULL);
+
+	if (!pixbuf)
+		pixbuf = render_category_icon (priv, name);
+	
+	if (pixbuf) {
+		gtk_source_view_set_mark_category_pixbuf
+			(GTK_SOURCE_VIEW (priv->source_view),
+			 name, pixbuf);
+
+		g_object_unref (pixbuf);
+	}
+}
+
+static void
+view_file_style_set (GtkWidget *widget,
+		     GtkStyle  *prev)
+{
+	GiggleViewFilePriv *priv = GET_PRIV (widget);
+
+	if (GTK_WIDGET_CLASS (giggle_view_file_parent_class)->style_set)
+		GTK_WIDGET_CLASS (giggle_view_file_parent_class)->style_set (widget, prev);
+
+	create_category (priv, "giggle-chunk-start");
+	create_category (priv, "giggle-chunk-start-end");
+	create_category (priv, "giggle-chunk-middle");
+	create_category (priv, "giggle-chunk-end");
+
+	create_category (priv, "giggle-chunk-selected-start");
+	create_category (priv, "giggle-chunk-selected-start-end");
+	create_category (priv, "giggle-chunk-selected-middle");
+	create_category (priv, "giggle-chunk-selected-end");
+}
+
 static void
 giggle_view_file_class_init (GiggleViewFileClass *class)
 {
-	GObjectClass    *object_class;
-	GiggleViewClass *view_class;
-
-	object_class = G_OBJECT_CLASS (class);
-	view_class = GIGGLE_VIEW_CLASS (class);
+	GObjectClass    *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass  *widget_class = GTK_WIDGET_CLASS (class);
+	GiggleViewClass *view_class   = GIGGLE_VIEW_CLASS (class);
 
 	object_class->get_property = view_file_get_property;
 	object_class->set_property = view_file_set_property;
-	object_class->finalize = view_file_finalize;
-	object_class->dispose = view_file_dispose;
+	object_class->finalize     = view_file_finalize;
+	object_class->dispose      = view_file_dispose;
 
-	view_class->add_ui = view_file_add_ui;
-	view_class->remove_ui = view_file_remove_ui;
+	widget_class->style_set    = view_file_style_set;
+
+	view_class->add_ui         = view_file_add_ui;
+	view_class->remove_ui      = view_file_remove_ui;
 
 	g_object_class_install_property (object_class,
 					 PROP_PATH,
@@ -371,20 +573,31 @@ view_file_set_source_code (GiggleViewFile *view,
 }
 
 static const char *
-get_line_category (int line,
-		   int num_lines)
+get_line_category (int          line,
+		   GtkStateType state,
+		   int          num_lines)
 {
 	if (!line) {
 		if (1 == num_lines)
-			return "giggle-chunk-start-end";
+			return CHUNK_NAME (state, "start-end");
 
-		return "giggle-chunk-start";
+		return CHUNK_NAME (state, "start");
 	}
 
 	if (line < num_lines - 1)
-		return "giggle-chunk-middle";
+		return CHUNK_NAME (state, "middle");
 
-	return "giggle-chunk-end";
+	return CHUNK_NAME (state, "end");
+}
+
+static GtkStateType
+get_chunk_state (GiggleViewFilePriv        *priv,
+		 const GiggleGitBlameChunk *chunk)
+{
+	if (!giggle_revision_compare (priv->current_revision, chunk->revision))
+		return GTK_STATE_SELECTED;
+
+	return GTK_STATE_NORMAL;
 }
 
 static void
@@ -396,11 +609,12 @@ view_file_blame_job_callback (GiggleGit *git,
 	GiggleViewFile            *view;
 	GiggleViewFilePriv        *priv;
 	const GiggleGitBlameChunk *chunk;
-	int			   i, l;
-	GtkSourceBuffer		  *buffer;
-	GtkSourceMark		  *mark;
-	GtkTextIter		   iter;
-	const char		  *category;
+	int                        i, l;
+	GtkSourceBuffer           *buffer;
+	GtkSourceMark             *mark;
+	GtkTextIter                iter;
+	const char                *category;
+	GtkStateType               state;
 
 	view = GIGGLE_VIEW_FILE (data);
 	priv = GET_PRIV (view);
@@ -413,7 +627,8 @@ view_file_blame_job_callback (GiggleGit *git,
 
 		for (i = 0; (chunk = giggle_git_blame_get_chunk (GIGGLE_GIT_BLAME (job), i)); ++i) {
 			for (l = 0; l < chunk->num_lines; ++l) {
-				category = get_line_category (l, chunk->num_lines);
+				state = get_chunk_state (priv, chunk);
+				category = get_line_category (l, state, chunk->num_lines);
 
 				gtk_text_buffer_get_iter_at_line (GTK_TEXT_BUFFER (buffer),
 								  &iter, chunk->result_line + l - 1);
@@ -775,181 +990,6 @@ goto_toolbar_init (GiggleViewFile *view)
 	return priv->goto_toolbar;
 }
 
-static inline guint8
-convert_color_channel (guint  src,
-                       guint8 alpha)
-{
-	return (alpha ? ((src << 8) - src) / alpha : 0);
-}
-
-
-static GdkPixbuf *
-create_pixbuf_from_image (cairo_surface_t *image)
-{
-	int           width, height, stride, x, y;
-	const guint8 *source, *s, *rs;
-	guchar       *target, *t, *rt;
-
-	width  = cairo_image_surface_get_width  (image);
-	height = cairo_image_surface_get_height (image);
-	stride = cairo_image_surface_get_stride (image);
-	source = cairo_image_surface_get_data   (image);
-
-	target = g_new (guchar, stride * height);
-
-	for (y = 0, s = source, t = target; y < height; ++y, s += stride, t += stride) {
-		for (x = 0, rs = s, rt = t; x < width; ++x, rs += 4, rt += 4) {
-			rt[0] = convert_color_channel (rs[2], rs[3]);
-			rt[1] = convert_color_channel (rs[1], rs[3]);
-			rt[2] = convert_color_channel (rs[0], rs[3]);
-			rt[3] =                               rs[3];
-		}
-	}
-
-	return gdk_pixbuf_new_from_data (target, GDK_COLORSPACE_RGB,
-			                 TRUE, 8, width, height, stride,
-					 (GdkPixbufDestroyNotify) g_free, NULL);
-}
-
-static GdkPixbuf *
-render_category_icon (GiggleViewFilePriv *priv,
-		      const char         *name)
-{
-	double           r, g, b;
-	double		 x0, y0, x1, y1;
-	int		 width, height;
-	gboolean         start = FALSE;
-	gboolean         end = FALSE;
-	GdkPixbuf       *pixbuf;
-	cairo_pattern_t *gradient;
-	cairo_surface_t *image;
-	cairo_t         *canvas;
-
-	if (!g_str_has_prefix (name, "giggle-chunk-"))
-		return NULL;
-
-	if (strstr (name, "-start"))
-		start = TRUE;
-	if (strstr (name, "-end"))
-		end = TRUE;
-
-	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height); //--height; /* FIXME */
-
-	image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
-	gradient = cairo_pattern_create_linear (0, 0, 0, height - 1);
-	canvas = cairo_create (image);
-
-	x0 = 2;
-	y0 = 0;
-	x1 = width - 3;
-	y1 = height - 1;
-
-	r = priv->source_view->style->base[GTK_STATE_SELECTED].red   / 65535.0;
-	g = priv->source_view->style->base[GTK_STATE_SELECTED].green / 65535.0;
-	b = priv->source_view->style->base[GTK_STATE_SELECTED].blue  / 65535.0;
-
-	if (start) {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.00);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.1, r, g, b, 0.05);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.4, r, g, b, 0.15);
-
-		cairo_move_to  (canvas, x0,     y0 + 9);
-		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
-		cairo_line_to  (canvas, x1 - 8, y0 + 1);
-		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
-	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.10);
-
-		cairo_move_to (canvas, x0, y0);
-		cairo_line_to (canvas, x1, y0);
-	}
-
-	if (end) {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.00);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.9, r, g, b, 0.05);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.6, r, g, b, 0.10);
-
-		cairo_line_to  (canvas, x1,     y1 - 9);
-		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
-		cairo_line_to  (canvas, x0 + 8, y1 - 1);
-		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
-	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.10);
-
-		cairo_line_to (canvas, x1, y1);
-		cairo_line_to (canvas, x0, y1);
-	}
-
-	cairo_set_source (canvas, gradient);
-	cairo_fill (canvas);
-
-	x0 += 0.5;
-	y0 += 0.5;
-	x1 += 0.5;
-	y1 += 0.5;
-
-	if (start) {
-		if (end) {
-			cairo_move_to  (canvas, x0, y0 + 9);
-		} else {
-			cairo_move_to  (canvas, x0, y1);
-			cairo_line_to  (canvas, x0, y0 + 8);
-		}
-
-		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
-		cairo_line_to  (canvas, x1 - 8, y0 + 1);
-		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
-	} else {
-		cairo_move_to (canvas, x1, y0);
-	}
-
-	if (end) {
-		cairo_line_to  (canvas, x1,     y1 - 9);
-		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
-		cairo_line_to  (canvas, x0 + 8, y1 - 1);
-		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
-	} else {
-		cairo_line_to (canvas, x1, y1 + 1);
-		cairo_move_to (canvas, x0, y1);
-	}
-
-	if (!start)
-		cairo_line_to (canvas, x0, y0);
-
-	cairo_set_line_width (canvas, 1);
-	cairo_set_source_rgba (canvas, r, g, b, 0.3);
-	cairo_stroke (canvas);
-
-	pixbuf = create_pixbuf_from_image (image);
-
-	cairo_pattern_destroy (gradient);
-	cairo_surface_destroy (image);
-	cairo_destroy (canvas);
-
-	return pixbuf;
-}
-
-static void
-create_category (GiggleViewFilePriv *priv,
-		 const char         *name)
-{
-	GdkPixbuf *pixbuf;
-
-	pixbuf = gtk_widget_render_icon (priv->source_view, name,
-					 GTK_ICON_SIZE_MENU, NULL);
-
-	if (!pixbuf)
-		pixbuf = render_category_icon (priv, name);
-	
-	if (pixbuf) {
-		gtk_source_view_set_mark_category_pixbuf
-			(GTK_SOURCE_VIEW (priv->source_view),
-			 name, pixbuf);
-
-		g_object_unref (pixbuf);
-	}
-}
-
 static gboolean
 source_view_query_tooltip_cb (GtkWidget  *widget,
                               gint        x,
@@ -1142,8 +1182,8 @@ view_file_snapshot_dispose (GObject *object)
 static void
 giggle_view_file_snapshot_class_init (GiggleViewFileSnapshotClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
-	object_class->dispose = view_file_snapshot_dispose;
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	object_class->dispose   = view_file_snapshot_dispose;
 }
 
 static GObject *
@@ -1297,11 +1337,6 @@ giggle_view_file_init (GiggleViewFile *view)
 	monospaced = pango_font_description_from_string ("Mono");
 	gtk_widget_modify_font (priv->source_view, monospaced);
 	pango_font_description_free (monospaced);
-
-	create_category (priv, "giggle-chunk-start");
-	create_category (priv, "giggle-chunk-start-end");
-	create_category (priv, "giggle-chunk-end");
-	create_category (priv, "giggle-chunk-middle");
 
 	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (priv->source_view));
 	gtk_source_buffer_set_highlight_syntax (GTK_SOURCE_BUFFER (buffer), TRUE);
