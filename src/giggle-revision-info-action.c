@@ -42,29 +42,31 @@ G_DEFINE_TYPE (GiggleRevisionInfoAction, giggle_revision_info_action, GTK_TYPE_A
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_REVISION_INFO_ACTION, GiggleRevisionInfoActionPriv))
 
 static void
-notify_label_cb (GtkAction  *action,
-		 GParamSpec *pspec,
-		 GtkWidget  *widget)
+notify_cb (GtkAction  *action,
+	   GParamSpec *action_prop,
+	   GtkWidget  *widget)
 {
-	GtkWidget *label;
-	char      *markup;
+	GParamSpec *widget_prop;
+	GValue      value = {0,};
 
-	g_object_get (action, "label", &markup, NULL);
+	widget_prop = g_object_class_find_property (G_OBJECT_GET_CLASS (widget),
+						    action_prop->name);
 
-	label = giggle_revision_info_get_label (GIGGLE_REVISION_INFO (widget));
-	gtk_label_set_markup (GTK_LABEL (label), markup);
-
-	g_free (markup);
+	if (widget_prop && widget_prop->value_type == action_prop->value_type) {
+		g_value_init (&value, widget_prop->value_type);
+		g_object_get_property (G_OBJECT (action), action_prop->name, &value);
+		g_object_set_property (G_OBJECT (widget), widget_prop->name, &value);
+		g_value_unset (&value);
+	}
 }
 
 static void
 revision_info_action_connect_proxy (GtkAction *action,
-			            GtkWidget *widget)
+				    GtkWidget *widget)
 {
-	GiggleRevisionInfoActionPriv *priv;
-	GtkWidget		     *child;
-
-	priv = GET_PRIV (action);
+	GiggleRevisionInfoActionPriv *priv = GET_PRIV (action);
+	GtkWidget                    *child;
+	GParamSpec                   *pspec;
 
 	GTK_ACTION_CLASS (giggle_revision_info_action_parent_class)->connect_proxy (action, widget);
 
@@ -72,29 +74,14 @@ revision_info_action_connect_proxy (GtkAction *action,
 		child = gtk_bin_get_child (GTK_BIN (widget));
 		child = gtk_bin_get_child (GTK_BIN (child));
 
-		giggle_revision_info_set_revision (GIGGLE_REVISION_INFO (child),
-						   priv->revision);
-
 		gtk_tool_item_set_expand (GTK_TOOL_ITEM (widget), priv->expand);
+		g_signal_connect (action, "notify", G_CALLBACK (notify_cb), child);
 
-		notify_label_cb (action, NULL, child);
+		pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (action), "revision");
+		notify_cb (action, pspec, child);
 
-		g_signal_connect
-			(action, "notify::label",
-			 G_CALLBACK (notify_label_cb), child);
-	}
-}
-
-static void
-revision_info_action_update_proxies (GtkAction *action)
-{
-	GSList *proxies;
-
-	proxies = g_slist_copy (gtk_action_get_proxies (action));
-
-	while (proxies) {
-		gtk_action_connect_proxy (action, proxies->data);
-		proxies = g_slist_delete_link (proxies, proxies);
+		pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (action), "label");
+		notify_cb (action, pspec, child);
 	}
 }
 
@@ -168,8 +155,6 @@ revision_info_action_set_property (GObject      *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		return;
 	}
-
-	revision_info_action_update_proxies (GTK_ACTION (object));
 }
 
 static void
