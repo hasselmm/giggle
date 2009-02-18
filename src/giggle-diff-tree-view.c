@@ -294,7 +294,7 @@ giggle_diff_tree_view_set_revisions (GiggleDiffTreeView *view,
 			    view);
 }
 
-gchar *
+char *
 giggle_diff_tree_view_get_selection (GiggleDiffTreeView *view)
 {
 	GtkTreeSelection       *selection;
@@ -306,11 +306,26 @@ giggle_diff_tree_view_get_selection (GiggleDiffTreeView *view)
 
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (view));
 
-	if (gtk_tree_selection_get_selected (selection, &model, &iter)) {
-		gtk_tree_model_get (model, &iter,
-				    COL_PATH, &file,
-				    -1);
-	}
+	if (gtk_tree_selection_get_selected (selection, &model, &iter))
+		gtk_tree_model_get (model, &iter, COL_PATH, &file, -1);
+
+	return file;
+}
+
+char *
+giggle_diff_tree_view_get_filename (GiggleDiffTreeView *view,
+				    GtkTreePath        *path)
+{
+	GtkTreeModel           *model;
+	GtkTreeIter             iter;
+	gchar                  *file = NULL;
+
+	g_return_val_if_fail (GIGGLE_IS_DIFF_TREE_VIEW (view), NULL);
+
+	model = gtk_tree_view_get_model (GTK_TREE_VIEW (view));
+
+	if (gtk_tree_model_get_iter (model, &iter, path))
+		gtk_tree_model_get (model, &iter, COL_PATH, &file, -1);
 
 	return file;
 }

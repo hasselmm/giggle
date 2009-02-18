@@ -54,7 +54,10 @@ void               giggle_diff_tree_view_set_revisions     (GiggleDiffTreeView *
 							    GiggleRevision     *from,
 							    GiggleRevision     *to);
 
-gchar *            giggle_diff_tree_view_get_selection     (GiggleDiffTreeView *view);
+char *             giggle_diff_tree_view_get_selection     (GiggleDiffTreeView *view);
+
+char *             giggle_diff_tree_view_get_filename      (GiggleDiffTreeView *view,
+							    GtkTreePath        *path);
 
 G_END_DECLS
 
