@@ -269,6 +269,20 @@ view_diff_path_selected (GtkTreeSelection *selection,
 }
 
 static void
+view_diff_path_activated (GiggleDiffTreeView *view,
+			  GtkTreePath        *path)
+{
+	char *filename;
+
+	filename = giggle_diff_tree_view_get_filename (view, path);
+
+	if (filename) {
+		giggle_open_file (GTK_WIDGET (view), NULL, filename);
+		g_free (filename);
+	}
+}
+
+static void
 giggle_view_diff_init (GiggleViewDiff *view)
 {
 	GiggleViewDiffPriv *priv;
@@ -295,6 +309,8 @@ giggle_view_diff_init (GiggleViewDiff *view)
 
 	g_signal_connect (gtk_tree_view_get_selection (GTK_TREE_VIEW (priv->file_view)),
 			  "changed", G_CALLBACK (view_diff_path_selected), view);
+	g_signal_connect (priv->file_view, "row-activated",
+			  G_CALLBACK (view_diff_path_activated), NULL);
 
 	/* diff view */
 	priv->diff_view_sw = gtk_scrolled_window_new (NULL, NULL);
