@@ -26,17 +26,25 @@
 
 G_BEGIN_DECLS
 
-gboolean            giggle_list_view_delete_selection	  (GtkWidget    *treeview,
-							   GdkEventKey  *event);
+gboolean            giggle_list_view_delete_selection	  (GtkWidget         *treeview,
+							   GdkEventKey       *event);
 
-gboolean            giggle_tree_view_select_row_by_string (GtkWidget    *treeview,
-							   int           column,
-							   const char   *pattern);
+gboolean            giggle_tree_view_select_row_by_string (GtkWidget         *treeview,
+							   int                column,
+							   const char        *pattern);
 
-GtkActionGroup *    giggle_ui_manager_get_action_group	  (GtkUIManager *manager,
-							   const char   *group_name);
+GtkActionGroup *    giggle_ui_manager_get_action_group    (GtkUIManager      *manager,
+							   const char        *group_name);
 
-GAppLaunchContext * giggle_create_app_launch_context	  (GtkWidget    *widget);
+GAppLaunchContext * giggle_create_app_launch_context      (GtkWidget         *widget);
+
+void                giggle_open_file_with_context         (GAppLaunchContext *context,
+							   const char        *directory,
+							   const char        *filename);
+
+void                giggle_open_file                      (GtkWidget         *widget,
+							   const char        *directory,
+							   const char        *filename);
 
 G_END_DECLS
 
