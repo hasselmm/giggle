@@ -21,9 +21,6 @@
 #ifndef __GIGGLE_VIEW_HISTORY_H__
 #define __GIGGLE_VIEW_HISTORY_H__
 
-#include <glib-object.h>
-#include <gtk/gtk.h>
-
 #include "giggle-view.h"
 #include "libgiggle/giggle-revision.h"
 
