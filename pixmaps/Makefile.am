@@ -17,7 +17,8 @@ icon22_DATA = \
 icon24dir = $(datadir)/icons/hicolor/24x24/apps
 icon24_DATA = \
 	24x24/giggle.png \
-	24x24/giggle-history-view.png
+	24x24/giggle-history-view.png \
+	24x24/giggle-diff-view.png
 
 icon32dir = $(datadir)/icons/hicolor/32x32/apps
 icon32_DATA = \

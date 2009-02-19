@@ -348,7 +348,7 @@ giggle_view_diff_new (void)
 			       "name", "DiffView",
 			       "label", _("_Changes"),
 			       "tooltip", _("Browse a revision's changes"),
-			       "stock-id", GTK_STOCK_COPY,
+			       "icon-name", "giggle-diff-view",
 			       "is-important", TRUE, NULL);
 
 	return g_object_new (GIGGLE_TYPE_VIEW_DIFF, "action", action, NULL);
