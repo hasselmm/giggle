@@ -226,18 +226,20 @@ git_diff_get_command_line (GiggleJob *job, gchar **command_line)
 		g_string_append_printf (str, " %s -1", 
 					giggle_revision_get_sha (priv->patch_format));
 	} else {
-		str = g_string_new (GIT_COMMAND " diff");
+		str = g_string_new (GIT_COMMAND);
 
 		if (priv->rev1) {
-			g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev1));
+			g_string_append_printf (str, " diff-tree -p %s",
+						giggle_revision_get_sha (priv->rev1));
+		} else if (priv->rev2) {
+			g_string_append_printf (str, " diff-tree -p %s^",
+						giggle_revision_get_sha (priv->rev2));
+		} else {
+			g_string_append (str, " diff-index -p HEAD");
 		}
 		
-		if (priv->rev2) {
-			if (!priv->rev1)
-				g_string_append_printf (str, " %s^", giggle_revision_get_sha (priv->rev2));
-
+		if (priv->rev2)
 			g_string_append_printf (str, " %s", giggle_revision_get_sha (priv->rev2));
-		}
 
 		while (files) {
 			g_string_append_printf (str, " %s", (gchar *) files->data);
