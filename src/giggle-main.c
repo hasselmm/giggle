@@ -34,7 +34,8 @@ static GOptionEntry options[] = {
 	  N_("Show the diff window"),
 	  NULL },
 	{ "version", 'v',
-	  0, G_OPTION_ARG_NONE, &version, N_("Show version"), NULL },
+	  0, G_OPTION_ARG_NONE, &version,
+	  N_("Show version information and exit"), NULL },
 	{ NULL }
 };
 
@@ -51,21 +52,23 @@ main (int    argc,
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
+	setlocale (LC_ALL, "");
 
 	g_thread_init (NULL);
 
 	gdk_threads_init ();
 	gdk_threads_enter ();
 
- 	context = g_option_context_new (_("[DIRECTORY]"));
+ 	context = g_option_context_new (N_("[DIRECTORY]"));
 
-	description = g_strdup_printf (_("Report errors (in English, with LC_ALL=C) to <%s>."), PACKAGE_BUGREPORT);
-	g_option_context_set_summary (context, _("Giggle is a graphical frontend for the git directory tracker."));
-	g_option_context_set_description (context, description);
-	g_free (description);
-
+	g_option_context_set_translation_domain (context, GETTEXT_PACKAGE);
 	g_option_context_add_main_entries (context, options, GETTEXT_PACKAGE);
 	g_option_context_add_group (context, gtk_get_option_group (TRUE));
+
+	description = g_strdup_printf (_("Report errors (in English, with LC_ALL=C) to <%s>."), PACKAGE_BUGREPORT);
+	g_option_context_set_summary (context, N_("Giggle is a graphical frontend for the git directory tracker."));
+	g_option_context_set_description (context, description);
+	g_free (description);
 
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		char *basename = g_filename_display_basename (argv[0]);
