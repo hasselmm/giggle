@@ -8,7 +8,8 @@ AM_CPPFLAGS = \
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
 	-module -rpath "$(pkglibdir)/plugins" \
-	-Wl,--as-needed -Wl,--no-undefined
+	-Wl,--as-needed -Wl,--no-undefined \
+	-avoid-version
 
 plugindir = $(pkglibdir)/plugins
 
