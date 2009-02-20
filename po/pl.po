@@ -2,15 +2,14 @@
 # Copyright (C) 2007 Imendio AB
 # Copyright (C) 2009 Łukasz Jernaś
 # This file is distributed under the same license as the giggle package.
+#
 # Łukasz Jernaś <deejay1@srem.org>, 2007,2008, 2009.
-# 
-# 
 msgid ""
 msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-02-20 08:39+0100\n"
-"PO-Revision-Date: 2009-02-20 08:50+0100\n"
+"POT-Creation-Date: 2009-02-20 11:51+0100\n"
+"PO-Revision-Date: 2009-02-20 11:52+0100\n"
 "Last-Translator: Łukasz Jernaś <deejay1@srem.org>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "MIME-Version: 1.0\n"
@@ -253,24 +252,25 @@ msgstr "Projekt"
 msgid "Show the diff window"
 msgstr "Wyświetlanie okna różnic"
 
-#: ../src/giggle-main.c:37
-msgid "Show version"
-msgstr "Wyświetlanie informacji o wersji"
+#: ../src/giggle-main.c:38
+msgid "Show version information and exit"
+msgstr "Pokaż informacje o wersji i zakończ"
 
-#: ../src/giggle-main.c:60
+#: ../src/giggle-main.c:62
 msgid "[DIRECTORY]"
 msgstr "[KATALOG]"
 
-#: ../src/giggle-main.c:62
+#: ../src/giggle-main.c:68
 #, c-format
 msgid "Report errors (in English, with LC_ALL=C) to <%s>."
-msgstr "Zgłaszanie błędów (w jezyku angielskim z LC_ALL=C) dostępne pod adresem <%s>."
+msgstr ""
+"Zgłaszanie błędów (w jezyku angielskim z LC_ALL=C) dostępne pod adresem <%s>."
 
-#: ../src/giggle-main.c:63
+#: ../src/giggle-main.c:69
 msgid "Giggle is a graphical frontend for the git directory tracker."
 msgstr "Giggle jest graficznym interfejsem dla git."
 
-#: ../src/giggle-main.c:74
+#: ../src/giggle-main.c:77
 #, c-format
 msgid "Try `%s --help' for more information.\n"
 msgstr "Wpisz \"%s --help\", aby uzyskać więcej informacji.\n"
@@ -710,6 +710,9 @@ msgstr "Witaj świecie"
 msgid "Edit personal details"
 msgstr "Edytuje informacje osobiste"
 
+#~ msgid "Show version"
+#~ msgstr "Wyświetlanie informacji o wersji"
+
 #~ msgid "_Personal Details"
 #~ msgstr "_Informacje osobiste"
 
@@ -737,9 +740,6 @@ msgstr "Edytuje informacje osobiste"
 #~ msgid "_Refresh"
 #~ msgstr "_Odśwież"
 
-#~ msgid "Revision _information"
-#~ msgstr "_Informacje o rewizji"
-
 #~ msgid "_Differences"
 #~ msgstr "_Różnice"
 
@@ -748,3 +748,4 @@ msgstr "Edytuje informacje osobiste"
 
 #~ msgid "Edit Personal _Details"
 #~ msgstr "Edytuj informacje _osobiste"
+
