@@ -7,7 +7,8 @@ AM_CPPFLAGS = \
 
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
-	-module -rpath "$(pkglibdir)/plugins"
+	-module -rpath "$(pkglibdir)/plugins" \
+	-Wl,--as-needed -Wl,--no-undefined
 
 plugindir = $(pkglibdir)/plugins
 
@@ -23,6 +24,8 @@ dist_noinst_DATA = \
 
 libhello_world_la_SOURCES = \
 	giggle-hello-world-plugin.c
+libhello_world_la_LIBADD = \
+	../libgiggle/libgiggle.la
 
 libpersonal_details_la_SOURCES = \
 	giggle-personal-details-plugin.c \
@@ -30,4 +33,4 @@ libpersonal_details_la_SOURCES = \
 	giggle-personal-details-window.h
 
 libpersonal_details_la_CFLAGS = $(EBOOK_CFLAGS)
-libpersonal_details_la_LIBADD = $(EBOOK_LIBS)
+libpersonal_details_la_LIBADD = ../libgiggle-git/libgiggle-git.la $(EBOOK_LIBS)
