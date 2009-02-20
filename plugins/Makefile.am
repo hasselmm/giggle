@@ -34,3 +34,20 @@ libpersonal_details_la_SOURCES = \
 
 libpersonal_details_la_CFLAGS = $(EBOOK_CFLAGS)
 libpersonal_details_la_LIBADD = ../libgiggle-git/libgiggle-git.la $(EBOOK_LIBS)
+
+if ENABLE_VTE
+
+plugin_LTLIBRARIES += \
+	libterminal-view.la
+dist_plugin_DATA += \
+	terminal-view.xml
+libterminal_view_la_SOURCES = \
+	giggle-view-terminal-plugin.c \
+	giggle-view-terminal.c \
+	giggle-view-terminal.h \
+	$(NULL)
+
+libterminal_view_la_CFLAGS = $(VTE_CFLAGS)
+libterminal_view_la_LIBADD = ../libgiggle-git/libgiggle-git.la $(VTE_LIBS)
+
+endif
