@@ -3,7 +3,7 @@ libgiggledir = $(pkgincludedir)/libgiggle
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
-	-DPLUGINDIR='"$(pkglibdir)/plugins"' \
+	-DPLUGINDIR='"$(pkglibdir)/plugins/$(VERSION)"' \
 	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
 

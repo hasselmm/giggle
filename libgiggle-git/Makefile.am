@@ -3,7 +3,6 @@ libgiggle_gitdir = $(pkgincludedir)/libgiggle-git
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
-	-DPLUGINDIR='"$(pkglibdir)/plugins"' \
 	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
 

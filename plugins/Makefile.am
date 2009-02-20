@@ -1,17 +1,17 @@
+plugindir = $(pkglibdir)/plugins/$(VERSION)
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-DGLADEDIR='"$(pkgdatadir)/glade"' \
-	-DPLUGINDIR='"$(pkglibdir)/plugins"' \
+	-DPLUGINDIR='"$(plugindir)"' \
 	$(GIGGLE_CFLAGS) $(PLATFORM_CFLAGS) \
 	$(WARN_CFLAGS)
 
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
-	-module -rpath "$(pkglibdir)/plugins" \
+	-module -rpath "$(plugindir)" \
 	-Wl,--as-needed -Wl,--no-undefined \
 	-avoid-version
-
-plugindir = $(pkglibdir)/plugins
 
 plugin_LTLIBRARIES = \
 	libpersonal-details.la
