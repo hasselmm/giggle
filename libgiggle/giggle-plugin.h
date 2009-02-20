@@ -34,8 +34,9 @@ G_BEGIN_DECLS
 
 #define GIGGLE_PLUGIN_ERROR           (giggle_plugin_error_quark ())
 
-typedef struct GigglePlugin      GigglePlugin;
-typedef struct GigglePluginClass GigglePluginClass;
+typedef struct GigglePlugin      	GigglePlugin;
+typedef struct GigglePluginClass	GigglePluginClass;
+typedef struct GigglePluginManager      GigglePluginManager;
 
 typedef enum {
 	GIGGLE_PLUGIN_ERROR_NONE,
@@ -50,30 +51,34 @@ struct GigglePluginClass {
 	GObjectClass parent_class;
 };
 
-GQuark		giggle_plugin_error_quark	(void) G_GNUC_CONST;
+GQuark			giggle_plugin_error_quark	(void) G_GNUC_CONST;
 
-GType		giggle_plugin_get_type		(void) G_GNUC_CONST;
+GType			giggle_plugin_get_type		(void) G_GNUC_CONST;
 
-GigglePlugin *	giggle_plugin_new_from_file	(const char  *filename,
-					 	 GError     **error);
+GigglePlugin *		giggle_plugin_new_from_file	(const char         *filename,
+						 	 GError            **error);
 
-const char *	giggle_plugin_get_name		(GigglePlugin *plugin);
+const char *		giggle_plugin_get_name		(GigglePlugin        *plugin);
 
-void		giggle_plugin_set_builder	(GigglePlugin *plugin,
-						 GtkBuilder   *builder);
-GtkBuilder *	giggle_plugin_get_builder	(GigglePlugin *plugin);
+void			giggle_plugin_set_builder	(GigglePlugin        *plugin,
+							 GtkBuilder          *builder);
+GtkBuilder *		giggle_plugin_get_builder	(GigglePlugin        *plugin);
 
-void		giggle_plugin_set_filename	(GigglePlugin *plugin,
-						 const char   *filename);
-const char *	giggle_plugin_get_filename	(GigglePlugin *plugin);
+void			giggle_plugin_set_filename	(GigglePlugin        *plugin,
+							 const char          *filename);
+const char *		giggle_plugin_get_filename	(GigglePlugin        *plugin);
 
-void		giggle_plugin_set_description	(GigglePlugin *plugin,
-						 const char   *description);
-const char *	giggle_plugin_get_description	(GigglePlugin *plugin);
+void			giggle_plugin_set_description	(GigglePlugin        *plugin,
+							 const char          *description);
+const char *		giggle_plugin_get_description	(GigglePlugin        *plugin);
 
-guint		giggle_plugin_merge_ui		(GigglePlugin *plugin,
-						 GtkUIManager *ui,
-						 GError      **error);
+void			giggle_plugin_set_manager	(GigglePlugin        *plugin,
+							 GigglePluginManager *description);
+GigglePluginManager *	giggle_plugin_get_manager 	(GigglePlugin        *plugin);
+
+guint			giggle_plugin_merge_ui		(GigglePlugin        *plugin,
+							 GtkUIManager        *ui,
+							 GError             **error);
 
 G_END_DECLS
 

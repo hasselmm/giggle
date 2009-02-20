@@ -21,6 +21,8 @@
 #include "config.h"
 #include "giggle-plugin.h"
 
+#include "giggle-plugin-manager.h"
+
 #include <string.h>
 #include <glib/gi18n.h>
 
@@ -28,8 +30,9 @@
 
 enum {
 	PROP_NONE,
-	PROP_NAME,
 	PROP_BUILDER,
+	PROP_MANAGER,
+	PROP_NAME,
 	PROP_FILENAME,
 	PROP_DESCRIPTION,
 };
@@ -38,13 +41,14 @@ typedef void (* GigglePluginCallback) (GtkAction    *action,
 				       GigglePlugin *plugin);
 
 typedef struct {
-	char       *name;
-	GtkBuilder *builder;
-	char       *filename;
-	char       *description;
-	GPtrArray  *action_groups;
-	GString    *ui_buffer;
-	GModule    *module;
+	char                *name;
+	GtkBuilder          *builder;
+	char                *filename;
+	char                *description;
+	GigglePluginManager *manager;
+	GPtrArray           *action_groups;
+	GString             *ui_buffer;
+	GModule             *module;
 } GigglePluginPriv;
 
 typedef struct {
@@ -142,8 +146,8 @@ plugin_action_cb (GtkAction    *action,
 	GigglePluginCallback         callback;
 	const GSignalInvocationHint *hint;
 
-	hint = g_signal_get_invocation_hint (action);
 	g_signal_handlers_disconnect_by_func (action, plugin_action_cb, plugin);
+	hint = g_signal_get_invocation_hint (action);
 
 	callback_name = plugin_get_callback_name (gtk_action_get_name (action),
 						  g_signal_name (hint->signal_id));
@@ -155,6 +159,8 @@ plugin_action_cb (GtkAction    *action,
 				  G_CALLBACK (callback), plugin);
 
 		callback (action, plugin);
+	} else if (!strcmp (g_signal_name (hint->signal_id), "activate")) {
+		g_warning ("%s: Cannot find %s()", G_STRFUNC, callback_name);
 	}
 
 	g_free (callback_name);
@@ -342,6 +348,21 @@ plugin_set_property (GObject      *object,
 		priv->builder = g_value_dup_object (value);
 		break;
 
+	case PROP_MANAGER:
+		if (priv->manager) {
+			g_object_remove_weak_pointer (G_OBJECT (priv->manager),
+						      (gpointer) &priv->manager);
+		}
+
+		priv->manager = g_value_get_object (value);
+
+		if (priv->manager) {
+			g_object_add_weak_pointer (G_OBJECT (priv->manager),
+						   (gpointer) &priv->manager);
+		}
+
+		break;
+
 	case PROP_FILENAME:
 		g_return_if_fail (g_str_has_suffix (g_value_get_string (value), ".xml"));
 
@@ -372,12 +393,16 @@ plugin_get_property (GObject    *object,
 	GigglePluginPriv *priv = GET_PRIV (plugin);
 
 	switch (prop_id) {
-	case PROP_NAME:
-		g_value_set_string (value, giggle_plugin_get_name (plugin));
-		break;
-
 	case PROP_BUILDER:
 		g_value_set_object (value, priv->builder);
+		break;
+
+	case PROP_MANAGER:
+		g_value_set_object (value, priv->manager);
+		break;
+
+	case PROP_NAME:
+		g_value_set_string (value, giggle_plugin_get_name (plugin));
 		break;
 
 	case PROP_FILENAME:
@@ -398,6 +423,12 @@ static void
 plugin_dispose (GObject *object)
 {
 	GigglePluginPriv *priv = GET_PRIV (object);
+
+	if (priv->manager) {
+		g_object_remove_weak_pointer (G_OBJECT (priv->manager),
+					      (gpointer) &priv->manager);
+		priv->manager = NULL;
+	}
 
 	if (priv->builder) {
 		g_object_unref (priv->builder);
@@ -443,21 +474,30 @@ giggle_plugin_class_init (GigglePluginClass *class)
 		 g_param_spec_object
 		 	("builder", "Builder",
 			 "The GtkBuilder use for loading this plugin",
-			 GTK_TYPE_BUILDER, G_PARAM_READWRITE));
+			 GTK_TYPE_BUILDER,
+			 G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property
+		(object_class, PROP_MANAGER,
+		 g_param_spec_object
+		 	("manager", "Manager",
+			 "The plugin manager owning this plugin",
+			 GIGGLE_TYPE_PLUGIN_MANAGER,
+			 G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property
 		(object_class, PROP_FILENAME,
 		 g_param_spec_string
 		 	("filename", "Filename",
 			 "The filename of this plugin",
-			 NULL, G_PARAM_READWRITE));
+			 NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property
 		(object_class, PROP_DESCRIPTION,
 		 g_param_spec_string
 		 	("description", "Description",
 			 "The description of this plugin",
-			 NULL, G_PARAM_READWRITE));
+			 NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 	g_type_class_add_private (class, sizeof (GigglePluginPriv));
 }
@@ -557,6 +597,22 @@ giggle_plugin_get_description (GigglePlugin *plugin)
 {
 	g_return_val_if_fail (GIGGLE_IS_PLUGIN (plugin), NULL);
 	return GET_PRIV (plugin)->description;
+}
+
+void
+giggle_plugin_set_manager (GigglePlugin        *plugin,
+			   GigglePluginManager *manager)
+{
+	g_return_if_fail (GIGGLE_IS_PLUGIN (plugin));
+	g_return_if_fail (GIGGLE_IS_PLUGIN_MANAGER (manager) || !manager);
+	g_object_set (plugin, "manager", manager, NULL);
+}
+
+GigglePluginManager *
+giggle_plugin_get_manager (GigglePlugin *plugin)
+{
+	g_return_val_if_fail (GIGGLE_IS_PLUGIN (plugin), NULL);
+	return GET_PRIV (plugin)->manager;
 }
 
 guint
