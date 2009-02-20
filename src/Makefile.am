@@ -12,7 +12,7 @@ AM_LDFLAGS = \
 
 bin_PROGRAMS = giggle
 
-giggle_SOURCES= \
+giggle_SOURCES = \
 	eggfindbar.c \
 	eggfindbar.h \
 	giggle-authors-view.c \
@@ -57,33 +57,31 @@ giggle_SOURCES= \
 	giggle-short-list.h \
 	giggle-spaning-renderer.c \
 	giggle-spaning-renderer.h \
-	giggle-view.c \
-	giggle-view.h \
 	giggle-view-diff.c \
 	giggle-view-diff.h \
 	giggle-view-file.c \
 	giggle-view-file.h \
 	giggle-view-history.c \
 	giggle-view-history.h \
-	giggle-view-shell.c \
-	giggle-view-shell.h \
 	giggle-view-summary.c \
 	giggle-view-summary.h \
 	giggle-window.c \
 	giggle-window.h \
-	giggle-main.c
+	giggle-main.c \
+	$(NULL)
+
+LDADD = \
+	../libgiggle/libgiggle.la \
+	../libgiggle-git/libgiggle-git.la
 
 if IGE_PLATFORM_OSX
 
 giggle_SOURCES += \
 	ige-mac-menu.c \
-	ige-mac-menu.h
+	ige-mac-menu.h \
+	$(NULL)
 
 endif
-
-LDADD = \
-	../libgiggle/libgiggle.la \
-	../libgiggle-git/libgiggle-git.la
 
 #test_graph_renderer_SOURCES = \
 #	giggle-revision.c giggle-revision.h \

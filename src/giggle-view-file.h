@@ -21,10 +21,7 @@
 #ifndef __GIGGLE_VIEW_FILE_H__
 #define __GIGGLE_VIEW_FILE_H__
 
-#include <glib-object.h>
-#include <gtk/gtk.h>
-
-#include "giggle-view.h"
+#include <libgiggle/giggle-view.h>
 
 G_BEGIN_DECLS
 

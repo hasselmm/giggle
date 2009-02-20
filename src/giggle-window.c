@@ -28,13 +28,13 @@
 #include "giggle-helpers.h"
 #include "giggle-view-file.h"
 #include "giggle-view-history.h"
-#include "giggle-view-shell.h"
 #include "giggle-view-summary.h"
 
 #include <libgiggle/giggle-clipboard.h>
 #include <libgiggle/giggle-history.h>
 #include <libgiggle/giggle-plugin-manager.h>
 #include <libgiggle/giggle-searchable.h>
+#include <libgiggle/giggle-view-shell.h>
 
 #include <libgiggle-git/giggle-git-config.h>
 
@@ -1030,7 +1030,6 @@ window_create_ui_manager (GiggleWindow *window)
 		  G_CALLBACK (window_action_delete_cb)
 		},
 
-		/* Toolbar items */
 		{ "HistoryGoBack", GTK_STOCK_GO_BACK, NULL,
 		  "<alt>Left", N_("Go backward in history"),
 		  G_CALLBACK (window_action_history_go_back)
@@ -1591,6 +1590,7 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->view_shell = giggle_view_shell_new_with_ui (priv->ui_manager,
 							  "WindowViewShellActions");
+
 	priv->history_view = giggle_view_history_new (priv->ui_manager);
 	priv->file_view = giggle_view_file_new ();
 

@@ -21,8 +21,8 @@
 #ifndef __GIGGLE_VIEW_DIFF_H__
 #define __GIGGLE_VIEW_DIFF_H__
 
-#include "libgiggle/giggle-revision.h"
-#include "giggle-view.h"
+#include <libgiggle/giggle-revision.h>
+#include <libgiggle/giggle-view.h>
 
 G_BEGIN_DECLS
 

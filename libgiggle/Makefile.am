@@ -20,13 +20,15 @@ libgiggle_h_files = \
 	giggle-plugin-manager.h \
 	giggle-plugin.h \
 	giggle-ref.h \
+	giggle-remote-branch.h \
 	giggle-remote-ref.h \
 	giggle-remote.h \
-	giggle-remote-branch.h \
 	giggle-revision.h \
 	giggle-searchable.h \
 	giggle-sysdeps.h \
 	giggle-tag.h \
+	giggle-view.h \
+	giggle-view-shell.h \
 	$(NULL)
 
 libgiggle_la_SOURCES = \
@@ -39,16 +41,18 @@ libgiggle_la_SOURCES = \
 	giggle-error.c \
 	giggle-history.c \
 	giggle-job.c \
-	giggle-plugin.c \
 	giggle-plugin-manager.c \
+	giggle-plugin.c \
 	giggle-ref.c \
-	giggle-remote.c \
 	giggle-remote-branch.c \
+	giggle-remote-ref.c \
+	giggle-remote.c \
 	giggle-revision.c \
 	giggle-searchable.c \
 	giggle-sysdeps.c \
 	giggle-tag.c \
-	giggle-remote-ref.c \
+	giggle-view.c \
+	giggle-view-shell.c \
 	$(NULL)
 
 libgiggle_HEADERS = \

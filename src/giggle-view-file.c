@@ -24,10 +24,10 @@
 #include "giggle-file-list.h"
 #include "giggle-rev-list-view.h"
 #include "giggle-view-history.h"
-#include "giggle-view-shell.h"
 
 #include <libgiggle/giggle-history.h>
 #include <libgiggle/giggle-searchable.h>
+#include <libgiggle/giggle-view-shell.h>
 
 #include <libgiggle-git/giggle-git.h>
 #include <libgiggle-git/giggle-git-blame.h>
