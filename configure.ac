@@ -4,6 +4,9 @@ AC_PREREQ([2.59])
 AC_INIT([giggle],[0.4.91],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=giggle])
 
+AC_SUBST([LIBGIGGLE_ABI],     [0:0:0])
+AC_SUBST([LIBGIGGLE_GIT_ABI], [0:0:0])
+
 AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
