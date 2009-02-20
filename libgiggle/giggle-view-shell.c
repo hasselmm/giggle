@@ -409,9 +409,10 @@ giggle_view_shell_append_view (GiggleViewShell *shell,
 			       GiggleView      *view)
 {
 	GiggleViewShellPriv *priv;
-	const char *accelerator;
-	GtkAction *action;
-	unsigned i;
+	const char          *accelerator;
+	GtkAction           *action;
+	GSList              *group;
+	unsigned             i;
 
 	g_return_if_fail (GIGGLE_IS_VIEW_SHELL (shell));
 	g_return_if_fail (GIGGLE_IS_VIEW (view));
@@ -424,13 +425,14 @@ giggle_view_shell_append_view (GiggleViewShell *shell,
 
 	g_object_set (action, "value", priv->action_value++, NULL);
 
-	if (!priv->first_action) {
+	if (priv->first_action) {
+		group = gtk_radio_action_get_group (GTK_RADIO_ACTION (priv->first_action));
+		gtk_radio_action_set_group (GTK_RADIO_ACTION (action), group);
+	} else {
 		priv->first_action = action;
 
 		g_signal_connect (action, "changed",
 				  G_CALLBACK (view_shell_value_changed), shell);
-	} else {
-		g_object_set (action, "group", priv->first_action, NULL);
 	}
 
 	if (accelerator) {
