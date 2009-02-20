@@ -18,6 +18,8 @@ intltool-merge.in
 intltool-update
 intltool-update.in
 mkinstalldirs
+shave
+shave-libtool
 .*.sw?
 *.o
 .deps

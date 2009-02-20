@@ -163,7 +163,11 @@ dnl correct flags to aclocal.
 ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
 AC_SUBST(ACLOCAL_AMFLAGS)
 
+SHAVE_INIT([.])
+
 AC_OUTPUT([
+        shave
+        shave-libtool
         Makefile
         data/Makefile
         libgiggle/Makefile
