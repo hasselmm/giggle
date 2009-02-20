@@ -70,8 +70,7 @@ giggle_SOURCES = \
 	giggle-main.c \
 	$(NULL)
 
-LDADD = \
-	../libgiggle/libgiggle.la \
+giggle_LDADD = \
 	../libgiggle-git/libgiggle-git.la
 
 if IGE_PLATFORM_OSX
