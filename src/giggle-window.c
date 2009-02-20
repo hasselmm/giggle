@@ -48,7 +48,6 @@
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GIGGLE_TYPE_WINDOW, GiggleWindowPriv))
 
-#define RECENT_FILES_GROUP		"giggle"
 #define RECENT_REPOS_PLACEHOLDER_PATH	"/ui/MainMenubar/ProjectMenu/RecentRepositories"
 
 #define HISTORY_GO_BACK_PATH		"/ui/MainToolbar/HistoryGoBack"
@@ -1297,7 +1296,7 @@ window_recent_repositories_update (GiggleWindow *window)
 	for (l = recent_items; l && count < MAX_N_RECENT; l = l->next) {
 		info = l->data;
 
-		if (gtk_recent_info_has_group (info, RECENT_FILES_GROUP)) {
+		if (gtk_recent_info_has_group (info, PACKAGE)) {
 			if (!gtk_recent_info_exists (info))
 				continue;
 
@@ -1512,7 +1511,7 @@ window_directory_changed_cb (GiggleGit    *git,
 static void
 window_recent_repositories_add (GiggleWindow *window)
 {
-	static gchar     *groups[] = { RECENT_FILES_GROUP, NULL };
+	static gchar     *groups[] = { PACKAGE, NULL };
 	GiggleWindowPriv *priv;
 	GtkRecentData     data = { 0, };
 	const gchar      *repository;
