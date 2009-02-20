@@ -66,7 +66,7 @@ libgiggle_git_la_LIBADD = \
 	$(GIGGLE_LIBS) ../libgiggle/libgiggle.la
 libgiggle_git_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	-release $(PACKAGE_VERSION) \
+	-version-info $(LIBGIGGLE_GIT_ABI) \
 	-Wl,--as-needed -Wl,--no-undefined \
 	$(NULL)
 
