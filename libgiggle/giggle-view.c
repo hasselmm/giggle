@@ -56,9 +56,7 @@ view_get_property (GObject    *object,
 		   GValue     *value,
 		   GParamSpec *pspec)
 {
-	GiggleViewPriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewPriv *priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_ACTION:
@@ -85,9 +83,7 @@ view_set_property (GObject      *object,
 		   const GValue *value,
 		   GParamSpec   *pspec)
 {
-	GiggleViewPriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewPriv *priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_ACTION:
@@ -107,11 +103,33 @@ view_set_property (GObject      *object,
 }
 
 static void
+notify_visible_cb (GtkAction  *action,
+		   GParamSpec *pspec,
+		   GtkWidget  *view)
+{
+	if (gtk_action_get_visible (action)) {
+		gtk_widget_show (view);
+	} else {
+		gtk_widget_hide (view);
+	}
+}
+
+static void
+view_constructed (GObject *object)
+{
+	GiggleViewPriv *priv = GET_PRIV (object);
+
+	g_signal_connect (priv->action, "notify::visible",
+			  G_CALLBACK (notify_visible_cb), object);
+
+	if (G_OBJECT_CLASS (giggle_view_parent_class)->constructed)
+		G_OBJECT_CLASS (giggle_view_parent_class)->constructed (object);
+}
+
+static void
 view_finalize (GObject *object)
 {
-	GiggleViewPriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewPriv *priv = GET_PRIV (object);
 
 	g_free (priv->accelerator);
 
@@ -121,9 +139,7 @@ view_finalize (GObject *object)
 static void
 view_dispose (GObject *object)
 {
-	GiggleViewPriv *priv;
-
-	priv = GET_PRIV (object);
+	GiggleViewPriv *priv = GET_PRIV (object);
 
 	if (priv->action) {
 		g_object_unref (priv->action);
@@ -200,6 +216,7 @@ giggle_view_class_init (GiggleViewClass *class)
 
 	object_class->get_property = view_get_property;
 	object_class->set_property = view_set_property;
+	object_class->constructed  = view_constructed;
 	object_class->finalize     = view_finalize;
 	object_class->dispose      = view_dispose;
 
