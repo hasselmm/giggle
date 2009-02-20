@@ -32,7 +32,6 @@ G_BEGIN_DECLS
 #define GIGGLE_IS_PLUGIN_MANAGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GIGGLE_TYPE_PLUGIN_MANAGER))
 #define GIGGLE_PLUGIN_MANAGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GIGGLE_TYPE_PLUGIN_MANAGER, GigglePluginManagerClass))
 
-typedef struct GigglePluginManager      GigglePluginManager;
 typedef struct GigglePluginManagerClass GigglePluginManagerClass;
 
 struct GigglePluginManager {
@@ -47,8 +46,15 @@ struct GigglePluginManagerClass {
 			       GigglePlugin        *plugin);
 };
 
-GType                 giggle_plugin_manager_get_type (void) G_GNUC_CONST;
-GigglePluginManager * giggle_plugin_manager_new      (void);
+GType			giggle_plugin_manager_get_type   (void) G_GNUC_CONST;
+GigglePluginManager *	giggle_plugin_manager_new        (void);
+
+GtkWidget *		giggle_plugin_manager_get_widget (GigglePluginManager *manager,
+							  const char          *name);
+
+void			giggle_plugin_manager_add_widget (GigglePluginManager *manager,
+							  const char          *name,
+							  GtkWidget           *widget);
 
 G_END_DECLS
 

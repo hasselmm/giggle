@@ -35,6 +35,7 @@ typedef struct {
 	GCancellable *cancellable;
 	GFile        *plugin_dir;
 	GList        *plugins;
+	GHashTable   *widgets;
 } GigglePluginManagerPriv;
 
 static guint signals[LAST_SIGNAL] = { 0, };
@@ -76,6 +77,7 @@ plugin_manager_next_files_ready (GObject      *object,
 			g_free (filename);
 
 			if (plugin) {
+				giggle_plugin_set_manager (plugin, manager);
 				priv->plugins = g_list_prepend (priv->plugins, plugin);
 				g_signal_emit (manager, signals[PLUGIN_ADDED], 0, plugin);
 			} else {
@@ -155,6 +157,11 @@ plugin_manager_dispose (GObject *object)
 		priv->cancellable = NULL;
 	}
 
+	if (priv->widgets) {
+		g_hash_table_destroy (priv->widgets);
+		priv->widgets = NULL;
+	}
+
 	if (priv->plugin_dir) {
 		g_object_unref (priv->plugin_dir);
 		priv->plugin_dir = NULL;
@@ -184,4 +191,43 @@ GigglePluginManager *
 giggle_plugin_manager_new (void)
 {
 	return g_object_new (GIGGLE_TYPE_PLUGIN_MANAGER, NULL);
+}
+
+GtkWidget *
+giggle_plugin_manager_get_widget (GigglePluginManager *manager,
+				  const char          *name)
+{
+	GigglePluginManagerPriv *priv;
+
+	g_return_val_if_fail (GIGGLE_IS_PLUGIN_MANAGER (manager), NULL);
+	g_return_val_if_fail (NULL != name, NULL);
+
+	priv = GET_PRIV (manager);
+
+	if (priv->widgets)
+		return g_hash_table_lookup (priv->widgets, name);
+
+	return NULL;
+}
+
+void
+giggle_plugin_manager_add_widget (GigglePluginManager *manager,
+				  const char          *name,
+				  GtkWidget           *widget)
+{
+	GigglePluginManagerPriv *priv;
+
+	g_return_if_fail (GIGGLE_IS_PLUGIN_MANAGER (manager));
+	g_return_if_fail (GTK_IS_WIDGET (widget));
+	g_return_if_fail (NULL != name);
+
+	priv = GET_PRIV (manager);
+
+	if (!priv->widgets) {
+		priv->widgets = g_hash_table_new_full (g_str_hash, g_str_equal,
+						       g_free, g_object_unref);
+	}
+
+	g_hash_table_insert (priv->widgets, g_strdup (name),
+			     g_object_ref (widget));
 }

@@ -1634,6 +1634,9 @@ giggle_window_init (GiggleWindow *window)
 
 	priv->plugin_manager = giggle_plugin_manager_new ();
 
+	giggle_plugin_manager_add_widget (priv->plugin_manager,
+					  "ViewShell", priv->view_shell);
+
 	g_signal_connect (priv->plugin_manager, "plugin-added",
 			  G_CALLBACK (window_plugin_added_cb), window);
 
