@@ -24,6 +24,7 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
+#include <locale.h>
 
 static gboolean diff_window = FALSE;
 static gboolean version = FALSE;
