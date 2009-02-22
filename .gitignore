@@ -27,3 +27,5 @@ shave-libtool
 .project
 .cproject
 *.ktp
+tags
+TAGS
