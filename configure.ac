@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_PREREQ([2.59])
+AC_PREREQ(2.61)
 
 AC_INIT([giggle],[0.4.91],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=giggle])
@@ -11,16 +11,19 @@ AC_CONFIG_SRCDIR([src/giggle-main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
-AM_DISABLE_STATIC
+AC_DISABLE_STATIC
+
 CXX=no
 F77=no
-AM_PROG_LIBTOOL
+
+LT_PREREQ([2.2.6])
+LT_INIT
 
 AC_ISC_POSIX
+
 AC_PROG_CC
-AM_PROG_CC_STDC
 AC_HEADER_STDC
 
 AM_PATH_GLIB_2_0
@@ -165,7 +168,7 @@ AC_SUBST(ACLOCAL_AMFLAGS)
 
 SHAVE_INIT([.])
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
         shave
         shave-libtool
         Makefile
@@ -178,6 +181,8 @@ AC_OUTPUT([
         po/Makefile.in
         test/Makefile
 ])
+
+AC_OUTPUT
 
 echo
 echo "Prefix:                    $prefix"
