@@ -918,7 +918,7 @@ window_action_about_cb (GtkAction    *action,
 			       "Copyright \xc2\xa9 2007-2008 Imendio AB\n"
 			       "Copyright \xc2\xa9 2008 Mathias Hasselmann",
 			       "translator-credits", _("translator-credits"),
-			       "comments", _("A graphical frontend to the git directory tracker."),
+			       "comments", _("A graphical frontend to the git content tracker."),
 			       "website", PACKAGE_WEBSITE,
 			       "logo-icon-name", PACKAGE,
 			       "version", VERSION,

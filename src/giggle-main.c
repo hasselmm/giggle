@@ -67,7 +67,7 @@ main (int    argc,
 	g_option_context_add_group (context, gtk_get_option_group (TRUE));
 
 	description = g_strdup_printf (_("Report errors (in English, with LC_ALL=C) to <%s>."), PACKAGE_BUGREPORT);
-	g_option_context_set_summary (context, N_("Giggle is a graphical frontend for the git directory tracker."));
+	g_option_context_set_summary (context, N_("Giggle is a graphical frontend for the git content tracker."));
 	g_option_context_set_description (context, description);
 	g_free (description);
 

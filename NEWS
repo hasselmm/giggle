@@ -124,7 +124,7 @@ Downloads:
 Giggle 0.2, 2007-03-29
 ======================
 
-Giggle is a graphical frontend for the git directory tracker (think of gitk on GTK+).
+Giggle is a graphical frontend for the git content tracker (think of gitk on GTK+).
 
 Bugs fixed since the last release:
 

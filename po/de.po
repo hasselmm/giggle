@@ -263,7 +263,7 @@ msgid "Report errors (in English, with LC_ALL=C) to <%s>."
 msgstr "Melden Sie Fehler (auf Englisch mit LC_ALL=C) an <%s>"
 
 #: ../src/giggle-main.c:64
-msgid "Giggle is a graphical frontend for the git directory tracker."
+msgid "Giggle is a graphical frontend for the git content tracker."
 msgstr "Giggle ist eine graphische Schnittstelle für git"
 
 #: ../src/giggle-main.c:75
@@ -561,7 +561,7 @@ msgstr "Sven Herzberg\n"
 "Mathias Hasselmann"
 
 #: ../src/giggle-window.c:922
-msgid "A graphical frontend to the git directory tracker."
+msgid "A graphical frontend to the git content tracker."
 msgstr "Eine graphische Schnittstelle für git"
 
 #: ../src/giggle-window.c:977

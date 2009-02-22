@@ -267,7 +267,7 @@ msgstr ""
 "Zgłaszanie błędów (w jezyku angielskim z LC_ALL=C) dostępne pod adresem <%s>."
 
 #: ../src/giggle-main.c:69
-msgid "Giggle is a graphical frontend for the git directory tracker."
+msgid "Giggle is a graphical frontend for the git content tracker."
 msgstr "Giggle jest graficznym interfejsem dla git."
 
 #: ../src/giggle-main.c:77
@@ -566,7 +566,7 @@ msgid "translator-credits"
 msgstr "Łukasz Jernaś"
 
 #: ../src/giggle-window.c:922
-msgid "A graphical frontend to the git directory tracker."
+msgid "A graphical frontend to the git content tracker."
 msgstr "Graficzny interfejs dla GIT."
 
 #: ../src/giggle-window.c:977

@@ -264,8 +264,8 @@ msgid "Report errors (in English, with LC_ALL=C) to <%s>."
 msgstr "Report errors (in English, with LC_ALL=C to <%s>."
 
 #: ../src/giggle-main.c:63
-msgid "Giggle is a graphical frontend for the git directory tracker."
-msgstr "Giggle is a graphical frontend for the git directory tracker."
+msgid "Giggle is a graphical frontend for the git content tracker."
+msgstr "Giggle is a graphical frontend for the git content tracker."
 
 #: ../src/giggle-main.c:74
 #, c-format
@@ -543,8 +543,8 @@ msgid "translator-credits"
 msgstr "Bruce Cowan <bcowan@fastmail.co.uk>"
 
 #: ../src/giggle-window.c:925
-msgid "A graphical frontend to the git directory tracker."
-msgstr "A graphical frontend to the git directory tracker."
+msgid "A graphical frontend to the git content tracker."
+msgstr "A graphical frontend to the git content tracker."
 
 #: ../src/giggle-window.c:980
 msgid "_Find..."
