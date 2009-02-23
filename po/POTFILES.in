@@ -2,6 +2,7 @@ data/giggle.desktop.in
 data/main-window.glade
 libgiggle/giggle-plugin.c
 plugins/giggle-personal-details-window.c
+plugins/giggle-view-terminal.c
 src/eggfindbar.c
 src/giggle-authors-view.c
 src/giggle-branches-view.c
@@ -23,3 +24,5 @@ src/giggle-window.c
 
 [type: gettext/glade] plugins/hello-world.xml
 [type: gettext/glade] plugins/personal-details.xml
+[type: gettext/glade] plugins/terminal-view.xml
+
