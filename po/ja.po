@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <futoshi@momonga-linux.org>, 2007.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-10-08 19:03+0900\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -33,7 +32,8 @@ msgstr "<b>ブランチ</b>"
 msgid "Name:"
 msgstr "名前:"
 
-#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
 msgid "Personal Details"
 msgstr "個人情報"
 
@@ -95,15 +95,14 @@ msgstr "著作者:"
 msgid ""
 "An error occurred when retrieving branches list:\n"
 "%s"
-msgstr ""
-"ブランチリスト取得時にエラーが発生しました:"
-"%s"
+msgstr "ブランチリスト取得時にエラーが発生しました:%s"
 
 #: ../src/giggle-branches-view.c:145
 msgid "Branches:"
 msgstr "ブランチ:"
 
-#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1513
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1513
 #, c-format
 msgid ""
 "An error occurred when retrieving different files list:\n"
@@ -124,6 +123,7 @@ msgid ""
 msgstr ""
 "差分の取得時にエラーが発生しました:\n"
 "%s"
+
 #: ../src/giggle-diff-window.c:81
 msgid "Commit changes"
 msgstr "変更のcommit"
@@ -192,12 +192,8 @@ msgid "Delete glob pattern?"
 msgstr "globパターンを削除しますか?"
 
 #: ../src/giggle-file-list.c:1142
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
-msgstr ""
-"選択されたファイルは、globパターンで表示されていますが、"
-"非表示のファイルがある可能性があります。削除しますか？"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
+msgstr "選択されたファイルは、globパターンで表示されていますが、非表示のファイルがある可能性があります。削除しますか？"
 
 #: ../src/giggle-personal-details-window.c:127
 msgid "There was an error setting the configuration"
@@ -302,7 +298,8 @@ msgstr "ブランチ名の入力:"
 msgid "Enter tag name:"
 msgstr "タグ名の入力:"
 
-#: ../src/giggle-revision-tooltip.c:255 ../src/giggle-view-history.c:453
+#: ../src/giggle-revision-tooltip.c:255
+#: ../src/giggle-view-history.c:453
 msgid "Branch"
 msgid_plural "Branches"
 msgstr[0] "ブランチ"
@@ -333,16 +330,19 @@ msgid "Show all..."
 msgstr "すべて表示..."
 
 #. revision view
-#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:177
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:177
 msgid "Revision _information"
 msgstr "リビジョンの情報(_I)"
 
 #. diff view
-#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:343
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:343
 msgid "_Differences"
 msgstr "差分(_D)"
 
-#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:629
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:629
 #: ../src/giggle-view-history.c:722
 #, c-format
 msgid ""
@@ -509,3 +509,4 @@ msgstr ""
 #: ../src/giggle-window.c:1008
 msgid "translator-credits"
 msgstr "翻訳者のクレジット"
+

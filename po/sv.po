@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: Giggle 0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-09-27 20:32+0200\n"
-"PO-Revision-Date: 2007-01-14 12:41+0200\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Richard Hult <richard@imendio.com>\n"
 "Language-Team: sv <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -35,7 +35,8 @@ msgstr "<b>Brancher</b>"
 msgid "Name:"
 msgstr "Namn:"
 
-#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
 msgid "Personal Details"
 msgstr "Personliga uppgifter"
 
@@ -106,7 +107,8 @@ msgstr ""
 msgid "Branches:"
 msgstr "Brancher:"
 
-#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1518
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1518
 #, c-format
 msgid ""
 "An error occurred when retrieving different files list:\n"
@@ -196,9 +198,7 @@ msgid "Delete glob pattern?"
 msgstr "Ta bort glob-mönster?"
 
 #: ../src/giggle-file-list.c:1147
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
 msgstr ""
 
 #: ../src/giggle-personal-details-window.c:127
@@ -305,7 +305,8 @@ msgstr "Ange branchnamn:"
 msgid "Enter tag name:"
 msgstr "Ange taggnamn:"
 
-#: ../src/giggle-revision-tooltip.c:261 ../src/giggle-view-history.c:453
+#: ../src/giggle-revision-tooltip.c:261
+#: ../src/giggle-view-history.c:453
 msgid "Branch"
 msgid_plural "Branches"
 msgstr[0] "Branch"
@@ -340,16 +341,19 @@ msgid "Show all..."
 msgstr "Visa alla..."
 
 #. revision view
-#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:177
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:177
 msgid "Revision _information"
 msgstr "Revisions_information"
 
 #. diff view
-#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:343
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:343
 msgid "_Differences"
 msgstr "_Skillnader"
 
-#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:629
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:629
 #: ../src/giggle-view-history.c:724
 #, c-format
 msgid ""
@@ -527,6 +531,6 @@ msgstr "Richard Hult"
 
 #~ msgid "_Diff"
 #~ msgstr "Visa _diff"
-
 #~ msgid "Search string"
 #~ msgstr "Söksträng"
+

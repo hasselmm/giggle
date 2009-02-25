@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: giggle VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-03-27 17:46+0200\n"
-"PO-Revision-Date: 2007-02-01 02:58+0100\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Carlos Garnacho <carlos@imendio.com>\n"
 "Language-Team: Spanish <traductores@es.gnome.org>\n"
 "MIME-Version: 1.0\n"
@@ -23,7 +23,8 @@ msgstr "<b>Ramas de desarrollo</b>"
 msgid "Name:"
 msgstr "Nombre:"
 
-#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
 msgid "Personal Details"
 msgstr "Detalles Personales"
 
@@ -107,8 +108,8 @@ msgstr "_Sensible a mayusculas"
 msgid "Toggle case sensitive search"
 msgstr ""
 
-#: ../src/giggle-authors-view.c:80
 # c-format
+#: ../src/giggle-authors-view.c:80
 msgid ""
 "An error occurred when retrieving authors list:\n"
 "%s"
@@ -120,8 +121,8 @@ msgstr ""
 msgid "Authors:"
 msgstr "Autores:"
 
-#: ../src/giggle-branches-view.c:80
 # c-format
+#: ../src/giggle-branches-view.c:80
 msgid ""
 "An error occurred when retrieving branches list:\n"
 "%s"
@@ -133,8 +134,9 @@ msgstr ""
 msgid "Branches:"
 msgstr "Ramas de desarrollo:"
 
-#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1334
 # c-format
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1334
 msgid ""
 "An error occurred when retrieving different files list:\n"
 "%s"
@@ -163,8 +165,8 @@ msgstr "Bitácora de la revision:"
 msgid "Co_mmit"
 msgstr "Co_mmit"
 
-#: ../src/giggle-diff-window.c:199
 # c-format
+#: ../src/giggle-diff-window.c:199
 msgid ""
 "An error occurred when committing:\n"
 "%s"
@@ -196,8 +198,8 @@ msgstr "_Mostrar todos los archivos"
 msgid "Project"
 msgstr "Proyecto"
 
-#: ../src/giggle-file-list.c:563
 # c-format
+#: ../src/giggle-file-list.c:563
 msgid ""
 "An error occurred when retrieving the file list:\n"
 "%s"
@@ -205,8 +207,8 @@ msgstr ""
 "Ha ocurrido un error extrayendo la lista de archivos:\n"
 "%s"
 
-#: ../src/giggle-file-list.c:733
 # c-format
+#: ../src/giggle-file-list.c:733
 msgid ""
 "An error occurred when adding a file to git:\n"
 "%s"
@@ -219,11 +221,8 @@ msgid "Delete glob pattern?"
 msgstr "¿Borrar patrón?"
 
 #: ../src/giggle-file-list.c:1024
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
-msgstr "El archivo seleccionado está oculto por un patrón glob que puede ocultar "
-"otros archivos, ¿Borrar patrón?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
+msgstr "El archivo seleccionado está oculto por un patrón glob que puede ocultar otros archivos, ¿Borrar patrón?"
 
 #: ../src/giggle-personal-details-window.c:127
 msgid "There was an error setting the configuration"
@@ -353,18 +352,21 @@ msgid "Show all..."
 msgstr "Mostrar todos..."
 
 #. revision view
-#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:222
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:222
 msgid "Revision _information"
 msgstr "_Información de la revisión"
 
 #. diff view
-#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:231
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:231
 msgid "_Differences"
 msgstr "_Diferencias"
 
-#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:440
-#: ../src/giggle-view-history.c:533
 # c-format
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:440
+#: ../src/giggle-view-history.c:533
 msgid ""
 "An error occurred when getting the revisions list:\n"
 "%s"
@@ -526,3 +528,4 @@ msgstr ""
 #: ../src/giggle-window.c:987
 msgid "translator-credits"
 msgstr "Carlos Garnacho"
+

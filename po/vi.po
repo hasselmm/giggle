@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: giggle master\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-07-30 20:56-0400\n"
-"PO-Revision-Date: 2007-07-30 21:27-0400\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>\n"
 "Language-Team: Vietnamese <vi-vn@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -32,7 +32,8 @@ msgstr "<b>Nhánh</b>"
 msgid "Name:"
 msgstr "Tên:"
 
-#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
 msgid "Personal Details"
 msgstr "Thông tin cá nhân"
 
@@ -102,7 +103,8 @@ msgstr ""
 msgid "Branches:"
 msgstr "Nhánh:"
 
-#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1513
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1513
 #, c-format
 msgid ""
 "An error occurred when retrieving different files list:\n"
@@ -192,9 +194,7 @@ msgid "Delete glob pattern?"
 msgstr "Xoá tập tin theo mẫu chứ?"
 
 #: ../src/giggle-file-list.c:1142
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
 msgstr "Tập tin được chọn bị che bởi mẫu có thể ảnh hưởng nhiều tập tin khác, xoá chứ?"
 
 #: ../src/giggle-personal-details-window.c:127
@@ -300,7 +300,8 @@ msgstr "Nhập tên nhánh:"
 msgid "Enter tag name:"
 msgstr "Nhập tên tag:"
 
-#: ../src/giggle-revision-tooltip.c:255 ../src/giggle-view-history.c:453
+#: ../src/giggle-revision-tooltip.c:255
+#: ../src/giggle-view-history.c:453
 msgid "Branch"
 msgid_plural "Branches"
 msgstr[0] "Nhánh"
@@ -330,16 +331,19 @@ msgid "Show all..."
 msgstr "Hiện đầy đủ..."
 
 #. revision view
-#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:177
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:177
 msgid "Revision _information"
 msgstr "Thông tin _phiên bản"
 
 #. diff view
-#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:343
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:343
 msgid "_Differences"
 msgstr "_Khác biệt"
 
-#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:629
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:629
 #: ../src/giggle-view-history.c:722
 #, c-format
 msgid ""
@@ -506,3 +510,4 @@ msgstr ""
 #: ../src/giggle-window.c:1008
 msgid "translator-credits"
 msgstr "Nguyễn Thái Ngọc Duy"
+

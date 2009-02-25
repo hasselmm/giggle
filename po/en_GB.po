@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: giggle 0.4\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2009-02-12 17:27+0000\n"
-"PO-Revision-Date: 2009-02-12 17:29+0000\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Bruce Cowan <bcowan@fastmail.co.uk>\n"
 "Language-Team: British English <en@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -111,11 +111,13 @@ msgstr ""
 "An error occurred when retrieving branches list:\n"
 "%s"
 
-#: ../src/giggle-branches-view.c:146 ../src/giggle-revision-view.c:171
+#: ../src/giggle-branches-view.c:146
+#: ../src/giggle-revision-view.c:171
 msgid "Branches:"
 msgstr "Branches:"
 
-#: ../src/giggle-diff-tree-view.c:143 ../src/giggle-file-list.c:1695
+#: ../src/giggle-diff-tree-view.c:143
+#: ../src/giggle-file-list.c:1695
 #, c-format
 msgid ""
 "An error occurred when retrieving different files list:\n"
@@ -176,33 +178,41 @@ msgstr ""
 "An error occurred when adding a file to git:\n"
 "%s"
 
-#: ../src/giggle-file-list.c:847 ../src/giggle-file-list.c:873
-#: ../src/giggle-rev-list-view.c:1180 ../src/giggle-rev-list-view.c:1211
+#: ../src/giggle-file-list.c:847
+#: ../src/giggle-file-list.c:873
+#: ../src/giggle-rev-list-view.c:1180
+#: ../src/giggle-rev-list-view.c:1211
 #, c-format
 msgid "Could not save the patch as %s"
 msgstr "Could not save the patch as %s"
 
-#: ../src/giggle-file-list.c:852 ../src/giggle-file-list.c:878
-#: ../src/giggle-rev-list-view.c:1188 ../src/giggle-rev-list-view.c:1216
+#: ../src/giggle-file-list.c:852
+#: ../src/giggle-file-list.c:878
+#: ../src/giggle-rev-list-view.c:1188
+#: ../src/giggle-rev-list-view.c:1216
 msgid "No error was given"
 msgstr "No error was given"
 
-#: ../src/giggle-file-list.c:899 ../src/giggle-rev-list-view.c:1242
+#: ../src/giggle-file-list.c:899
+#: ../src/giggle-rev-list-view.c:1242
 #, c-format
 msgid "Patch saved as %s"
 msgstr "Patch saved as %s"
 
-#: ../src/giggle-file-list.c:903 ../src/giggle-rev-list-view.c:1246
+#: ../src/giggle-file-list.c:903
+#: ../src/giggle-rev-list-view.c:1246
 #, c-format
 msgid "Created in project directory"
 msgstr "Created in project directory"
 
-#: ../src/giggle-file-list.c:906 ../src/giggle-rev-list-view.c:1249
+#: ../src/giggle-file-list.c:906
+#: ../src/giggle-rev-list-view.c:1249
 #, c-format
 msgid "Created in directory %s"
 msgstr "Created in directory %s"
 
-#: ../src/giggle-file-list.c:941 ../src/giggle-rev-list-view.c:1302
+#: ../src/giggle-file-list.c:941
+#: ../src/giggle-rev-list-view.c:1302
 msgid "Create Patch"
 msgstr "Create Patch"
 
@@ -211,12 +221,8 @@ msgid "Delete glob pattern?"
 msgstr "Delete glob pattern?"
 
 #: ../src/giggle-file-list.c:1047
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
-msgstr ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
+msgstr "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
 
 #: ../src/giggle-file-list.c:1443
 msgid "_Commit Changes"
@@ -226,7 +232,8 @@ msgstr "_Commit Changes"
 msgid "A_dd file to repository"
 msgstr "A_dd file to repository"
 
-#: ../src/giggle-file-list.c:1446 ../src/giggle-rev-list-view.c:1660
+#: ../src/giggle-file-list.c:1446
+#: ../src/giggle-rev-list-view.c:1660
 msgid "Create _Patch"
 msgstr "Create _Patch"
 
@@ -300,11 +307,13 @@ msgstr "URL"
 msgid "Double click to add remote..."
 msgstr "Double click to add remote..."
 
-#: ../src/giggle-revision-view.c:146 ../src/giggle-view-file.c:987
+#: ../src/giggle-revision-view.c:146
+#: ../src/giggle-view-file.c:987
 msgid "Date:"
 msgstr "Date:"
 
-#: ../src/giggle-revision-view.c:159 ../src/giggle-view-file.c:988
+#: ../src/giggle-revision-view.c:159
+#: ../src/giggle-view-file.c:988
 msgid "SHA:"
 msgstr "SHA:"
 
@@ -462,7 +471,8 @@ msgstr ""
 "An error occurred when getting file ref:\n"
 "%s"
 
-#: ../src/giggle-view-file.c:556 ../src/giggle-view-history.c:249
+#: ../src/giggle-view-file.c:556
+#: ../src/giggle-view-history.c:249
 #: ../src/giggle-view-history.c:344
 #, c-format
 msgid ""
@@ -686,3 +696,4 @@ msgstr "Hello World"
 #: ../plugins/personal-details.xml.h:1
 msgid "Edit personal details"
 msgstr "Edit personal details"
+

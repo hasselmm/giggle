@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: giggle 0.2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-03-29 17:53+0200\n"
-"PO-Revision-Date: 2007-02-01 02:58+0100\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Gil Forcada <gilforcada@guifi.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "MIME-Version: 1.0\n"
@@ -23,7 +23,8 @@ msgstr "<b>Branques</b>"
 msgid "Name:"
 msgstr "Nom:"
 
-#: ../data/main-window.glade.h:3 ../src/giggle-personal-details-window.c:84
+#: ../data/main-window.glade.h:3
+#: ../src/giggle-personal-details-window.c:84
 msgid "Personal Details"
 msgstr "Detalls personals"
 
@@ -107,8 +108,8 @@ msgstr "_Distingeix entre minúscules i majúscules"
 msgid "Toggle case sensitive search"
 msgstr "Commuta la distinció de minúscules i majúscules"
 
-#: ../src/giggle-authors-view.c:80
 # c-format
+#: ../src/giggle-authors-view.c:80
 msgid ""
 "An error occurred when retrieving authors list:\n"
 "%s"
@@ -120,8 +121,8 @@ msgstr ""
 msgid "Authors:"
 msgstr "Autors:"
 
-#: ../src/giggle-branches-view.c:80
 # c-format
+#: ../src/giggle-branches-view.c:80
 msgid ""
 "An error occurred when retrieving branches list:\n"
 "%s"
@@ -133,8 +134,9 @@ msgstr ""
 msgid "Branches:"
 msgstr "Branques:"
 
-#: ../src/giggle-diff-tree-view.c:105 ../src/giggle-file-list.c:1334
 # c-format
+#: ../src/giggle-diff-tree-view.c:105
+#: ../src/giggle-file-list.c:1334
 msgid ""
 "An error occurred when retrieving different files list:\n"
 "%s"
@@ -163,8 +165,8 @@ msgstr "Registre de revisions:"
 msgid "Co_mmit"
 msgstr "Confir_ma els canvis"
 
-#: ../src/giggle-diff-window.c:199
 # c-format
+#: ../src/giggle-diff-window.c:199
 msgid ""
 "An error occurred when committing:\n"
 "%s"
@@ -196,8 +198,8 @@ msgstr "_Mostra tots els fitxers"
 msgid "Project"
 msgstr "Projecte"
 
-#: ../src/giggle-file-list.c:563
 # c-format
+#: ../src/giggle-file-list.c:563
 msgid ""
 "An error occurred when retrieving the file list:\n"
 "%s"
@@ -205,8 +207,8 @@ msgstr ""
 "S'ha produït un error en recuperar la llista de fitxers:\n"
 "%s"
 
-#: ../src/giggle-file-list.c:733
 # c-format
+#: ../src/giggle-file-list.c:733
 msgid ""
 "An error occurred when adding a file to git:\n"
 "%s"
@@ -219,11 +221,8 @@ msgid "Delete glob pattern?"
 msgstr "Voleu suprimir el patró glob?"
 
 #: ../src/giggle-file-list.c:1024
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
-msgstr "El fitxer seleccionat estava ocultat per un patró glob que potser "
-"està ocultant altres fitxers, voleu suprimir el patró?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
+msgstr "El fitxer seleccionat estava ocultat per un patró glob que potser està ocultant altres fitxers, voleu suprimir el patró?"
 
 #: ../src/giggle-personal-details-window.c:127
 msgid "There was an error setting the configuration"
@@ -353,18 +352,21 @@ msgid "Show all..."
 msgstr "Mostra-ho tot..."
 
 #. revision view
-#: ../src/giggle-view-file.c:131 ../src/giggle-view-history.c:222
+#: ../src/giggle-view-file.c:131
+#: ../src/giggle-view-history.c:222
 msgid "Revision _information"
 msgstr "_Informació de la revisió"
 
 #. diff view
-#: ../src/giggle-view-file.c:139 ../src/giggle-view-history.c:231
+#: ../src/giggle-view-file.c:139
+#: ../src/giggle-view-history.c:231
 msgid "_Differences"
 msgstr "_Diferències"
 
-#: ../src/giggle-view-file.c:189 ../src/giggle-view-history.c:440
-#: ../src/giggle-view-history.c:533
 # c-format
+#: ../src/giggle-view-file.c:189
+#: ../src/giggle-view-history.c:440
+#: ../src/giggle-view-history.c:533
 msgid ""
 "An error occurred when getting the revisions list:\n"
 "%s"

@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: giggle 0.4.91\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2009-02-20 10:08+0100\n"
-"PO-Revision-Date: 2007-03-28 12:59+0200\n"
+"PO-Revision-Date: 2009-02-25 11:11+0100\n"
 "Last-Translator: Mathias Hasselmann <hasselmm@gnome.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
 "MIME-Version: 1.0\n"
@@ -113,11 +113,13 @@ msgstr ""
 "Beim Lesen der Zweige trat ein Fehler auf:\n"
 "%s"
 
-#: ../src/giggle-branches-view.c:147 ../src/giggle-revision-view.c:206
+#: ../src/giggle-branches-view.c:147
+#: ../src/giggle-revision-view.c:206
 msgid "Branches:"
 msgstr "Zweige:"
 
-#: ../src/giggle-diff-tree-view.c:142 ../src/giggle-file-list.c:1675
+#: ../src/giggle-diff-tree-view.c:142
+#: ../src/giggle-file-list.c:1675
 #, c-format
 msgid ""
 "An error occurred when retrieving different files list:\n"
@@ -176,33 +178,41 @@ msgstr ""
 "Beim Hinzufügen der Datei trat ein Fehler auf:\n"
 "%s"
 
-#: ../src/giggle-file-list.c:827 ../src/giggle-file-list.c:853
-#: ../src/giggle-rev-list-view.c:1184 ../src/giggle-rev-list-view.c:1215
+#: ../src/giggle-file-list.c:827
+#: ../src/giggle-file-list.c:853
+#: ../src/giggle-rev-list-view.c:1184
+#: ../src/giggle-rev-list-view.c:1215
 #, c-format
 msgid "Could not save the patch as %s"
 msgstr ""
 
-#: ../src/giggle-file-list.c:832 ../src/giggle-file-list.c:858
-#: ../src/giggle-rev-list-view.c:1192 ../src/giggle-rev-list-view.c:1220
+#: ../src/giggle-file-list.c:832
+#: ../src/giggle-file-list.c:858
+#: ../src/giggle-rev-list-view.c:1192
+#: ../src/giggle-rev-list-view.c:1220
 msgid "No error was given"
 msgstr ""
 
-#: ../src/giggle-file-list.c:879 ../src/giggle-rev-list-view.c:1246
+#: ../src/giggle-file-list.c:879
+#: ../src/giggle-rev-list-view.c:1246
 #, c-format
 msgid "Patch saved as %s"
 msgstr "Patch gespeichert unter %s"
 
-#: ../src/giggle-file-list.c:883 ../src/giggle-rev-list-view.c:1250
+#: ../src/giggle-file-list.c:883
+#: ../src/giggle-rev-list-view.c:1250
 #, c-format
 msgid "Created in project directory"
 msgstr ""
 
-#: ../src/giggle-file-list.c:886 ../src/giggle-rev-list-view.c:1253
+#: ../src/giggle-file-list.c:886
+#: ../src/giggle-rev-list-view.c:1253
 #, c-format
 msgid "Created in directory %s"
 msgstr ""
 
-#: ../src/giggle-file-list.c:921 ../src/giggle-rev-list-view.c:1306
+#: ../src/giggle-file-list.c:921
+#: ../src/giggle-rev-list-view.c:1306
 msgid "Create Patch"
 msgstr "Patch Erzeugen"
 
@@ -211,9 +221,7 @@ msgid "Delete glob pattern?"
 msgstr ""
 
 #: ../src/giggle-file-list.c:1027
-msgid ""
-"The selected file was shadowed by a glob pattern that may be hiding other "
-"files, delete it?"
+msgid "The selected file was shadowed by a glob pattern that may be hiding other files, delete it?"
 msgstr ""
 
 #: ../src/giggle-file-list.c:1423
@@ -224,7 +232,8 @@ msgstr "Änderungen _sichern"
 msgid "A_dd file to repository"
 msgstr "Zum GIT-Repository _hinzufügen"
 
-#: ../src/giggle-file-list.c:1426 ../src/giggle-rev-list-view.c:1660
+#: ../src/giggle-file-list.c:1426
+#: ../src/giggle-rev-list-view.c:1660
 msgid "Create _Patch"
 msgstr "_Patch Erzeugen"
 
@@ -299,19 +308,23 @@ msgstr "URL"
 msgid "Double click to add remote..."
 msgstr ""
 
-#: ../src/giggle-revision-view.c:198 ../src/giggle-view-file.c:1147
+#: ../src/giggle-revision-view.c:198
+#: ../src/giggle-view-file.c:1147
 msgid "Author:"
 msgstr "Autor:"
 
-#: ../src/giggle-revision-view.c:202 ../src/giggle-view-file.c:1148
+#: ../src/giggle-revision-view.c:202
+#: ../src/giggle-view-file.c:1148
 msgid "Committer:"
 msgstr ""
 
-#: ../src/giggle-revision-view.c:204 ../src/giggle-view-file.c:1149
+#: ../src/giggle-revision-view.c:204
+#: ../src/giggle-view-file.c:1149
 msgid "Date:"
 msgstr "Datum:"
 
-#: ../src/giggle-revision-view.c:205 ../src/giggle-view-file.c:1150
+#: ../src/giggle-revision-view.c:205
+#: ../src/giggle-view-file.c:1150
 msgid "SHA:"
 msgstr "SHA:"
 
@@ -483,7 +496,8 @@ msgid ""
 "%s"
 msgstr ""
 
-#: ../src/giggle-view-file.c:903 ../src/giggle-view-history.c:250
+#: ../src/giggle-view-file.c:903
+#: ../src/giggle-view-history.c:250
 #: ../src/giggle-view-history.c:345
 #, c-format
 msgid ""
@@ -557,7 +571,8 @@ msgstr "Eigenschaften von %s"
 
 #: ../src/giggle-window.c:921
 msgid "translator-credits"
-msgstr "Sven Herzberg\n"
+msgstr ""
+"Sven Herzberg\n"
 "Mathias Hasselmann"
 
 #: ../src/giggle-window.c:922
@@ -707,39 +722,28 @@ msgstr "Persönliche Angaben bearbeiten"
 
 #~ msgid "Search string"
 #~ msgstr "Suchmuster"
-
 #~ msgid "Highlight color"
 #~ msgstr "Hervorhebungsfarbe"
-
 #~ msgid "Current color"
 #~ msgstr "Aktuelle Farbe"
-
 #~ msgid "_Differences"
 #~ msgstr "_Unterschiede"
-
 #~ msgid "_Compact Mode"
 #~ msgstr "_Kompakt"
-
 #~ msgid "_Open"
 #~ msgstr "Ö_ffnen"
-
 #~ msgid "_Quit"
 #~ msgstr "_Beenden"
-
 #~ msgid "Edit Personal _Details"
 #~ msgstr "Persönliche Angaben _bearbeiten"
-
 #~ msgid "_About"
 #~ msgstr "_Info"
-
 #~ msgid "_Back"
 #~ msgstr "_Zurück"
-
 #~ msgid "_Forward"
 #~ msgstr "_Weiter"
-
 #~ msgid "<b>Branches:</b>"
 #~ msgstr "<b>Zweige:</b>"
-
 #~ msgid "<b>Authors:</b>"
 #~ msgstr "<b>Autoren:</b>"
+
