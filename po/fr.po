@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: giggle\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=giggle\n"
 "POT-Creation-Date: 2009-02-25 03:24+0000\n"
-"PO-Revision-Date: 2009-02-25 11:11+0100\n"
+"PO-Revision-Date: 2009-02-25 11:30+0100\n"
 "Last-Translator: Camille Lafitte <cam.lafit@azerttyu.net>\n"
 "Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
 "MIME-Version: 1.0\n"
@@ -39,9 +39,9 @@ msgid "URL:"
 msgstr "URL :"
 
 #: ../libgiggle/giggle-plugin.c:528
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot find plugin description in '%s'"
-msgstr "Double-clic pour ajouter un mapping..."
+msgstr "Ne peut trouver la description du plugin dans '%s'"
 
 #: ../plugins/giggle-personal-details-window.c:82
 msgid "There was an error setting the configuration"
@@ -66,7 +66,7 @@ msgstr "Informations personnelles"
 
 #: ../plugins/giggle-view-terminal.c:102
 msgid "_Terminal"
-msgstr ""
+msgstr "_Terminal"
 
 #: ../plugins/giggle-view-terminal.c:103
 msgid "Issue git commands via terminal"
@@ -155,7 +155,7 @@ msgstr ""
 
 #: ../src/giggle-diff-window.c:82
 msgid "Commit changes"
-msgstr "Modifications confirmées"
+msgstr "Commiter les modifications"
 
 #: ../src/giggle-diff-window.c:104
 msgid "Revision log:"
@@ -276,32 +276,31 @@ msgid "Show the diff window"
 msgstr "Affiche la fenêtre des différences"
 
 #: ../src/giggle-main.c:39
-#, fuzzy
 msgid "Show version information and exit"
-msgstr "Inf_ormation sur la révision"
+msgstr "Montrer les informations de la révision et quitter"
 
 #: ../src/giggle-main.c:63
 msgid "[DIRECTORY]"
-msgstr ""
+msgstr "[REPERTOIRE]"
 
 #: ../src/giggle-main.c:69
 #, c-format
 msgid "Report errors (in English, with LC_ALL=C) to <%s>."
-msgstr ""
+msgstr "Signaler des erreurs (en anglais, avec LC_ALL=C) à <%s>."
 
 #: ../src/giggle-main.c:70
 msgid "Giggle is a graphical frontend for the git content tracker."
-msgstr ""
+msgstr "Giggle est une interface graphique pour le système de contrôle de versions git"
 
 #: ../src/giggle-main.c:78
 #, c-format
 msgid "Try `%s --help' for more information.\n"
-msgstr ""
+msgstr "Essayez `%s --help' pour plus d'informations.\n"
 
 #: ../src/giggle-remote-editor.c:154
 #, fuzzy
 msgid "Click to add mapping..."
-msgstr "Double-clic pour ajouter un mapping..."
+msgstr "Double clic pour ajouter une relation ..."
 
 #: ../src/giggle-remote-editor.c:180
 msgid "Branches"
@@ -313,7 +312,7 @@ msgstr "Sans nom"
 
 #: ../src/giggle-remotes-view.c:265
 msgid "Icon"
-msgstr ""
+msgstr "Icône"
 
 #: ../src/giggle-remotes-view.c:271
 msgid "Name"
@@ -329,7 +328,6 @@ msgstr "Double clic pour ajouter un site distant"
 
 #: ../src/giggle-revision-view.c:198
 #: ../src/giggle-view-file.c:1147
-#, fuzzy
 msgid "Author:"
 msgstr "Auteurs :"
 
@@ -337,7 +335,7 @@ msgstr "Auteurs :"
 #: ../src/giggle-view-file.c:1148
 #, fuzzy
 msgid "Committer:"
-msgstr "Comiter"
+msgstr "Comiteur :"
 
 #: ../src/giggle-revision-view.c:204
 #: ../src/giggle-view-file.c:1149
@@ -354,14 +352,12 @@ msgid "Change Log:"
 msgstr "Journal des modifications :"
 
 #: ../src/giggle-revision-view.c:507
-#, fuzzy
 msgid "_Details"
-msgstr "Détails"
+msgstr "_Détails"
 
 #: ../src/giggle-revision-view.c:508
-#, fuzzy
 msgid "Display revision details"
-msgstr "Modifier les informations personnelles"
+msgstr "Afficher les détails de la révision"
 
 #: ../src/giggle-rev-list-view.c:353
 #, c-format
@@ -374,7 +370,6 @@ msgid "Delete tag \"%s\""
 msgstr "Supprimer l'étiquette « %s »"
 
 #: ../src/giggle-rev-list-view.c:523
-#, fuzzy
 msgid "Branch"
 msgstr "Branche"
 
@@ -457,75 +452,70 @@ msgid "Details"
 msgstr "Détails"
 
 #: ../src/giggle-short-list.c:375
-#, fuzzy
 msgid "Show A_ll..."
-msgstr "Tout afficher..."
+msgstr "Tout A_fficher..."
 
 #: ../src/giggle-view-diff.c:108
 #, fuzzy, c-format
 msgid "Change %d of %d"
-msgstr "Fichiers modifiés"
+msgstr "Modification %d de %d"
 
 #: ../src/giggle-view-diff.c:185
 msgid "_Previous Change"
-msgstr ""
+msgstr "Modification _Précédente"
 
 #: ../src/giggle-view-diff.c:185
-#, fuzzy
 msgid "View previous change"
-msgstr "Rechercher le précédent"
+msgstr "Voir la modification précédente"
 
 #: ../src/giggle-view-diff.c:189
-#, fuzzy
 msgid "_Next Change"
-msgstr "_Commiter les modifications"
+msgstr "_Modification Suivante"
 
 #: ../src/giggle-view-diff.c:189
-#, fuzzy
 msgid "View next change"
-msgstr "Affiche les différences issues des modifications actuelles"
+msgstr "Voir la modification suivante"
 
 #: ../src/giggle-view-diff.c:349
-#, fuzzy
 msgid "_Changes"
-msgstr "_Commiter les modifications"
+msgstr "_Modifications"
 
 #: ../src/giggle-view-diff.c:350
 msgid "Browse a revision's changes"
-msgstr ""
+msgstr "Explorer les modifications d'une révision"
 
 #: ../src/giggle-view-file.c:328
+#, fuzzy
 msgid "_Goto Line Number"
-msgstr ""
+msgstr "_Aller à la ligne "
 
 #: ../src/giggle-view-file.c:329
 msgid "Highlight specified line number"
-msgstr ""
+msgstr "Surligner la ligne spécifiée"
 
 #: ../src/giggle-view-file.c:333
-#, fuzzy
 msgid "Show _Changes"
-msgstr "_Commiter les modifications"
+msgstr "_Montrer les modifications"
 
 #: ../src/giggle-view-file.c:334
 msgid "Show changes for selected revision"
-msgstr ""
+msgstr "Montrer les modifications pour la révision sélectionnée"
 
 #: ../src/giggle-view-file.c:338
 msgid "Select _Revision"
-msgstr ""
+msgstr "Sélectionner la _Révision"
 
 #: ../src/giggle-view-file.c:339
 msgid "Select revision of selected line"
-msgstr ""
+msgstr "Sélectionner la révision de la ligne sélectionnée"
 
 #: ../src/giggle-view-file.c:832
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "An error occurred when getting file ref:\n"
 "%s"
 msgstr ""
-"Une erreur est survenue lors de l'enregistrement du fichier :\n"
+"Une erreur s'est produite lors de l'obtention du fichier :\n"
 "%s"
 
 # c-format
@@ -542,24 +532,23 @@ msgstr ""
 
 #: ../src/giggle-view-file.c:1063
 msgid "Line Number:"
-msgstr ""
+msgstr "Numéro de ligne : "
 
 #: ../src/giggle-view-file.c:1492
 msgid "_Browse"
-msgstr ""
+msgstr "_Explorer"
 
 #: ../src/giggle-view-file.c:1493
 msgid "Browse the files of this project"
-msgstr ""
+msgstr "Explorer les fichiers de ce projet"
 
 #: ../src/giggle-view-history.c:834
-#, fuzzy
 msgid "_History"
-msgstr "Historique"
+msgstr "_Historique"
 
 #: ../src/giggle-view-history.c:835
 msgid "Browse the history of this project"
-msgstr ""
+msgstr "Explorer l'historique du projet"
 
 #: ../src/giggle-view-summary.c:117
 msgid "<b>Description:</b>"
@@ -570,24 +559,20 @@ msgid "<b>Remotes:</b>"
 msgstr "<b>Distantes :</b>"
 
 #: ../src/giggle-view-summary.c:189
-#, fuzzy
 msgid "_Summary"
-msgstr "Résumé"
+msgstr "_Résumé"
 
 #: ../src/giggle-view-summary.c:192
-#, fuzzy
 msgid "_Branches"
-msgstr "Branches"
+msgstr "_Branches"
 
 #: ../src/giggle-view-summary.c:195
-#, fuzzy
 msgid "_Authors"
-msgstr "Auteurs :"
+msgstr "_Auteurs"
 
 #: ../src/giggle-view-summary.c:198
-#, fuzzy
 msgid "_Remotes"
-msgstr "Distant"
+msgstr "_Distants"
 
 #: ../src/giggle-window.c:562
 msgid "About Giggle"
@@ -605,7 +590,7 @@ msgstr "Choisissez un dépôt git"
 #: ../src/giggle-window.c:706
 #, c-format
 msgid "Properties of %s"
-msgstr ""
+msgstr "Propriété de %s"
 
 #: ../src/giggle-window.c:920
 msgid "translator-credits"
@@ -614,8 +599,9 @@ msgstr ""
 "Stéphane Raimbault <stephane.raimbault@gmail.com>, 2008"
 
 #: ../src/giggle-window.c:921
+#, fuzzy
 msgid "A graphical frontend to the git content tracker."
-msgstr ""
+msgstr "Une interface graphique pour le système de gestion de versions git"
 
 #: ../src/giggle-window.c:976
 msgid "_Find..."
@@ -630,18 +616,16 @@ msgid "Find Ne_xt"
 msgstr "Rechercher le _suivant"
 
 #: ../src/giggle-window.c:984
-#, fuzzy
 msgid "Find next match"
-msgstr "Rechercher le suivant"
+msgstr "Rechercher la correspondance suivante"
 
 #: ../src/giggle-window.c:987
 msgid "Find Pre_vious"
 msgstr "Rechercher le _précédent"
 
 #: ../src/giggle-window.c:988
-#, fuzzy
 msgid "Find previous match"
-msgstr "Rechercher le précédent"
+msgstr "Rechercher la correspondance précédente"
 
 #: ../src/giggle-window.c:994
 msgid "_Project"
@@ -697,19 +681,19 @@ msgstr ""
 
 #: ../src/giggle-window.c:1041
 msgid "Visit _Homepage"
-msgstr ""
+msgstr "Visiter la _Page d'accueil"
 
 #: ../src/giggle-window.c:1042
 msgid "Visit the homepage of Giggle"
-msgstr ""
+msgstr "Visiter la page d'accueil de Giggle"
 
 #: ../src/giggle-window.c:1045
 msgid "Report _Issue"
-msgstr ""
+msgstr "Signaler un problème"
 
 #: ../src/giggle-window.c:1046
 msgid "Report an issue you've found in Giggle"
-msgstr ""
+msgstr "Rapporter un problème trouvé dans Giggle"
 
 #: ../src/giggle-window.c:1050
 msgid "About this application"
@@ -720,18 +704,16 @@ msgid "Show revision tree"
 msgstr "Afficher l'arbre des _révisions"
 
 #: ../src/giggle-window.c:1064
-#, fuzzy
 msgid "Show and edit project properties"
-msgstr "Afficher l'arbre du _projet"
+msgstr "Afficher et modifier les propriétés du projet"
 
 #: ../src/giggle-window.c:1068
 msgid "Refresh current view"
-msgstr ""
+msgstr "Rafraîchir la vue courante"
 
 #: ../src/giggle-window.c:1399
-#, fuzzy
 msgid "Search Inside _Patches"
-msgstr "Rechercher dans les _différences"
+msgstr "Rechercher dans les _Patches"
 
 #: ../src/giggle-window.c:1671
 msgid "Save patch file"
@@ -748,33 +730,32 @@ msgstr ""
 
 #: ../plugins/hello-world.xml.h:1
 msgid "Check if the plugin system works"
-msgstr ""
+msgstr "Vérifier si le système de plugins fonctionne"
 
 #: ../plugins/hello-world.xml.h:2
 msgid "Demonstration of Giggle's Plugin System"
-msgstr ""
+msgstr "Démonstration du système de Plugins de Giggle"
 
 #: ../plugins/hello-world.xml.h:3
 msgid "Hello World"
-msgstr ""
+msgstr "Hello World"
 
 #: ../plugins/personal-details.xml.h:1
-#, fuzzy
 msgid "Edit personal details"
-msgstr "Modifier les informations personnelles"
+msgstr "Modifier ses informations personnelles"
 
 #: ../plugins/terminal-view.xml.h:1
-#, fuzzy
 msgid "Create _Terminal"
-msgstr "Créer une é_tiquette"
+msgstr "Création d'un Terminal"
 
 #: ../plugins/terminal-view.xml.h:2
 msgid "Create new tab in git terminal"
 msgstr ""
 
 #: ../plugins/terminal-view.xml.h:3
+#, fuzzy
 msgid "Terminal window"
-msgstr ""
+msgstr "Fenêtre Terminal"
 
 #~ msgid "Show version"
 #~ msgstr "Affiche la version"
