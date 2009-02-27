@@ -343,7 +343,7 @@ msgstr "Änderungsdetails anzeigen"
 #: ../src/giggle-rev-list-view.c:353
 #, c-format
 msgid "Delete branch \"%s\""
-msgstr "Lösche Zeige “%s”"
+msgstr "Lösche Zweig “%s”"
 
 #: ../src/giggle-rev-list-view.c:356
 #, c-format
