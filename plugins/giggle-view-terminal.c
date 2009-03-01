@@ -169,6 +169,7 @@ giggle_view_terminal_append_tab (GiggleViewTerminal *view,
 	int                     i;
 
 	g_return_if_fail (GIGGLE_IS_VIEW_TERMINAL (view));
+	g_return_if_fail (NULL != directory);
 
 	terminal = vte_terminal_new ();
 	gtk_widget_grab_focus (terminal);
@@ -181,7 +182,8 @@ giggle_view_terminal_append_tab (GiggleViewTerminal *view,
 
 	vte_terminal_fork_command (VTE_TERMINAL (terminal),
 				   shell ? shell : "/bin/sh",
-				   NULL, NULL, NULL, FALSE, FALSE, FALSE);
+				   NULL, NULL, directory,
+				   FALSE, FALSE, FALSE);
 
 	title = g_filename_display_name (directory);
 	label = view_terminal_create_label (view, terminal, title);
