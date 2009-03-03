@@ -21,6 +21,8 @@
 #include "config.h"
 #include "giggle-view-terminal.h"
 
+#include <libgiggle/giggle-clipboard.h>
+
 #include <glib/gi18n.h>
 #include <vte/vte.h>
 
@@ -30,7 +32,12 @@ typedef struct {
 	GtkWidget *notebook;
 } GiggleViewTerminalPriv;
 
-G_DEFINE_TYPE (GiggleViewTerminal, giggle_view_terminal, GIGGLE_TYPE_VIEW)
+static void
+giggle_view_terminal_clipboard_init (GiggleClipboardIface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (GiggleViewTerminal, giggle_view_terminal, GIGGLE_TYPE_VIEW,
+			 G_IMPLEMENT_INTERFACE (GIGGLE_TYPE_CLIPBOARD,
+						giggle_view_terminal_clipboard_init))
 
 static void
 view_terminal_tab_remove_cb (GtkNotebook *notebook,
@@ -178,6 +185,9 @@ giggle_view_terminal_append_tab (GiggleViewTerminal *view,
 	g_signal_connect (terminal, "child-exited",
 			  G_CALLBACK (view_terminal_close_tab), NULL);
 
+	g_signal_connect_swapped (terminal, "selection-changed",
+				  G_CALLBACK (giggle_clipboard_changed), view);
+
 	shell = g_getenv ("SHELL");
 
 	vte_terminal_fork_command (VTE_TERMINAL (terminal),
@@ -199,3 +209,55 @@ giggle_view_terminal_append_tab (GiggleViewTerminal *view,
 	gtk_action_set_visible (giggle_view_get_action (GIGGLE_VIEW (view)), TRUE);
 }
 
+static VteTerminal *
+view_terminal_get_current (GiggleViewTerminal *view)
+{
+	GiggleViewTerminalPriv *priv = GET_PRIV (view);
+	GtkWidget *page;
+	int page_no;
+
+	page_no = gtk_notebook_get_current_page (GTK_NOTEBOOK (priv->notebook));
+	page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->notebook), page_no);
+
+	return VTE_TERMINAL (page);
+
+}
+
+static void
+view_terminal_do_copy (GiggleClipboard *clipboard)
+{
+	GiggleViewTerminal *view = GIGGLE_VIEW_TERMINAL (clipboard);
+	VteTerminal *terminal = view_terminal_get_current (view);
+	vte_terminal_copy_clipboard (terminal);
+}
+
+static gboolean
+view_terminal_can_copy (GiggleClipboard *clipboard)
+{
+	GiggleViewTerminal *view = GIGGLE_VIEW_TERMINAL (clipboard);
+	VteTerminal *terminal = view_terminal_get_current (view);
+	return vte_terminal_get_has_selection (terminal);
+}
+
+static void
+view_terminal_do_paste (GiggleClipboard *clipboard)
+{
+	GiggleViewTerminal *view = GIGGLE_VIEW_TERMINAL (clipboard);
+	VteTerminal *terminal = view_terminal_get_current (view);
+	vte_terminal_paste_clipboard (terminal);
+}
+
+static gboolean
+view_terminal_can_paste (GiggleClipboard *clipboard)
+{
+	return TRUE;
+}
+
+static void
+giggle_view_terminal_clipboard_init (GiggleClipboardIface *iface)
+{
+	iface->do_copy   = view_terminal_do_copy;
+	iface->can_copy  = view_terminal_can_copy;
+	iface->do_paste  = view_terminal_do_paste;
+	iface->can_paste = view_terminal_can_paste;
+}
