@@ -415,23 +415,22 @@ create_pixbuf_from_image (cairo_surface_t *image)
 					 (GdkPixbufDestroyNotify) g_free, NULL);
 }
 
-static GdkPixbuf *
-render_category_icon (GiggleViewFilePriv *priv,
-		      const char         *name)
+static void
+render_chunk_marker (cairo_t    *cr,
+		     const char *name,
+		     int         width,
+		     int         height,
+		     GdkColor   *color)
 {
 	double           r, g, b;
 	double           x0, y0, x1, y1;
-	int              width, height;
-	double           alpha = 0.4;
+	double           alpha = 0.5;
 	gboolean         start = FALSE;
 	gboolean         end = FALSE;
-	GdkPixbuf       *pixbuf;
 	cairo_pattern_t *gradient;
-	cairo_surface_t *image;
-	cairo_t         *canvas;
 
 	if (!g_str_has_prefix (name, "giggle-chunk-"))
-		return NULL;
+		return;
 
 	if (strstr (name, "-selected"))
 		alpha = 1.0;
@@ -440,55 +439,52 @@ render_category_icon (GiggleViewFilePriv *priv,
 	if (strstr (name, "-end"))
 		end = TRUE;
 
-	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height); //--height; /* FIXME */
-
-	image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
-	gradient = cairo_pattern_create_linear (0, 0, 0, height - 1);
-	canvas = cairo_create (image);
-
 	x0 = 2;
 	y0 = 0;
 	x1 = width - 3;
 	y1 = height - 1;
 
-	r = priv->source_view->style->base[GTK_STATE_SELECTED].red   / 65535.0;
-	g = priv->source_view->style->base[GTK_STATE_SELECTED].green / 65535.0;
-	b = priv->source_view->style->base[GTK_STATE_SELECTED].blue  / 65535.0;
+	r = color->red   / 65535.0;
+	g = color->green / 65535.0;
+	b = color->blue  / 65535.0;
+
+	gradient = cairo_pattern_create_linear (0, 0, 0, height);
 
 	if (start) {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.00 * alpha);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.1, r, g, b, 0.15 * alpha);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.4, r, g, b, 0.45 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.0 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.1, r, g, b, 0.3 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.4, r, g, b, 0.8 * alpha);
 
-		cairo_move_to  (canvas, x0,     y0 + 9);
-		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
-		cairo_line_to  (canvas, x1 - 8, y0 + 1);
-		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
+		cairo_move_to  (cr, x0,     y0 + 9);
+		cairo_curve_to (cr, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (cr, x1 - 8, y0 + 1);
+		cairo_curve_to (cr, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
 	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.30 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.0, r, g, b, 0.6 * alpha);
 
-		cairo_move_to (canvas, x0, y0);
-		cairo_line_to (canvas, x1, y0);
+		cairo_move_to (cr, x0, y0);
+		cairo_line_to (cr, x1, y0);
 	}
 
 	if (end) {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.00 * alpha);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.9, r, g, b, 0.15 * alpha);
-		cairo_pattern_add_color_stop_rgba (gradient, 0.6, r, g, b, 0.30 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.0 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.9, r, g, b, 0.3 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 0.6, r, g, b, 0.6 * alpha);
 
-		cairo_line_to  (canvas, x1,     y1 - 9);
-		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
-		cairo_line_to  (canvas, x0 + 8, y1 - 1);
-		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
+		cairo_line_to  (cr, x1,     y1 - 9);
+		cairo_curve_to (cr, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (cr, x0 + 8, y1 - 1);
+		cairo_curve_to (cr, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
 	} else {
-		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.30 * alpha);
+		cairo_pattern_add_color_stop_rgba (gradient, 1.0, r, g, b, 0.6 * alpha);
 
-		cairo_line_to (canvas, x1, y1);
-		cairo_line_to (canvas, x0, y1);
+		cairo_line_to (cr, x1, y1 + 1);
+		cairo_line_to (cr, x0, y1 + 1);
 	}
 
-	cairo_set_source (canvas, gradient);
-	cairo_fill (canvas);
+	cairo_set_source (cr, gradient);
+	cairo_pattern_destroy (gradient);
+	cairo_fill (cr);
 
 	x0 += 0.5;
 	y0 += 0.5;
@@ -497,39 +493,54 @@ render_category_icon (GiggleViewFilePriv *priv,
 
 	if (start) {
 		if (end) {
-			cairo_move_to  (canvas, x0, y0 + 9);
+			cairo_move_to  (cr, x0, y0 + 9);
 		} else {
-			cairo_move_to  (canvas, x0, y1);
-			cairo_line_to  (canvas, x0, y0 + 8);
+			cairo_move_to  (cr, x0, y1);
+			cairo_line_to  (cr, x0, y0 + 8);
 		}
 
-		cairo_curve_to (canvas, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
-		cairo_line_to  (canvas, x1 - 8, y0 + 1);
-		cairo_curve_to (canvas, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
+		cairo_curve_to (cr, x0,     y0 + 1, x0, y0 + 1, x0 + 8, y0 + 1);
+		cairo_line_to  (cr, x1 - 8, y0 + 1);
+		cairo_curve_to (cr, x1,     y0 + 1, x1, y0 + 1, x1,     y0 + 9);
 	} else {
-		cairo_move_to (canvas, x1, y0);
+		cairo_move_to (cr, x1, y0);
 	}
 
 	if (end) {
-		cairo_line_to  (canvas, x1,     y1 - 9);
-		cairo_curve_to (canvas, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
-		cairo_line_to  (canvas, x0 + 8, y1 - 1);
-		cairo_curve_to (canvas, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
+		cairo_line_to  (cr, x1,     y1 - 9);
+		cairo_curve_to (cr, x1,     y1 - 1, x1, y1 - 1, x1 - 8, y1 - 1);
+		cairo_line_to  (cr, x0 + 8, y1 - 1);
+		cairo_curve_to (cr, x0,     y1 - 1, x0, y1 - 1, x0,     y1 - 9);
 	} else {
-		cairo_line_to (canvas, x1, y1 + 1);
-		cairo_move_to (canvas, x0, y1);
+		cairo_line_to (cr, x1, y1 + 1);
+		cairo_move_to (cr, x0, y1);
 	}
 
 	if (!start)
-		cairo_line_to (canvas, x0, y0);
+		cairo_line_to (cr, x0, y0);
 
-	cairo_set_line_width (canvas, 1);
-	cairo_set_source_rgba (canvas, r, g, b, 0.9 * alpha);
-	cairo_stroke (canvas);
+	cairo_set_line_width (cr, 1);
+	cairo_set_source_rgba (cr, r, g, b, alpha);
+	cairo_stroke (cr);
+}
 
+static GdkPixbuf *
+create_category_icon (GiggleViewFilePriv *priv,
+		      const char         *name)
+{
+	int              width, height;
+	GdkColor        *color;
+	GdkPixbuf       *pixbuf;
+	cairo_surface_t *image;
+	cairo_t         *canvas;
+
+	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height);
+	image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+
+	canvas = cairo_create (image);
+	color = &priv->source_view->style->base[GTK_STATE_SELECTED];
 	pixbuf = create_pixbuf_from_image (image);
 
-	cairo_pattern_destroy (gradient);
 	cairo_surface_destroy (image);
 	cairo_destroy (canvas);
 
@@ -546,7 +557,7 @@ create_category (GiggleViewFilePriv *priv,
 					 GTK_ICON_SIZE_MENU, NULL);
 
 	if (!pixbuf)
-		pixbuf = render_category_icon (priv, name);
+		pixbuf = create_category_icon (priv, name);
 	
 	if (pixbuf) {
 		gtk_source_view_set_mark_category_pixbuf
@@ -558,13 +569,11 @@ create_category (GiggleViewFilePriv *priv,
 }
 
 static void
-view_file_style_set (GtkWidget *widget,
-		     GtkStyle  *prev)
+source_view_style_set_cb (GtkWidget      *widget,
+			  GtkStyle       *prev,
+			  GiggleViewFile *view)
 {
-	GiggleViewFilePriv *priv = GET_PRIV (widget);
-
-	if (GTK_WIDGET_CLASS (giggle_view_file_parent_class)->style_set)
-		GTK_WIDGET_CLASS (giggle_view_file_parent_class)->style_set (widget, prev);
+	GiggleViewFilePriv *priv = GET_PRIV (view);
 
 	create_category (priv, "giggle-chunk-start");
 	create_category (priv, "giggle-chunk-start-end");
@@ -577,19 +586,82 @@ view_file_style_set (GtkWidget *widget,
 	create_category (priv, "giggle-chunk-selected-end");
 }
 
+static gboolean
+source_view_expose_event_cb (GtkTextView    *text_view,
+			     GdkEventExpose *event,
+			     GiggleViewFile *view)
+{
+	GiggleViewFilePriv *priv = GET_PRIV (view);
+	GtkSourceBuffer    *buffer;
+	GdkRectangle        visible_rect;
+	int                 y, height;
+	int                 margin_width;
+	GdkWindow          *left_margin;
+	GSList             *markers;
+	const char         *name;
+	GdkColor           *color;
+	GtkTextIter         iter;
+	cairo_t            *cr;
+
+	left_margin = gtk_text_view_get_window (text_view, GTK_TEXT_WINDOW_LEFT);
+
+	if (left_margin != event->window)
+		return FALSE;
+
+	buffer = GTK_SOURCE_BUFFER (gtk_text_view_get_buffer (text_view));
+	color = &priv->source_view->style->base[GTK_STATE_SELECTED];
+
+	cr = gdk_cairo_create (event->window);
+	gdk_cairo_region (cr, event->region);
+	cairo_clip (cr);
+
+	gtk_text_view_get_visible_rect (text_view, &visible_rect);
+	gtk_text_view_get_iter_at_location (text_view, &iter, visible_rect.x, visible_rect.y);
+	visible_rect.y += visible_rect.height;
+
+	gdk_drawable_get_size (left_margin, &margin_width, NULL);
+	cairo_translate (cr, margin_width - 16, 0); /* FIXME: see GB#572785 */
+
+	do {
+		gtk_text_view_get_line_yrange (text_view, &iter, &y, &height);
+
+		if (y >= visible_rect.y)
+			break;
+
+		markers = gtk_source_buffer_get_source_marks_at_iter (buffer, &iter, NULL);
+
+		for (name = NULL; markers; name = NULL) {
+			name = gtk_source_mark_get_category (markers->data);
+
+			if (name && g_str_has_prefix (name, "giggle-chunk-"))
+				break;
+
+			markers = g_slist_delete_link (markers, markers);
+		}
+
+		if (name) /* FIXME: see GB#572785 */
+			render_chunk_marker (cr, name, 16, height, color);
+
+		g_slist_free (markers);
+
+		cairo_translate (cr, 0, height);
+	} while (gtk_text_iter_forward_line (&iter));
+
+	cairo_destroy (cr);
+
+	return FALSE;
+}
+
 static void
 giggle_view_file_class_init (GiggleViewFileClass *class)
 {
 	GObjectClass    *object_class = G_OBJECT_CLASS (class);
-	GtkWidgetClass  *widget_class = GTK_WIDGET_CLASS (class);
 	GiggleViewClass *view_class   = GIGGLE_VIEW_CLASS (class);
 
 	object_class->get_property = view_file_get_property;
 	object_class->set_property = view_file_set_property;
 	object_class->finalize     = view_file_finalize;
 	object_class->dispose      = view_file_dispose;
-
-	widget_class->style_set    = view_file_style_set;
 
 	view_class->add_ui         = view_file_add_ui;
 	view_class->remove_ui      = view_file_remove_ui;
@@ -1440,6 +1512,10 @@ giggle_view_file_init (GiggleViewFile *view)
 
 	g_signal_connect (priv->source_view, "query-tooltip",
 			  G_CALLBACK (source_view_query_tooltip_cb), view);
+	g_signal_connect (priv->source_view, "style-set",
+			  G_CALLBACK (source_view_style_set_cb), view);
+	g_signal_connect (priv->source_view, "expose-event",
+			  G_CALLBACK (source_view_expose_event_cb), view);
 
 	monospaced = pango_font_description_from_string ("Mono");
 	gtk_widget_modify_font (priv->source_view, monospaced);
