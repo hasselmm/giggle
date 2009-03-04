@@ -41,8 +41,9 @@ struct GiggleDiffViewPriv {
 	GtkTextMark *search_mark;
 	gchar       *search_term;
 
-	int	     current_hunk;
+	int          current_hunk;
 	GArray      *files, *hunks;
+	GtkTextTag  *invalid_char;
 
 	/* last run job */
 	GiggleJob   *job;
@@ -56,6 +57,7 @@ struct GiggleDiffViewFile {
 struct GiggleDiffViewHunk {
 	unsigned     file;
 	char        *text;
+	GArray      *errors;
 };
 
 static void       giggle_diff_view_searchable_init (GiggleSearchableIface *iface);
@@ -90,7 +92,8 @@ diff_view_get_hunk (GiggleDiffViewPriv *priv,
 static void
 diff_view_reset_hunks (GiggleDiffViewPriv *priv)
 {
-	unsigned i;
+	GiggleDiffViewHunk *hunk;
+	unsigned            i;
 
 	for (i = 0; i < priv->files->len; ++i) {
 		g_free (diff_view_get_file (priv, i)->filename);
@@ -98,7 +101,12 @@ diff_view_reset_hunks (GiggleDiffViewPriv *priv)
 	}
 
 	for (i = 0; i < priv->hunks->len; ++i) {
-		g_free (diff_view_get_hunk (priv, i)->text);
+		hunk = diff_view_get_hunk (priv, i);
+
+		if (hunk->errors)
+			g_array_free (hunk->errors, TRUE);
+
+		g_free (hunk->text);
 	}
 
 	g_array_set_size (priv->files, 0);
@@ -160,10 +168,59 @@ diff_view_get_property (GObject    *object,
 }
 
 static void
+diff_view_insert_text (GiggleDiffView *view,
+		       GtkTextIter    *iter,
+		       const char     *text,
+		       gssize          len)
+{
+	GiggleDiffViewPriv *priv = GET_PRIV (view);
+	GtkTextBuffer      *buffer;
+	const char         *end;
+	char               *hex;
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+
+	if (len < 0)
+		len = strlen (text);
+
+	while (!g_utf8_validate (text, len, &end)) {
+		/* FIXME: try to create some combined character */
+		hex = g_strdup_printf ("<%02x>", ((int) *end) & 255);
+
+		gtk_text_buffer_insert (buffer, iter, text, end - text);
+		gtk_text_buffer_insert_with_tags (buffer, iter, hex, -1,
+						  priv->invalid_char, NULL);
+
+		len -= (end - text + 1);
+		text = (end + 1);
+
+		g_free (hex);
+	}
+
+	gtk_text_buffer_insert (buffer, iter, text, len);
+}
+
+static void
+diff_view_set_text (GiggleDiffView *view,
+		    const char     *text,
+		    gssize          len)
+{
+	GtkTextIter    start, end;
+	GtkTextBuffer *buffer;
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	gtk_text_buffer_delete (buffer, &start, &end);
+
+	diff_view_insert_text (view, &start, text, len);
+}
+
+static void
 diff_view_set_current_hunk (GiggleDiffView *view,
 			    int             hunk_index)
 {
 	GiggleDiffViewPriv *priv = GET_PRIV (view);
+	int                 hunk_offset, i;
 	GiggleDiffViewHunk *hunk = NULL;
 	GiggleDiffViewFile *file = NULL;
 	GtkTextBuffer      *buffer;
@@ -184,10 +241,24 @@ diff_view_set_current_hunk (GiggleDiffView *view,
 
 	if (file) {
 		gtk_text_buffer_get_end_iter (buffer, &iter);
-		gtk_text_buffer_insert (buffer, &iter, file->header, -1);
+		diff_view_insert_text (view, &iter, file->header, -1);
 
-		gtk_text_buffer_get_end_iter (buffer, &iter);
-		gtk_text_buffer_insert (buffer, &iter, hunk->text, -1);
+		hunk_offset = gtk_text_iter_get_offset (&iter);
+		diff_view_insert_text (view, &iter, hunk->text, -1);
+
+		if (hunk->errors) {
+			for (i = 0; i < hunk->errors->len; i += 2) {
+				int first = g_array_index (hunk->errors, int, i);
+				int last = g_array_index (hunk->errors, int, i + 1);
+
+				GtkTextIter start = iter, end = iter;
+
+				gtk_text_iter_set_offset (&start, first + hunk_offset);
+				gtk_text_iter_set_offset (&end, last + hunk_offset);
+
+				gtk_text_buffer_apply_tag (buffer, priv->invalid_char, &start, &end);
+			}
+		}
 	}
 }
 
@@ -210,13 +281,37 @@ diff_view_set_property (GObject      *object,
 }
 
 static void
+diff_view_style_set (GtkWidget *widget,
+		     GtkStyle  *prev)
+{
+	GiggleDiffViewPriv *priv = GET_PRIV (widget);
+	static const GdkColor red = { 0, 0xffff, 0, 0 };
+	GdkColor *error_color;
+
+	GTK_WIDGET_CLASS (giggle_diff_view_parent_class)->style_set (widget, prev);
+	gtk_widget_style_get (widget, "error-underline-color", &error_color, NULL);
+
+	if (!error_color)
+		error_color = gdk_color_copy (&red);
+
+	g_object_set (priv->invalid_char,
+		      "foreground-gdk", &widget->style->base[GTK_STATE_NORMAL],
+		      "background-gdk", error_color, "style", PANGO_STYLE_ITALIC, NULL);
+
+	gdk_color_free (error_color);
+}
+
+static void
 giggle_diff_view_class_init (GiggleDiffViewClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
+	GObjectClass   *object_class = G_OBJECT_CLASS (class);
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
 	object_class->finalize     = diff_view_finalize;
 	object_class->set_property = diff_view_set_property;
 	object_class->get_property = diff_view_get_property;
+
+	widget_class->style_set    = diff_view_style_set;
 
 	g_object_class_install_property (
 		object_class,
@@ -354,6 +449,8 @@ giggle_diff_view_init (GiggleDiffView *diff_view)
 								 "search-mark",
 								 &iter, FALSE);
 
+		priv->invalid_char = gtk_text_buffer_create_tag (buffer, NULL, NULL);
+
 		g_object_unref (buffer);
 	}
 
@@ -369,6 +466,8 @@ diff_view_append_hunk (GiggleDiffViewPriv  *priv,
 		       GtkTextIter         *end)
 {
 	GiggleDiffViewHunk *hunk;
+	GtkTextIter         iter;
+	int                 first, last;
 
 	if (gtk_text_iter_compare (start, end) < 0) {
 		g_array_set_size (priv->hunks, priv->hunks->len + 1);
@@ -376,6 +475,30 @@ diff_view_append_hunk (GiggleDiffViewPriv  *priv,
 		hunk = diff_view_get_hunk (priv, priv->hunks->len - 1);
 		hunk->text = gtk_text_buffer_get_text (buffer, start, end, FALSE);
 		hunk->file = priv->files->len - 1;
+
+		iter = *start;
+
+		if (gtk_text_iter_has_tag (&iter, priv->invalid_char) ||
+		    gtk_text_iter_forward_to_tag_toggle (&iter, priv->invalid_char)) {
+			hunk->errors = g_array_new (FALSE, FALSE, sizeof first);
+
+			while (gtk_text_iter_compare (&iter, end) < 0) {
+				first = gtk_text_iter_get_offset (&iter)
+				      - gtk_text_iter_get_offset (start);
+
+				if (!gtk_text_iter_forward_to_tag_toggle (&iter, priv->invalid_char))
+					break;
+
+				last = gtk_text_iter_get_offset (&iter)
+				     - gtk_text_iter_get_offset (start);
+
+				g_array_append_val (hunk->errors, first);
+				g_array_append_val (hunk->errors, last);
+
+				if (!gtk_text_iter_forward_to_tag_toggle (&iter, priv->invalid_char))
+					break;
+			}
+		}
 	}
 }
 
@@ -483,11 +606,7 @@ diff_view_job_callback (GiggleGit *git,
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	} else {
-		gtk_text_buffer_set_text (
-			gtk_text_view_get_buffer (GTK_TEXT_VIEW (view)),
-			giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)),
-			-1);
-
+		diff_view_set_text (view, giggle_git_diff_get_result (GIGGLE_GIT_DIFF (job)), -1);
 		diff_view_parse_patch (view);
 
 		if (priv->search_term) {
